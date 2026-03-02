@@ -6,7 +6,7 @@ import { _config, _stores, _log } from "./globals.js";
 import { createContext } from "./context.js";
 import { evaluate } from "./evaluate.js";
 import { findContext, _clearDeclared, _loadTemplateElement, _processTemplateIncludes } from "./dom.js";
-import { processTree } from "./registry.js";
+import { processTree, _disposeTree } from "./registry.js";
 import { _animateIn } from "./animations.js";
 
 export function _createRouter() {
@@ -120,7 +120,8 @@ export function _createRouter() {
       // Find the template for this outlet in the matched route
       const tpl = matched?.route?.outlets?.[outletName];
 
-      // Always clear first
+      // Always clear first — dispose watchers/listeners before wiping DOM
+      _disposeTree(outletEl);
       outletEl.innerHTML = "";
 
       if (tpl) {

@@ -183,7 +183,7 @@ const NoJS = {
   resolve,
 
   // Version
-  version: "1.0.2",
+  version: "1.0.3",
 };
 
 export default NoJS;

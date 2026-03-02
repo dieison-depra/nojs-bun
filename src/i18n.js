@@ -5,6 +5,7 @@
 import { _config } from "./globals.js";
 
 const _i18nListeners = new Set();
+export { _i18nListeners };
 
 export function _watchI18n(fn) {
   _i18nListeners.add(fn);
@@ -20,7 +21,10 @@ export const _i18n = {
   set locale(v) {
     if (this._locale !== v) {
       this._locale = v;
-      _i18nListeners.forEach((fn) => fn());
+      for (const fn of _i18nListeners) {
+        if (fn._el && !fn._el.isConnected) { _i18nListeners.delete(fn); continue; }
+        fn();
+      }
     }
   },
   t(key, params = {}) {

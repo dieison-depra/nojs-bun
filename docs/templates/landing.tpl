@@ -58,7 +58,7 @@
   <p class="v7-bundle-sub">No build step. No bundler. No excuses.</p>
   <div class="v7-bundle-btns">
     <a route="/docs" class="btn btn-primary">Get Started</a>
-    <a route="/docs" class="btn btn-secondary">Read the Docs</a>
+    <a route="/features" class="btn btn-secondary">See the Features</a>
   </div>
 </section>
 
@@ -127,6 +127,6 @@
   <p class="landing-cta-sub">Start using No.JS today.</p>
   <div class="cta-buttons">
     <a route="/docs" class="btn btn-cta-primary">Get Started</a>
-    <a route="/docs" class="btn btn-ghost">Learn More</a>
+    <a route="/features" class="btn btn-ghost">Learn More</a>
   </div>
 </section>

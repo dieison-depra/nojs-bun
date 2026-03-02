@@ -3,7 +3,7 @@
 //  HELPER: _validateField
 // ═══════════════════════════════════════════════════════════════════════
 
-import { _validators } from "../globals.js";
+import { _validators, _onDispose } from "../globals.js";
 import { createContext } from "../context.js";
 import { findContext, _cloneTemplate } from "../dom.js";
 import { registerDirective, processTree } from "../registry.js";
@@ -223,10 +223,12 @@ registerDirective("error-boundary", {
     });
 
     // Listen for window-level errors (resource load failures, etc.)
-    window.addEventListener("error", (e) => {
+    const errorHandler = (e) => {
       if (el.contains(e.target) || el === e.target) {
         showFallback(e.message || "An error occurred");
       }
-    });
+    };
+    window.addEventListener("error", errorHandler);
+    _onDispose(() => window.removeEventListener("error", errorHandler));
   },
 });

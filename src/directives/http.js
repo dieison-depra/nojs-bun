@@ -10,6 +10,7 @@ import {
   _notifyStoreWatchers,
   _emitEvent,
   _routerInstance,
+  _onDispose,
 } from "../globals.js";
 import { createContext } from "../context.js";
 import { evaluate, _execStatement, _interpolate } from "../evaluate.js";
@@ -281,7 +282,8 @@ for (const method of HTTP_METHODS) {
 
       // Polling
       if (refreshInterval > 0) {
-        setInterval(doRequest, refreshInterval);
+        const id = setInterval(doRequest, refreshInterval);
+        _onDispose(() => clearInterval(id));
       }
     },
   });

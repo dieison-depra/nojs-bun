@@ -22,11 +22,11 @@
   </script>
 
 </head>
-<body>
+<body state="{ version: NoJS.version }">
 
   <!-- ═══ PageHeader: 70px, white bg, border-bottom #E2E8F0, padding 0 80px ═══ -->
   <header class="header">
-    <a route="/" class="header-logo"><img src="logo.svg" alt="No.JS" class="logo-img"><span class="logo-title">No<span class="logo-dot">.</span>JS</span></a>
+    <a route="/" class="header-logo"><img src="logo.svg" alt="No.JS" class="logo-img"><span class="logo-title">No<span class="logo-dot">.</span>JS</span><span class="header-version" bind="'v' + version"></span></a>
     <nav class="header-nav">
       <a route="/features">Features</a>
       <a route="/examples">Examples</a>
@@ -78,6 +78,7 @@
       <div class="footer-divider"></div>
       <div class="footer-bottom">
         <span>2026 No.JS - MIT License</span>
+        <span class="footer-version" bind="'No.JS v' + version"></span>
       </div>
     </div>
   </footer>
@@ -141,9 +142,23 @@
             empty: 'Aucun élément trouvé.',
             confirm: 'Êtes-vous sûr de vouloir {action} ?'
           }
+        },
+        pt: {
+          welcome: 'Bem-vindo ao No.JS',
+          greeting: 'Olá, {name}!',
+          items: '{count} item | {count} itens',
+          nav: { home: 'Início', docs: 'Documentação', examples: 'Exemplos' },
+          actions: { save: 'Salvar', cancel: 'Cancelar', delete: 'Excluir' },
+          fruits: { apple: 'Maçã', banana: 'Banana', cherry: 'Cereja' },
+          messages: {
+            success: 'Operação concluída com sucesso!',
+            error: 'Algo deu errado.',
+            empty: 'Nenhum item encontrado.',
+            confirm: 'Tem certeza de que deseja {action}?'
+          }
         }
       },
-      defaultLocale: 'en'
+      defaultLocale: 'pt'
     });
 
     // ── Custom filters (for filter demos) ──

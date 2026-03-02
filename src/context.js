@@ -2,7 +2,7 @@
 //  REACTIVE CONTEXT
 // ═══════════════════════════════════════════════════════════════════════
 
-import { _stores, _refs, _routerInstance } from "./globals.js";
+import { _stores, _refs, _routerInstance, _currentEl } from "./globals.js";
 import { _i18n } from "./i18n.js";
 
 let _batchDepth = 0;
@@ -17,7 +17,10 @@ export function _endBatch() {
   if (_batchDepth === 0 && _batchQueue.size > 0) {
     const fns = [..._batchQueue];
     _batchQueue.clear();
-    fns.forEach((fn) => fn());
+    fns.forEach((fn) => {
+      if (fn._el && !fn._el.isConnected) return;
+      fn();
+    });
   }
 }
 
@@ -32,9 +35,15 @@ export function createContext(data = {}, parent = null) {
     notifying = true;
     try {
       if (_batchDepth > 0) {
-        listeners.forEach((fn) => _batchQueue.add(fn));
+        for (const fn of listeners) {
+          if (fn._el && !fn._el.isConnected) { listeners.delete(fn); continue; }
+          _batchQueue.add(fn);
+        }
       } else {
-        listeners.forEach((fn) => fn());
+        for (const fn of listeners) {
+          if (fn._el && !fn._el.isConnected) { listeners.delete(fn); continue; }
+          fn();
+        }
       }
     } finally {
       notifying = false;
@@ -48,6 +57,7 @@ export function createContext(data = {}, parent = null) {
       if (key === "__listeners") return listeners;
       if (key === "$watch")
         return (fn) => {
+          if (_currentEl) fn._el = _currentEl;
           listeners.add(fn);
           return () => listeners.delete(fn);
         };

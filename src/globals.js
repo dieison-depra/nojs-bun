@@ -30,6 +30,15 @@ export const _cache = new Map();
 export const _refs = {};
 export let _routerInstance = null;
 
+// ─── Lifecycle: tracks the element being processed by processElement ────────
+// Used by ctx.$watch and _onDispose to transparently tag watchers/disposers
+// with the owning DOM element — no changes needed in directive files.
+export let _currentEl = null;
+
+export function _setCurrentEl(el) {
+  _currentEl = el;
+}
+
 export function setRouterInstance(r) {
   _routerInstance = r;
 }
@@ -43,13 +52,28 @@ export function _warn(...args) {
 }
 
 export function _notifyStoreWatchers() {
-  for (const fn of _storeWatchers) fn();
+  for (const fn of _storeWatchers) {
+    if (fn._el && !fn._el.isConnected) {
+      _storeWatchers.delete(fn);
+      continue;
+    }
+    fn();
+  }
 }
 
 export function _watchExpr(expr, ctx, fn) {
   ctx.$watch(fn);
   if (typeof expr === "string" && expr.includes("$store")) {
     _storeWatchers.add(fn);
+  }
+}
+
+// Register a dispose callback on the element currently being processed.
+// Called from directives to clean up intervals, observers, window listeners.
+export function _onDispose(fn) {
+  if (_currentEl) {
+    _currentEl.__disposers = _currentEl.__disposers || [];
+    _currentEl.__disposers.push(fn);
   }
 }
 

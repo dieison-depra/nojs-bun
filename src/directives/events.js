@@ -5,6 +5,7 @@
 import { evaluate, _execStatement } from "../evaluate.js";
 import { findContext } from "../dom.js";
 import { registerDirective } from "../registry.js";
+import { _onDispose } from "../globals.js";
 
 registerDirective("on:*", {
   priority: 20,
@@ -28,14 +29,17 @@ registerDirective("on:*", {
         _execStatement(expr, ctx, { $el: el });
       });
       updatedObserver.observe(el, { childList: true, subtree: true, characterData: true, attributes: true });
+      _onDispose(() => updatedObserver.disconnect());
       return;
     }
     if (event === "error") {
-      window.addEventListener("error", (e) => {
+      const errorHandler = (e) => {
         if (el.contains(e.target) || e.target === el) {
           _execStatement(expr, ctx, { $el: el, $error: e.error || e.message });
         }
-      });
+      };
+      window.addEventListener("error", errorHandler);
+      _onDispose(() => window.removeEventListener("error", errorHandler));
       return;
     }
     if (event === "unmounted") {

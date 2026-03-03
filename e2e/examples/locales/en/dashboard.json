@@ -1,0 +1,6 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "stat": "{n} users online"
+  }
+}

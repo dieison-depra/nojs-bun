@@ -1,15 +1,15 @@
 <!-- Templates — from templates.md -->
 
 <section class="hero-section">
-  <span class="badge">Guides</span>
-  <h1 class="hero-title">Templates</h1>
-  <p class="hero-subtitle">Reusable HTML fragments with variables, slots, and remote loading</p>
+  <span class="badge" t="docs.templates.hero.badge">Guides</span>
+  <h1 class="hero-title" t="docs.templates.hero.title">Templates</h1>
+  <p class="hero-subtitle" t="docs.templates.hero.subtitle">Reusable HTML fragments with variables, slots, and remote loading</p>
 </section>
 
 <div class="doc-content">
 
   <div class="doc-section">
-    <h2 class="doc-title">Basic Template</h2>
+    <h2 class="doc-title" t="docs.templates.basic.title">Basic Template</h2>
     <p class="doc-text">Templates are reusable HTML fragments that are never rendered directly. They are cloned when referenced by directives like <code>then</code>, <code>else</code>, <code>template</code>, <code>loading</code>, <code>error</code>, etc.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;template</span> <span class="hl-attr">id</span>=<span class="hl-str">"userCard"</span><span class="hl-tag">&gt;</span>
   <span class="hl-tag">&lt;div</span> <span class="hl-attr">class</span>=<span class="hl-str">"card"</span><span class="hl-tag">&gt;</span>
@@ -20,7 +20,7 @@
   </div>
 
   <div class="doc-section">
-    <h2 class="doc-title">Template Variables (var)</h2>
+    <h2 class="doc-title" t="docs.templates.var.title">Template Variables (var)</h2>
     <p class="doc-text">Templates can declare which variable they expect from the calling context.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;form</span> <span class="hl-attr">post</span>=<span class="hl-str">"/login"</span> <span class="hl-attr">success</span>=<span class="hl-str">"#loginOk"</span> <span class="hl-attr">error</span>=<span class="hl-str">"#loginFail"</span><span class="hl-tag">&gt;</span>
   ...
@@ -36,7 +36,7 @@
   </div>
 
   <div class="doc-section">
-    <h2 class="doc-title">Template Slots</h2>
+    <h2 class="doc-title" t="docs.templates.slots.title">Template Slots</h2>
     <p class="doc-text">Allow templates to accept projected content.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;template</span> <span class="hl-attr">id</span>=<span class="hl-str">"card"</span><span class="hl-tag">&gt;</span>
   <span class="hl-tag">&lt;div</span> <span class="hl-attr">class</span>=<span class="hl-str">"card"</span><span class="hl-tag">&gt;</span>
@@ -55,7 +55,7 @@
   </div>
 
   <div class="doc-section">
-    <h2 class="doc-title">Remote Templates (src)</h2>
+    <h2 class="doc-title" t="docs.templates.remote.title">Remote Templates (src)</h2>
     <p class="doc-text">Load templates from external HTML files.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;template</span> <span class="hl-attr">id</span>=<span class="hl-str">"header"</span> <span class="hl-attr">src</span>=<span class="hl-str">"/templates/header.html"</span><span class="hl-tag">&gt;&lt;/template&gt;</span>
 <span class="hl-tag">&lt;template</span> <span class="hl-attr">id</span>=<span class="hl-str">"footer"</span> <span class="hl-attr">src</span>=<span class="hl-str">"/templates/footer.html"</span><span class="hl-tag">&gt;&lt;/template&gt;</span></pre></div>
@@ -77,7 +77,7 @@
   </div>
 
   <div class="doc-section">
-    <h2 class="doc-title">Lazy Loading (lazy)</h2>
+    <h2 class="doc-title" t="docs.templates.lazy.title">Lazy Loading (lazy)</h2>
     <p class="doc-text">Control when remote templates are fetched using the <code>lazy</code> attribute on <code>&lt;template src="..."&gt;</code> elements. NoJS loads templates in phases to optimise time-to-first-render.</p>
     <table class="doc-table">
       <thead><tr><th>Value</th><th>Behaviour</th></tr></thead>
@@ -106,7 +106,7 @@
   </div>
 
   <div class="doc-section">
-    <h2 class="doc-title">Loading Placeholder (loading)</h2>
+    <h2 class="doc-title" t="docs.templates.loading.title">Loading Placeholder (loading)</h2>
     <p class="doc-text">Show a placeholder template while a remote template is being fetched. The placeholder is inserted synchronously — before any network request — and removed automatically once the real content arrives. Works for both static content-includes and nested templates inside route pages.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;template</span> <span class="hl-attr">src</span>=<span class="hl-str">"./dashboard.tpl"</span> <span class="hl-attr">loading</span>=<span class="hl-str">"#spinner"</span><span class="hl-tag">&gt;&lt;/template&gt;</span>
 
@@ -124,7 +124,7 @@
   </div>
 
   <div class="doc-section">
-    <h2 class="doc-title">Inline Template Include (include)</h2>
+    <h2 class="doc-title" t="docs.templates.include.title">Inline Template Include (include)</h2>
     <p class="doc-text">Clone an inline template into the current position synchronously, before any fetches. Useful for injecting reusable markup (e.g. icon sets, common fragments) without making a network request.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;template</span> <span class="hl-attr">include</span>=<span class="hl-str">"#icon-set"</span><span class="hl-tag">&gt;&lt;/template&gt;</span>
 

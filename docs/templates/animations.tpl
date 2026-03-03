@@ -1,16 +1,16 @@
 <!-- Animations — from animations.md -->
 
 <section class="hero-section">
-  <span class="badge">Guides</span>
-  <h1 class="hero-title">Animations &amp; Transitions</h1>
-  <p class="hero-subtitle">Declarative enter/leave animations and CSS transitions</p>
+  <span class="badge" t="docs.animations.hero.badge">Guides</span>
+  <h1 class="hero-title" t-html="docs.animations.hero.title">Animations &amp; Transitions</h1>
+  <p class="hero-subtitle" t="docs.animations.hero.subtitle">Declarative enter/leave animations and CSS transitions</p>
 </section>
 
 <div class="doc-content">
 
   <!-- animate -->
   <div class="doc-section">
-    <h2 class="doc-title">animate — Enter/Leave Animations</h2>
+    <h2 class="doc-title" t="docs.animations.enterLeave.title">animate — Enter/Leave Animations</h2>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- CSS animation name on enter --&gt;</span>
 <span class="hl-tag">&lt;div</span> <span class="hl-attr">if</span>=<span class="hl-str">"visible"</span> <span class="hl-attr">animate</span>=<span class="hl-str">"fadeIn"</span><span class="hl-tag">&gt;</span>Content<span class="hl-tag">&lt;/div&gt;</span>
 
@@ -25,7 +25,7 @@
 
   <!-- transition -->
   <div class="doc-section">
-    <h2 class="doc-title">transition — CSS Transition Classes</h2>
+    <h2 class="doc-title" t="docs.animations.transition.title">transition — CSS Transition Classes</h2>
     <p class="doc-text">Follows a convention similar to Vue's transition system.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">if</span>=<span class="hl-str">"show"</span> <span class="hl-attr">transition</span>=<span class="hl-str">"fade"</span><span class="hl-tag">&gt;</span>Content<span class="hl-tag">&lt;/div&gt;</span></pre></div>
 
@@ -52,7 +52,7 @@
 
   <!-- Loop Animations -->
   <div class="doc-section">
-    <h2 class="doc-title">Loop Animations</h2>
+    <h2 class="doc-title" t="docs.animations.loopAnimations.title">Loop Animations</h2>
     <p class="doc-text">Both <code>each</code> and <code>foreach</code> loops support enter/leave animations and stagger.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">each</span>=<span class="hl-str">"item in items"</span>
      <span class="hl-attr">template</span>=<span class="hl-str">"itemTpl"</span>
@@ -64,7 +64,7 @@
 
   <!-- Built-in Animation Names -->
   <div class="doc-section">
-    <h2 class="doc-title">Built-in Animation Names</h2>
+    <h2 class="doc-title" t="docs.animations.builtIn.title">Built-in Animation Names</h2>
     <p class="doc-text">No.JS ships with these CSS animations:</p>
     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
       <span class="badge">fadeIn</span>
@@ -86,7 +86,7 @@
 
   <!-- Live Demo -->
   <div class="doc-section">
-    <h2 class="doc-title">Live Demo — Toggle Animation</h2>
+    <h2 class="doc-title" t="docs.animations.liveDemo.title">Live Demo — Toggle Animation</h2>
     <div class="demo-split">
       <div class="demo-code">
         <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">state</span>=<span class="hl-str">"{ show: true }"</span><span class="hl-tag">&gt;</span>

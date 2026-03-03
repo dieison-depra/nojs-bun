@@ -112,6 +112,8 @@ By default, No.JS loads all remote templates **before the first render** in two 
 
 Remote templates inside route content are also automatically resolved before the route renders. See [Routing → Remote Templates in Routes](routing.md).
 
+> **Tip:** For projects with many route pages, consider [File-Based Routing](routing.md) — point your `route-view` at a folder and let No.JS resolve templates automatically, no explicit `<template route>` declarations needed.
+
 ### Loading Placeholder (`loading`)
 
 Show a placeholder template while a remote file is being fetched. The placeholder is injected **synchronously** before any network request and removed automatically when the real content arrives. Works for both static content-includes and nested templates inside route pages.

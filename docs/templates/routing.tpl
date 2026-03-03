@@ -1,16 +1,16 @@
 <!-- Routing — from routing.md -->
 
 <section class="hero-section">
-  <span class="badge">Guides</span>
-  <h1 class="hero-title">Routing</h1>
-  <p class="hero-subtitle">Full client-side SPA navigation with no page reloads</p>
+  <span class="badge" t="docs.routing.hero.badge">Guides</span>
+  <h1 class="hero-title" t="docs.routing.hero.title">Routing</h1>
+  <p class="hero-subtitle" t="docs.routing.hero.subtitle">Full client-side SPA navigation with no page reloads</p>
 </section>
 
 <div class="doc-content">
 
   <!-- Route Definition -->
   <div class="doc-section">
-    <h2 class="doc-title">Route Definition</h2>
+    <h2 class="doc-title" t="docs.routing.definition.title">Route Definition</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;body&gt;</span>
   <span class="hl-tag">&lt;nav&gt;</span>
     <span class="hl-tag">&lt;a</span> <span class="hl-attr">route</span>=<span class="hl-str">"/"</span><span class="hl-tag">&gt;</span>Home<span class="hl-tag">&lt;/a&gt;</span>
@@ -44,7 +44,7 @@
 
   <!-- Route Parameters & Query -->
   <div class="doc-section">
-    <h2 class="doc-title">Route Parameters &amp; Query</h2>
+    <h2 class="doc-title" t-html="docs.routing.params.title">Route Parameters &amp; Query</h2>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- Params: /users/42 --&gt;</span>
 <span class="hl-tag">&lt;template</span> <span class="hl-attr">route</span>=<span class="hl-str">"/users/:id"</span><span class="hl-tag">&gt;</span>
   <span class="hl-tag">&lt;span</span> <span class="hl-attr">bind</span>=<span class="hl-str">"$route.params.id"</span><span class="hl-tag">&gt;&lt;/span&gt;</span>    <span class="hl-cmt">&lt;!-- "42" --&gt;</span>
@@ -59,7 +59,7 @@
 
   <!-- $route Context -->
   <div class="doc-section">
-    <h2 class="doc-title">$route — Route Context</h2>
+    <h2 class="doc-title" t="docs.routing.context.title">$route — Route Context</h2>
     <table class="doc-table">
       <thead><tr><th>Property</th><th>Description</th></tr></thead>
       <tbody>
@@ -73,7 +73,7 @@
 
   <!-- Active Route Styling -->
   <div class="doc-section">
-    <h2 class="doc-title">Active Route Styling</h2>
+    <h2 class="doc-title" t="docs.routing.activeStyle.title">Active Route Styling</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;a</span> <span class="hl-attr">route</span>=<span class="hl-str">"/"</span> <span class="hl-attr">route-active</span>=<span class="hl-str">"active"</span><span class="hl-tag">&gt;</span>Home<span class="hl-tag">&lt;/a&gt;</span>
 <span class="hl-tag">&lt;a</span> <span class="hl-attr">route</span>=<span class="hl-str">"/about"</span> <span class="hl-attr">route-active</span>=<span class="hl-str">"active"</span><span class="hl-tag">&gt;</span>About<span class="hl-tag">&lt;/a&gt;</span>
 
@@ -83,7 +83,7 @@
 
   <!-- Route Guards -->
   <div class="doc-section">
-    <h2 class="doc-title">Route Guards</h2>
+    <h2 class="doc-title" t="docs.routing.guards.title">Route Guards</h2>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- Redirect if not authenticated --&gt;</span>
 <span class="hl-tag">&lt;template</span> <span class="hl-attr">route</span>=<span class="hl-str">"/dashboard"</span>
           <span class="hl-attr">guard</span>=<span class="hl-str">"$store.auth.user"</span>
@@ -101,7 +101,7 @@
 
   <!-- Programmatic Navigation -->
   <div class="doc-section">
-    <h2 class="doc-title">Programmatic Navigation</h2>
+    <h2 class="doc-title" t="docs.routing.programmatic.title">Programmatic Navigation</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;button</span> <span class="hl-attr">on:click</span>=<span class="hl-str">"$router.push('/users/42')"</span><span class="hl-tag">&gt;</span>Go to User<span class="hl-tag">&lt;/button&gt;</span>
 <span class="hl-tag">&lt;button</span> <span class="hl-attr">on:click</span>=<span class="hl-str">"$router.back()"</span><span class="hl-tag">&gt;</span>Go Back<span class="hl-tag">&lt;/button&gt;</span>
 <span class="hl-tag">&lt;button</span> <span class="hl-attr">on:click</span>=<span class="hl-str">"$router.replace('/new-path')"</span><span class="hl-tag">&gt;</span>Replace<span class="hl-tag">&lt;/button&gt;</span></pre></div>
@@ -115,7 +115,7 @@
 
   <!-- Nested Routes -->
   <div class="doc-section">
-    <h2 class="doc-title">Nested Routes</h2>
+    <h2 class="doc-title" t="docs.routing.nested.title">Nested Routes</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;template</span> <span class="hl-attr">route</span>=<span class="hl-str">"/settings"</span> <span class="hl-attr">id</span>=<span class="hl-str">"settingsPage"</span><span class="hl-tag">&gt;</span>
   <span class="hl-tag">&lt;nav&gt;</span>
     <span class="hl-tag">&lt;a</span> <span class="hl-attr">route</span>=<span class="hl-str">"/settings/profile"</span><span class="hl-tag">&gt;</span>Profile<span class="hl-tag">&lt;/a&gt;</span>
@@ -135,7 +135,7 @@
 
   <!-- Remote Templates in Routes -->
   <div class="doc-section">
-    <h2 class="doc-title">Remote Templates in Routes</h2>
+    <h2 class="doc-title" t="docs.routing.remoteTemplates.title">Remote Templates in Routes</h2>
     <p class="doc-text">Route templates can include <code>&lt;template src="..."&gt;</code> to load content from external files. They are automatically resolved before the route renders:</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;template</span> <span class="hl-attr">route</span>=<span class="hl-str">"/dashboard"</span><span class="hl-tag">&gt;</span>
   <span class="hl-tag">&lt;template</span> <span class="hl-attr">src</span>=<span class="hl-str">"/partials/dash-header.html"</span><span class="hl-tag">&gt;&lt;/template&gt;</span>
@@ -145,9 +145,69 @@
     <p class="doc-text">Nested remote templates (a remote template that itself contains more <code>&lt;template src&gt;</code>) are recursively loaded.</p>
   </div>
 
+  <!-- File-Based Routing -->
+  <div class="doc-section">
+    <h2 class="doc-title" t="docs.routing.fileBased.title">File-Based Routing</h2>
+    <p class="doc-text">Instead of declaring each route template manually, point your <code>route-view</code> outlet at a folder. No.JS will automatically resolve route paths to template files inside that folder.</p>
+    <div class="code-block"><pre><span class="hl-cmt">&lt;!-- Traditional (explicit) routing --&gt;</span>
+<span class="hl-tag">&lt;template</span> <span class="hl-attr">route</span>=<span class="hl-str">"/"</span> <span class="hl-attr">src</span>=<span class="hl-str">"./pages/overview.tpl"</span><span class="hl-tag">&gt;&lt;/template&gt;</span>
+<span class="hl-tag">&lt;template</span> <span class="hl-attr">route</span>=<span class="hl-str">"/analytics"</span> <span class="hl-attr">src</span>=<span class="hl-str">"./pages/analytics.tpl"</span><span class="hl-tag">&gt;&lt;/template&gt;</span>
+<span class="hl-tag">&lt;template</span> <span class="hl-attr">route</span>=<span class="hl-str">"/users"</span> <span class="hl-attr">src</span>=<span class="hl-str">"./pages/users.tpl"</span><span class="hl-tag">&gt;&lt;/template&gt;</span>
+
+<span class="hl-cmt">&lt;!-- File-based routing &mdash; one line replaces all of the above! --&gt;</span>
+<span class="hl-tag">&lt;main</span> <span class="hl-attr">route-view</span> <span class="hl-attr">src</span>=<span class="hl-str">"./pages/"</span> <span class="hl-attr">route-index</span>=<span class="hl-str">"overview"</span><span class="hl-tag">&gt;&lt;/main&gt;</span></pre></div>
+    <h3 class="doc-subtitle">How it works</h3>
+    <ol class="doc-list">
+      <li>Add <code>route-view</code> to your outlet element &mdash; file-based routing is enabled by default (config <code>router.templates: "pages"</code>). Override per-outlet with <code>src="folder/"</code>.</li>
+      <li>When a user navigates to <code>/analytics</code>, No.JS resolves it to <code>pages/analytics.tpl</code></li>
+      <li>The template is fetched, cached, and rendered &mdash; automatically</li>
+    </ol>
+    <h3 class="doc-subtitle">Attributes</h3>
+    <table class="doc-table">
+      <thead><tr><th>Attribute</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>src</code></td><td><code>"pages"</code></td><td>Base folder for template resolution (per-outlet override; config: <code>router.templates</code>)</td></tr>
+        <tr><td><code>route-index</code></td><td><code>"index"</code></td><td>Filename for the root route <code>/</code></td></tr>
+        <tr><td><code>ext</code></td><td><code>".tpl"</code></td><td>File extension appended to route segments (fallback: <code>".html"</code>)</td></tr>
+        <tr><td><code>i18n-ns</code></td><td>&mdash;</td><td>When present, auto-derives i18n namespace from filename</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <p><strong>Config default:</strong> The default <code>router.templates</code> is <code>"pages"</code>, so file-based routing works out of the box &mdash; just add <code>route-view</code> to your outlet. Override with <code>NoJS.config({ router: { templates: 'views' } })</code> or per-outlet via <code>src="./custom/"</code>.</p>
+    </div>
+    <h3 class="doc-subtitle">Example &mdash; SaaS Dashboard</h3>
+    <div class="code-block"><pre><span class="hl-cmt">pages/</span>
+<span class="hl-cmt">├── overview.tpl    ← /</span>
+<span class="hl-cmt">├── analytics.tpl   ← /analytics</span>
+<span class="hl-cmt">├── users.tpl       ← /users</span>
+<span class="hl-cmt">├── revenue.tpl     ← /revenue</span>
+<span class="hl-cmt">├── billing.tpl     ← /billing</span>
+<span class="hl-cmt">└── settings.tpl    ← /settings</span></pre></div>
+    <div class="code-block"><pre><span class="hl-tag">&lt;template</span> <span class="hl-attr">src</span>=<span class="hl-str">"./components/sidebar.tpl"</span><span class="hl-tag">&gt;&lt;/template&gt;</span>
+
+<span class="hl-tag">&lt;main</span> <span class="hl-attr">route-view</span> <span class="hl-attr">src</span>=<span class="hl-str">"./pages/"</span> <span class="hl-attr">route-index</span>=<span class="hl-str">"overview"</span><span class="hl-tag">&gt;&lt;/main&gt;</span></pre></div>
+    <p class="doc-text">That&rsquo;s it &mdash; <strong>two lines</strong> for a full SPA with six routes.</p>
+    <h3 class="doc-subtitle">Mixing Explicit &amp; File-Based Routes</h3>
+    <p class="doc-text">Explicit <code>&lt;template route="..."&gt;</code> declarations <strong>always take priority</strong>. This lets you combine both approaches &mdash; use file-based routing for simple pages and explicit templates for routes that need guards, params, or named outlets:</p>
+    <div class="code-block"><pre><span class="hl-cmt">&lt;!-- File-based routing handles most pages automatically --&gt;</span>
+<span class="hl-tag">&lt;main</span> <span class="hl-attr">route-view</span> <span class="hl-attr">src</span>=<span class="hl-str">"./pages/"</span><span class="hl-tag">&gt;&lt;/main&gt;</span>
+
+<span class="hl-cmt">&lt;!-- Explicit route for param-based pages --&gt;</span>
+<span class="hl-tag">&lt;template</span> <span class="hl-attr">route</span>=<span class="hl-str">"/users/:id"</span> <span class="hl-attr">src</span>=<span class="hl-str">"./pages/user-detail.tpl"</span><span class="hl-tag">&gt;&lt;/template&gt;</span>
+
+<span class="hl-cmt">&lt;!-- Explicit route with guard --&gt;</span>
+<span class="hl-tag">&lt;template</span> <span class="hl-attr">route</span>=<span class="hl-str">"/admin"</span> <span class="hl-attr">src</span>=<span class="hl-str">"./pages/admin.tpl"</span>
+          <span class="hl-attr">guard</span>=<span class="hl-str">"$store.auth.isAdmin"</span> <span class="hl-attr">redirect</span>=<span class="hl-str">"/"</span><span class="hl-tag">&gt;&lt;/template&gt;</span></pre></div>
+    <h3 class="doc-subtitle">Auto i18n Namespace</h3>
+    <p class="doc-text">When the <code>route-view</code> element has an <code>i18n-ns</code> attribute (even without a value), No.JS automatically loads the i18n namespace matching the filename:</p>
+    <div class="code-block"><pre><span class="hl-cmt">&lt;!-- Auto-derives namespace: "/" &rarr; "landing", "/features" &rarr; "features", etc. --&gt;</span>
+<span class="hl-tag">&lt;main</span> <span class="hl-attr">route-view</span> <span class="hl-attr">src</span>=<span class="hl-str">"templates/"</span> <span class="hl-attr">route-index</span>=<span class="hl-str">"landing"</span> <span class="hl-attr">i18n-ns</span><span class="hl-tag">&gt;&lt;/main&gt;</span></pre></div>
+    <p class="doc-text">This replaces the need to add <code>i18n-ns="..."</code> on each route template individually.</p>
+  </div>
+
   <!-- Lazy Template Loading -->
   <div class="doc-section">
-    <h2 class="doc-title">Lazy Template Loading</h2>
+    <h2 class="doc-title" t="docs.routing.lazyLoading.title">Lazy Template Loading</h2>
     <p class="doc-text">The <code>lazy</code> attribute on <code>&lt;template src="..."&gt;</code> controls when a remote template is fetched relative to the first render. Use it to prioritise critical templates and defer heavy or rarely-visited pages.</p>
     <table class="doc-table">
       <thead><tr><th>Value</th><th>Phase</th><th>Behaviour</th></tr></thead>
@@ -172,7 +232,7 @@
 
   <!-- Anchor Links in Hash Mode -->
   <div class="doc-section">
-    <h2 class="doc-title">Anchor Links in Hash Mode</h2>
+    <h2 class="doc-title" t="docs.routing.anchor.title">Anchor Links in Hash Mode</h2>
     <p class="doc-text">When using <code>mode: 'hash'</code>, the URL hash (<code>#</code>) is used for routing (e.g. <code>#/docs</code>). This normally conflicts with standard anchor links like <code>&lt;a href="#section"&gt;</code> &mdash; but No.JS handles it automatically.</p>
     <p class="doc-text">Anchor links that point to an element <code>id</code> on the page are intercepted by the router: the target element is scrolled into view smoothly, and the clicked link receives an <code>active</code> class. The route itself is <strong>not</strong> affected.</p>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- These work in hash mode &mdash; no special attributes needed --&gt;</span>
@@ -207,7 +267,7 @@
 
   <!-- Named Outlets (route-view) -->
   <div class="doc-section">
-    <h2 class="doc-title">Named Outlets (route-view)</h2>
+    <h2 class="doc-title" t="docs.routing.namedOutlets.title">Named Outlets (route-view)</h2>
     <p class="doc-text">Multiple <code>route-view</code> outlets can coexist in the same page. Give each outlet a name via the attribute value, and point route templates at specific outlets using the <code>outlet</code> attribute.</p>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- Layout with named outlets --&gt;</span>
 <span class="hl-tag">&lt;main</span> <span class="hl-attr">route-view</span><span class="hl-tag">&gt;&lt;/main&gt;</span>            <span class="hl-cmt">&lt;!-- "default" outlet --&gt;</span>

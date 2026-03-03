@@ -5,6 +5,7 @@
 import { evaluate } from "../evaluate.js";
 import { findContext } from "../dom.js";
 import { registerDirective } from "../registry.js";
+import { _watchI18n } from "../i18n.js";
 
 registerDirective("class-*", {
   priority: 20,
@@ -51,6 +52,7 @@ registerDirective("class-*", {
       el.classList.toggle(suffix, !!evaluate(expr, ctx));
     }
     ctx.$watch(update);
+    if (expr.includes("NoJS.locale")) _watchI18n(update);
     update();
   },
 });

@@ -34,7 +34,9 @@
     router: {
       mode: 'hash',           // 'hash' | 'history'
       base: '/',
-      scrollBehavior: 'top'   // 'top' | 'preserve' | 'smooth'
+      scrollBehavior: 'top',  // 'top' | 'preserve' | 'smooth'
+      templates: 'pages',       // Default base path for file-based routing (default: 'pages')
+      ext: '.tpl'              // Default file extension for file-based routing (fallback: '.html')
     },
     // Note: In hash mode, standard anchor links (href="#id")
     // are automatically intercepted — they scroll to the target
@@ -44,7 +46,10 @@
     i18n: {
       defaultLocale: 'en',
       fallbackLocale: 'en',
-      detectBrowser: true
+      detectBrowser: true,
+      loadPath: '/locales/{locale}.json',  // Load from external JSON (default: null)
+      ns: ['common'],           // Namespaces to preload (default: [])
+      cache: true               // Cache fetched locale files (default: true)
     },
 
     // Debugging
@@ -132,6 +137,44 @@ NoJS.config({ templates: { cache: true } });
 ```
 
 Set to `false` during local development if you want changes to `.tpl` files to be reflected without a hard page reload.
+
+---
+
+### `i18n.loadPath`
+
+**Type:** `string | null` | **Default:** `null`
+
+URL template for loading locale JSON files via `fetch`. Use `{locale}` and optionally `{ns}` as placeholders. When `null`, translations must be provided inline via `NoJS.i18n({ locales })`.
+
+```js
+NoJS.i18n({
+  loadPath: '/locales/{locale}.json'          // Flat mode
+  loadPath: '/locales/{locale}/{ns}.json'   // Namespace mode
+});
+```
+
+### `i18n.ns`
+
+**Type:** `string[]` | **Default:** `[]`
+
+Array of namespace identifiers to preload at `init()`. Each namespace corresponds to a separate JSON file per locale. Additional namespaces can be loaded on-demand via the `i18n-ns` directive or route attribute.
+
+```js
+NoJS.i18n({
+  loadPath: '/locales/{locale}/{ns}.json',
+  ns: ['common', 'auth']
+});
+```
+
+### `i18n.cache`
+
+**Type:** `boolean` | **Default:** `true`
+
+Controls whether fetched locale JSON files are stored in an in-memory `Map` after the first request. Set to `false` during development for hot-reload of translation files.
+
+```js
+NoJS.i18n({ cache: false }); // Always re-fetch locale files
+```
 
 ---
 

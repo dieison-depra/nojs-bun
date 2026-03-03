@@ -2,7 +2,7 @@
 //  i18n SYSTEM
 // ═══════════════════════════════════════════════════════════════════════
 
-import { _config } from "./globals.js";
+import { _config, _warn } from "./globals.js";
 
 const _i18nListeners = new Set();
 export { _i18nListeners };
@@ -10,6 +10,73 @@ export { _i18nListeners };
 export function _watchI18n(fn) {
   _i18nListeners.add(fn);
   return () => _i18nListeners.delete(fn);
+}
+
+// ─── Notify all i18n listeners (shared by setter + directive) ────────
+export function _notifyI18n() {
+  for (const fn of _i18nListeners) {
+    if (fn._el && !fn._el.isConnected) { _i18nListeners.delete(fn); continue; }
+    fn();
+  }
+}
+
+// ─── Deep merge (recursive, returns new object) ─────────────────────
+export function _deepMerge(target, source) {
+  const out = { ...target };
+  for (const key of Object.keys(source)) {
+    if (
+      source[key] && typeof source[key] === "object" && !Array.isArray(source[key]) &&
+      target[key] && typeof target[key] === "object" && !Array.isArray(target[key])
+    ) {
+      out[key] = _deepMerge(target[key], source[key]);
+    } else {
+      out[key] = source[key];
+    }
+  }
+  return out;
+}
+
+// ─── Locale file cache: Map<string, object>  key = "en" or "en:dashboard"
+export const _i18nCache = new Map();
+export const _loadedNs = new Set();
+
+// ─── Fetch a single JSON file and merge into _i18n.locales[locale] ──
+export async function _loadLocale(locale, ns) {
+  const cacheKey = ns ? `${locale}:${ns}` : locale;
+  if (_config.i18n.cache && _i18nCache.has(cacheKey)) return;
+
+  let url = _config.i18n.loadPath.replace("{locale}", locale);
+  if (ns) url = url.replace("{ns}", ns);
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) { _warn(`i18n: failed to load ${url} (${res.status})`); return; }
+    const data = await res.json();
+    const toMerge = ns ? { [ns]: data } : data;
+    _i18n.locales[locale] = _deepMerge(_i18n.locales[locale] || {}, toMerge);
+    if (_config.i18n.cache) _i18nCache.set(cacheKey, data);
+  } catch (e) {
+    _warn(`i18n: error loading ${url}`, e);
+  }
+}
+
+// ─── Load all configured data for a locale (flat or all namespaces) ──
+export async function _loadI18nForLocale(locale) {
+  if (!_config.i18n.loadPath) return;
+  const ns = _config.i18n.ns;
+  if (!ns.length || !_config.i18n.loadPath.includes("{ns}")) {
+    await _loadLocale(locale, null);
+  } else {
+    await Promise.all(ns.map((n) => _loadLocale(locale, n)));
+  }
+}
+
+// ─── Load a single namespace for current + fallback locales ──────────
+export async function _loadI18nNamespace(ns) {
+  if (!_config.i18n.loadPath) return;
+  _loadedNs.add(ns);
+  const locales = new Set([_i18n.locale, _config.i18n.fallbackLocale]);
+  await Promise.all([...locales].map((l) => _loadLocale(l, ns)));
 }
 
 export const _i18n = {
@@ -21,9 +88,15 @@ export const _i18n = {
   set locale(v) {
     if (this._locale !== v) {
       this._locale = v;
-      for (const fn of _i18nListeners) {
-        if (fn._el && !fn._el.isConnected) { _i18nListeners.delete(fn); continue; }
-        fn();
+      if (_config.i18n.persist && typeof localStorage !== "undefined") {
+        try { localStorage.setItem("nojs-locale", v); } catch (_) {}
+      }
+      if (_config.i18n.loadPath) {
+        // Load configured ns + any route-loaded ns for the new locale
+        const allNs = new Set([..._config.i18n.ns, ..._loadedNs]);
+        Promise.all([...allNs].map((n) => _loadLocale(v, n))).then(() => _notifyI18n());
+      } else {
+        _notifyI18n();
       }
     }
   },

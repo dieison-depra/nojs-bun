@@ -13,6 +13,7 @@ export function _createRouter() {
   const routes = [];
   let current = { path: "", params: {}, query: {}, hash: "" };
   const listeners = new Set();
+  const _autoTemplateCache = new Map();
 
   function _getOrCreateEntry(path) {
     let entry = routes.find((r) => r.path === path);
@@ -118,7 +119,35 @@ export function _createRouter() {
       const outletName = outletAttr && outletAttr.trim() !== "" ? outletAttr.trim() : "default";
 
       // Find the template for this outlet in the matched route
-      const tpl = matched?.route?.outlets?.[outletName];
+      let tpl = matched?.route?.outlets?.[outletName];
+
+      // ── File-based routing: auto-resolve from route-view[src] or config ──
+      const configTemplates = _config.router.templates || "";
+      if (!tpl && (outletEl.hasAttribute("src") || configTemplates)) {
+        const rawSrc = outletEl.getAttribute("src") || configTemplates;
+        const baseSrc = rawSrc.replace(/\/?$/, "/");
+        const ext = outletEl.getAttribute("ext") || _config.router.ext || ".html";
+        const indexName = outletEl.getAttribute("route-index") || "index";
+        const segment = current.path === "/" ? indexName : current.path.replace(/^\//, "");
+        const fullSrc = baseSrc + segment + ext;
+        const cacheKey = outletName + ":" + fullSrc;
+
+        if (_autoTemplateCache.has(cacheKey)) {
+          tpl = _autoTemplateCache.get(cacheKey);
+        } else {
+          tpl = document.createElement("template");
+          tpl.setAttribute("src", fullSrc);
+          tpl.setAttribute("route", current.path);
+          document.body.appendChild(tpl);
+          _autoTemplateCache.set(cacheKey, tpl);
+          _log("[ROUTER] File-based route:", current.path, "→", fullSrc);
+        }
+
+        // Auto i18n namespace (convention: filename = namespace)
+        if (outletEl.hasAttribute("i18n-ns") && !tpl.getAttribute("i18n-ns")) {
+          tpl.setAttribute("i18n-ns", segment);
+        }
+      }
 
       // Always clear first — dispose watchers/listeners before wiping DOM
       _disposeTree(outletEl);
@@ -129,6 +158,13 @@ export function _createRouter() {
         if (tpl.getAttribute("src") && !tpl.__srcLoaded) {
           _log("Loading route template on demand:", tpl.getAttribute("src"));
           await _loadTemplateElement(tpl);
+        }
+
+        // i18n namespace loading for route template
+        const i18nNs = tpl.getAttribute("i18n-ns");
+        if (i18nNs) {
+          const { _loadI18nNamespace } = await import("./i18n.js");
+          await _loadI18nNamespace(i18nNs);
         }
 
         const clone = tpl.content.cloneNode(true);
@@ -177,10 +213,10 @@ export function _createRouter() {
       if (exactClass) {
         link.classList.toggle(exactClass, current.path === routePath);
       } else if (activeClass && !link.hasAttribute("route-active-exact")) {
-        link.classList.toggle(
-          activeClass,
-          current.path.startsWith(routePath),
-        );
+        const isActive = routePath === "/"
+          ? current.path === "/"
+          : current.path.startsWith(routePath);
+        link.classList.toggle(activeClass, isActive);
       }
     });
 

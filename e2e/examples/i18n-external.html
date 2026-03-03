@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NoJS – i18n External Files</title>
+  <style>
+    body { font-family: sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    section { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+    .test-label { font-size: .85rem; color: #888; margin: 0 0 .25rem; }
+    .value { font-weight: 600; }
+    button { margin: .25rem .25rem .25rem 0; padding: .35rem .75rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <h1>i18n — External Files</h1>
+
+  <!-- 1. Basic external translation -->
+  <section>
+    <p class="test-label">External basic translation</p>
+    <span class="value" t="ext_welcome" data-test="ext-welcome"></span>
+  </section>
+
+  <!-- 2. External parameterized -->
+  <section state="{ who: 'Bob' }">
+    <p class="test-label">External parameterized</p>
+    <span class="value" t="ext_greeting" t-name="who" data-test="ext-greeting"></span>
+  </section>
+
+  <!-- 3. External pluralization -->
+  <section state="{ n: 1 }">
+    <p class="test-label">External pluralization</p>
+    <span class="value" t="ext_items" t-count="n" data-test="ext-plural"></span>
+    <div>
+      <button data-test="ext-set-many" on:click="n = 7">Set 7</button>
+    </div>
+  </section>
+
+  <!-- 4. Locale switch with external fetch -->
+  <section>
+    <p class="test-label">Locale switch (external)</p>
+    <span class="value" t="ext_welcome" data-test="ext-switch-text"></span>
+    <div>
+      <button data-test="ext-lang-es" on:click="$i18n.locale = 'es'">Español</button>
+      <button data-test="ext-lang-en" on:click="$i18n.locale = 'en'">English</button>
+    </div>
+  </section>
+
+  <!-- 5. Namespace via i18n-ns on element -->
+  <section i18n-ns="dashboard">
+    <p class="test-label">Namespace directive</p>
+    <span class="value" t="dashboard.title" data-test="ns-title"></span>
+  </section>
+
+  <script src="../../dist/iife/no.js"></script>
+  <script>
+    NoJS.i18n({
+      defaultLocale: 'en',
+      fallbackLocale: 'en',
+      loadPath: './locales/{locale}/{ns}.json',
+      ns: ['common']
+    });
+    NoJS.init();
+  </script>
+</body>
+</html>

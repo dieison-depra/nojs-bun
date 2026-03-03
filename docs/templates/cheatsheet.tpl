@@ -1,16 +1,16 @@
 <!-- Cheatsheet — from cheatsheet.md -->
 
 <section class="hero-section">
-  <span class="badge">API Reference</span>
-  <h1 class="hero-title">Directive Cheatsheet</h1>
-  <p class="hero-subtitle">Complete reference of every No.JS directive</p>
+  <span class="badge" t="docs.cheatsheet.hero.badge">API Reference</span>
+  <h1 class="hero-title" t="docs.cheatsheet.hero.title">Directive Cheatsheet</h1>
+  <p class="hero-subtitle" t="docs.cheatsheet.hero.subtitle">Complete reference of every No.JS directive</p>
 </section>
 
 <div class="doc-content">
 
   <!-- Data -->
   <div class="doc-section">
-    <h2 class="doc-title">Data</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.data.title">Data</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>
@@ -39,7 +39,7 @@
 
   <!-- State -->
   <div class="doc-section">
-    <h2 class="doc-title">State</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.state.title">State</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>
@@ -55,7 +55,7 @@
 
   <!-- Rendering -->
   <div class="doc-section">
-    <h2 class="doc-title">Rendering</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.rendering.title">Rendering</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>
@@ -77,7 +77,7 @@
 
   <!-- Loops -->
   <div class="doc-section">
-    <h2 class="doc-title">Loops</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.loops.title">Loops</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>
@@ -97,7 +97,7 @@
 
   <!-- Events -->
   <div class="doc-section">
-    <h2 class="doc-title">Events</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.events.title">Events</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>
@@ -117,7 +117,7 @@
 
   <!-- Styling -->
   <div class="doc-section">
-    <h2 class="doc-title">Styling</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.styling.title">Styling</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>
@@ -131,7 +131,7 @@
 
   <!-- Forms -->
   <div class="doc-section">
-    <h2 class="doc-title">Forms</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.forms.title">Forms</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>
@@ -147,13 +147,17 @@
 
   <!-- Routing -->
   <div class="doc-section">
-    <h2 class="doc-title">Routing</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.routing.title">Routing</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td><code>route</code></td><td><code>route="/path"</code></td><td>Define route or link</td></tr>
         <tr><td><code>route-view</code></td><td><code>route-view</code></td><td>Route outlet</td></tr>
         <tr><td><code>route-view="name"</code></td><td><code>&lt;aside route-view="sidebar"&gt;</code></td><td>Named route outlet</td></tr>
+        <tr><td><code>route-view[src]</code></td><td><code>&lt;main route-view src="./pages/"&gt;</code></td><td>File-based routing outlet</td></tr>
+        <tr><td><code>route-index</code></td><td><code>route-index="overview"</code></td><td>Filename for root <code>/</code> (default <code>"index"</code>)</td></tr>
+        <tr><td><code>ext</code></td><td><code>ext=".html"</code></td><td>File extension (default <code>".tpl"</code>, fallback <code>".html"</code>)</td></tr>
+        <tr><td><code>i18n-ns</code></td><td><code>i18n-ns</code></td><td>Auto-derive i18n namespace from route filename</td></tr>
         <tr><td><code>outlet</code></td><td><code>&lt;template route="/x" outlet="sidebar"&gt;</code></td><td>Target a named outlet</td></tr>
         <tr><td><code>route-active</code></td><td><code>route-active="cls"</code></td><td>Active link class</td></tr>
         <tr><td><code>guard</code></td><td><code>guard="expr"</code></td><td>Route guard condition</td></tr>
@@ -170,7 +174,7 @@
 
   <!-- Animation -->
   <div class="doc-section">
-    <h2 class="doc-title">Animation</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.animation.title">Animation</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>
@@ -186,7 +190,7 @@
 
   <!-- i18n -->
   <div class="doc-section">
-    <h2 class="doc-title">i18n</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.i18n.title">i18n</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>
@@ -198,7 +202,7 @@
 
   <!-- Misc -->
   <div class="doc-section">
-    <h2 class="doc-title">Misc</h2>
+    <h2 class="doc-title" t="docs.cheatsheet.misc.title">Misc</h2>
     <table class="doc-table">
       <thead><tr><th>Directive</th><th>Example</th><th>Description</th></tr></thead>
       <tbody>

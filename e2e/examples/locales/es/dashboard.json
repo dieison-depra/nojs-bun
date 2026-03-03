@@ -1,0 +1,6 @@
+{
+  "dashboard": {
+    "title": "Panel",
+    "stat": "{n} usuarios en línea"
+  }
+}

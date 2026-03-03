@@ -4,6 +4,7 @@
 
 import { _config, _stores, setRouterInstance } from '../src/globals.js';
 import { _createRouter } from '../src/router.js';
+import { _templateHtmlCache } from '../src/dom.js';
 
 describe('Router', () => {
   let router;
@@ -961,6 +962,422 @@ describe('on-demand template loading', () => {
     await router.push('/about');
 
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  FILE-BASED ROUTING
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('File-based routing', () => {
+  beforeEach(() => {
+    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top', templates: 'pages', ext: '.tpl' };
+    document.body.innerHTML = '';
+    window.location.hash = '';
+    window.scrollTo = jest.fn();
+    setRouterInstance(null);
+    global.fetch = jest.fn().mockResolvedValue({
+      text: () => Promise.resolve('<p class="auto-content">Auto Loaded</p>'),
+    });
+  });
+
+  afterEach(() => {
+    setRouterInstance(null);
+    Object.keys(_stores).forEach((k) => delete _stores[k]);
+    document.body.innerHTML = '';
+    window.location.hash = '';
+    delete global.fetch;
+  });
+
+  test('auto-resolves route from route-view[src] folder', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './pages/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/analytics');
+
+    expect(global.fetch).toHaveBeenCalledWith('pages/analytics.tpl');
+    expect(outlet.querySelector('.auto-content')).not.toBeNull();
+  });
+
+  test('uses route-index for root path /', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './pages/');
+    outlet.setAttribute('route-index', 'overview');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/');
+
+    expect(global.fetch).toHaveBeenCalledWith('pages/overview.tpl');
+  });
+
+  test('defaults route-index to "index" when not specified', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './pages/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/');
+
+    expect(global.fetch).toHaveBeenCalledWith('pages/index.tpl');
+  });
+
+  test('supports custom extension via ext attribute', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './views/');
+    outlet.setAttribute('ext', '.html');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/about');
+
+    expect(global.fetch).toHaveBeenCalledWith('views/about.html');
+  });
+
+  test('uses config router.ext as default extension', async () => {
+    _config.router.ext = '.jsx';
+    _templateHtmlCache.clear();
+
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './components/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/header');
+
+    expect(global.fetch).toHaveBeenCalledWith('components/header.jsx');
+    _config.router.ext = '.tpl'; // reset
+  });
+
+  test('outlet ext attribute overrides config router.ext', async () => {
+    _config.router.ext = '.jsx';
+    _templateHtmlCache.clear();
+
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './components/');
+    outlet.setAttribute('ext', '.vue');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/sidebar');
+
+    expect(global.fetch).toHaveBeenCalledWith('components/sidebar.vue');
+    expect(global.fetch).not.toHaveBeenCalledWith('components/sidebar.jsx');
+    _config.router.ext = '.tpl'; // reset
+  });
+
+  test('caches auto-resolved templates on re-navigation', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './pages/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/about');
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    // Navigate away and back
+    await router.push('/other');
+    await router.push('/about');
+
+    // Should not re-fetch (template element is cached + HTML cache)
+    expect(global.fetch).toHaveBeenCalledTimes(2); // /other is a new fetch
+  });
+
+  test('explicit routes take priority over file-based routing', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './pages/');
+    document.body.appendChild(outlet);
+
+    // Register an explicit route
+    const tpl = document.createElement('template');
+    tpl.innerHTML = '<p class="explicit">Explicit Route</p>';
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    router.register('/about', tpl);
+
+    await router.push('/about');
+
+    // Explicit route should render, not file-based
+    expect(outlet.querySelector('.explicit')).not.toBeNull();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  test('handles nested route paths', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './pages/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/settings/profile');
+
+    expect(global.fetch).toHaveBeenCalledWith('pages/settings/profile.tpl');
+  });
+
+  test('normalizes src path with trailing slash', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './pages');  // no trailing slash
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/features');
+
+    expect(global.fetch).toHaveBeenCalledWith('pages/features.tpl');
+  });
+
+  test('sets i18n-ns on auto-resolved template when outlet has i18n-ns', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', 'templates/');
+    outlet.setAttribute('i18n-ns', '');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/features');
+
+    // The auto-created template should have i18n-ns="features"
+    const autoTpl = document.querySelector('template[route="/features"]');
+    expect(autoTpl).not.toBeNull();
+    expect(autoTpl.getAttribute('i18n-ns')).toBe('features');
+  });
+
+  test('i18n-ns uses route-index name for root path', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', 'templates/');
+    outlet.setAttribute('route-index', 'landing');
+    outlet.setAttribute('i18n-ns', '');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/');
+
+    const autoTpl = document.querySelector('template[route="/"]');
+    expect(autoTpl).not.toBeNull();
+    expect(autoTpl.getAttribute('i18n-ns')).toBe('landing');
+  });
+
+  test('preserves query params and hash with file-based routing', async () => {
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './pages/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/dashboard?tab=stats#summary');
+
+    expect(global.fetch).toHaveBeenCalledWith('pages/dashboard.tpl');
+    expect(router.current.path).toBe('/dashboard');
+    expect(router.current.query.tab).toBe('stats');
+    expect(router.current.hash).toBe('#summary');
+    expect(outlet.querySelector('.auto-content')).not.toBeNull();
+  });
+
+  test('uses config router.templates default when outlet has no src attribute', async () => {
+    // templates defaults to 'pages' — file-based routing works without src on outlet
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    // No src attribute — uses config default
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/anything');
+
+    expect(global.fetch).toHaveBeenCalledWith('pages/anything.tpl');
+    expect(outlet.querySelector('.auto-content')).not.toBeNull();
+  });
+
+  test('different auto-resolved routes fetch different files', async () => {
+    _templateHtmlCache.clear();
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './sections/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/alpha');
+    expect(global.fetch).toHaveBeenCalledWith('sections/alpha.tpl');
+
+    await router.push('/bravo');
+    expect(global.fetch).toHaveBeenCalledWith('sections/bravo.tpl');
+
+    await router.push('/charlie');
+    expect(global.fetch).toHaveBeenCalledWith('sections/charlie.tpl');
+
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  test('file-based routing works with history mode', async () => {
+    _config.router.mode = 'history';
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './views/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/contact');
+
+    expect(global.fetch).toHaveBeenCalledWith('views/contact.tpl');
+    expect(outlet.querySelector('.auto-content')).not.toBeNull();
+  });
+
+  test('renders content from fetched template in outlet', async () => {
+    _templateHtmlCache.clear();
+    global.fetch = jest.fn().mockResolvedValue({
+      text: () => Promise.resolve('<h1 class="page-title">Dashboard</h1><p class="page-body">Stats here</p>'),
+    });
+
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './render-test/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/my-dashboard');
+
+    expect(outlet.querySelector('.page-title').textContent).toBe('Dashboard');
+    expect(outlet.querySelector('.page-body').textContent).toBe('Stats here');
+  });
+
+  test('clears previous content when navigating to new file-based route', async () => {
+    let callCount = 0;
+    global.fetch = jest.fn().mockImplementation(() => {
+      callCount++;
+      const html = callCount === 1
+        ? '<p class="first-page">First</p>'
+        : '<p class="second-page">Second</p>';
+      return Promise.resolve({ text: () => Promise.resolve(html) });
+    });
+
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './pages/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/first');
+    expect(outlet.querySelector('.first-page')).not.toBeNull();
+
+    await router.push('/second');
+    expect(outlet.querySelector('.second-page')).not.toBeNull();
+    expect(outlet.querySelector('.first-page')).toBeNull(); // previous content cleared
+  });
+
+  test('uses config router.templates as fallback when outlet has no src', async () => {
+    _config.router.templates = './views/';
+    _templateHtmlCache.clear();
+
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    // No src attribute on outlet — should fall back to config
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/products');
+
+    expect(global.fetch).toHaveBeenCalledWith('views/products.tpl');
+    expect(outlet.querySelector('.auto-content')).not.toBeNull();
+  });
+
+  test('outlet src attribute overrides config router.templates', async () => {
+    _config.router.templates = './default-views/';
+    _templateHtmlCache.clear();
+
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('src', './custom/');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/orders');
+
+    expect(global.fetch).toHaveBeenCalledWith('custom/orders.tpl');
+    expect(global.fetch).not.toHaveBeenCalledWith('default-views/orders.tpl');
+  });
+
+  test('config router.templates uses route-index for root path', async () => {
+    _config.router.templates = './pages/';
+    _templateHtmlCache.clear();
+
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    outlet.setAttribute('route-index', 'home');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/');
+
+    expect(global.fetch).toHaveBeenCalledWith('pages/home.tpl');
+  });
+
+  test('no file-based routing when both outlet src and config templates are empty', async () => {
+    _config.router.templates = '';
+    _templateHtmlCache.clear();
+
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    const router = _createRouter();
+    setRouterInstance(router);
+
+    await router.push('/nowhere');
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(outlet.innerHTML).toBe('');
   });
 });
 

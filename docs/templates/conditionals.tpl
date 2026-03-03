@@ -1,16 +1,16 @@
 <!-- Conditionals — from conditionals.md -->
 
 <section class="hero-section">
-  <span class="badge">Guides</span>
-  <h1 class="hero-title">Conditionals</h1>
-  <p class="hero-subtitle">Control rendering with if, show, hide, and switch</p>
+  <span class="badge" t="docs.conditionals.hero.badge">Guides</span>
+  <h1 class="hero-title" t="docs.conditionals.hero.title">Conditionals</h1>
+  <p class="hero-subtitle" t="docs.conditionals.hero.subtitle">Control rendering with if, show, hide, and switch</p>
 </section>
 
 <div class="doc-content">
 
   <!-- if/then/else -->
   <div class="doc-section">
-    <h2 class="doc-title">if / then / else</h2>
+    <h2 class="doc-title" t="docs.conditionals.ifThenElse.title">if / then / else</h2>
     <p class="doc-text">Conditionally render elements or templates based on expressions.</p>
     <div class="demo-split">
       <div class="demo-code"><pre><span class="hl-cmt">&lt;!-- Inline content --&gt;</span>
@@ -44,7 +44,7 @@
 
   <!-- else-if -->
   <div class="doc-section">
-    <h2 class="doc-title">else-if — Chained Conditionals</h2>
+    <h2 class="doc-title" t="docs.conditionals.elseIf.title">else-if — Chained Conditionals</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">if</span>=<span class="hl-str">"status === 'loading'"</span> <span class="hl-attr">then</span>=<span class="hl-str">"loadingTpl"</span><span class="hl-tag">&gt;&lt;/div&gt;</span>
 <span class="hl-tag">&lt;div</span> <span class="hl-attr">else-if</span>=<span class="hl-str">"status === 'error'"</span> <span class="hl-attr">then</span>=<span class="hl-str">"errorTpl"</span><span class="hl-tag">&gt;&lt;/div&gt;</span>
 <span class="hl-tag">&lt;div</span> <span class="hl-attr">else-if</span>=<span class="hl-str">"status === 'empty'"</span> <span class="hl-attr">then</span>=<span class="hl-str">"emptyTpl"</span><span class="hl-tag">&gt;&lt;/div&gt;</span>
@@ -53,7 +53,7 @@
 
   <!-- show/hide -->
   <div class="doc-section">
-    <h2 class="doc-title">show / hide</h2>
+    <h2 class="doc-title" t="docs.conditionals.showHide.title">show / hide</h2>
     <p class="doc-text">Toggles <code>display: none</code> without adding/removing DOM elements. Better for frequently toggled elements.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">show</span>=<span class="hl-str">"user.isLoggedIn"</span><span class="hl-tag">&gt;</span>Welcome!<span class="hl-tag">&lt;/div&gt;</span>
 <span class="hl-tag">&lt;div</span> <span class="hl-attr">hide</span>=<span class="hl-str">"user.isLoggedIn"</span><span class="hl-tag">&gt;</span>Please log in.<span class="hl-tag">&lt;/div&gt;</span>
@@ -76,7 +76,7 @@
 
   <!-- switch -->
   <div class="doc-section">
-    <h2 class="doc-title">switch / case</h2>
+    <h2 class="doc-title" t="docs.conditionals.switchCase.title">switch / case</h2>
     <p class="doc-text">Render one of many templates based on a value.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">get</span>=<span class="hl-str">"/me"</span> <span class="hl-attr">as</span>=<span class="hl-str">"user"</span><span class="hl-tag">&gt;</span>
   <span class="hl-tag">&lt;div</span> <span class="hl-attr">switch</span>=<span class="hl-str">"user.role"</span><span class="hl-tag">&gt;</span>

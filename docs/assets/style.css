@@ -111,7 +111,7 @@ input, select, textarea { font: inherit; }
 }
 .header-nav a:hover,
 .header-nav a.active {
-  color: var(--text);
+  color: var(--primary);
 }
 .header-nav .nav-cta {
   background: var(--primary);
@@ -138,6 +138,86 @@ input, select, textarea { font: inherit; }
 }
 .github-link:hover svg {
   color: var(--text);
+}
+/* ── Language Dropdown (Popover API) ── */
+.lang-dropdown {
+  position: relative;
+  margin-left: 8px;
+  anchor-name: --lang-anchor;
+}
+.lang-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text);
+  transition: border-color 0.2s, background 0.2s;
+}
+.lang-dropdown-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-surface);
+}
+.lang-chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s;
+  color: var(--text-muted);
+}
+.lang-dropdown-menu {
+  /* Popover resets */
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--border);
+  /* Positioning */
+  position: fixed;
+  position-anchor: --lang-anchor;
+  inset: unset;
+  top: anchor(bottom);
+  right: anchor(right);
+  margin-top: 6px;
+  /* Appearance */
+  min-width: 160px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  z-index: 100;
+}
+.lang-dropdown-menu:popover-open {
+  animation: langFadeIn 0.15s ease;
+}
+@keyframes langFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.lang-dropdown-menu::backdrop {
+  background: transparent;
+}
+.lang-dropdown-menu a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.lang-dropdown-menu a:hover {
+  background: var(--primary-surface);
+}
+.lang-dropdown-menu a.active {
+  color: var(--primary);
+  background: var(--primary-surface);
+  font-weight: 600;
 }
 .sidebar-toggle {
   display: none;

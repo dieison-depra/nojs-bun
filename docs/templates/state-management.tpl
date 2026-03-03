@@ -1,16 +1,16 @@
 <!-- State Management — from state-management.md -->
 
 <section class="hero-section">
-  <span class="badge">Guides</span>
-  <h1 class="hero-title">State Management</h1>
-  <p class="hero-subtitle">Local state, global stores, computed properties, and watchers</p>
+  <span class="badge" t="docs.stateManagement.hero.badge">Guides</span>
+  <h1 class="hero-title" t="docs.stateManagement.hero.title">State Management</h1>
+  <p class="hero-subtitle" t="docs.stateManagement.hero.subtitle">Local state, global stores, computed properties, and watchers</p>
 </section>
 
 <div class="doc-content">
 
   <!-- state -->
   <div class="doc-section">
-    <h2 class="doc-title">state — Local State</h2>
+    <h2 class="doc-title" t="docs.stateManagement.state.title">state — Local State</h2>
     <p class="doc-text">Creates a reactive context scoped to the element and its children.</p>
     <div class="demo-split">
       <div class="demo-code"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">state</span>=<span class="hl-str">"{ count: 0, name: 'World' }"</span><span class="hl-tag">&gt;</span>
@@ -33,7 +33,7 @@
 
   <!-- store -->
   <div class="doc-section">
-    <h2 class="doc-title">store — Global Store</h2>
+    <h2 class="doc-title" t="docs.stateManagement.store.title">store — Global Store</h2>
     <p class="doc-text">A global reactive store accessible from anywhere. Ideal for auth state, theme, shared data.</p>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- Define store (once, typically at top of page) --&gt;</span>
 <span class="hl-tag">&lt;div</span> <span class="hl-attr">store</span>=<span class="hl-str">"app"</span> <span class="hl-attr">value</span>=<span class="hl-str">"{
@@ -51,7 +51,7 @@
 
   <!-- into -->
   <div class="doc-section">
-    <h2 class="doc-title">into — Write Fetch Results to a Store</h2>
+    <h2 class="doc-title" t="docs.stateManagement.into.title">into — Write Fetch Results to a Store</h2>
     <p class="doc-text">The <code>into</code> attribute on any HTTP directive writes the response directly into a named global store.</p>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- Define an empty store --&gt;</span>
 <span class="hl-tag">&lt;div</span> <span class="hl-attr">store</span>=<span class="hl-str">"currentUser"</span> <span class="hl-attr">value</span>=<span class="hl-str">"{}"</span><span class="hl-tag">&gt;&lt;/div&gt;</span>
@@ -68,7 +68,7 @@
 
   <!-- computed -->
   <div class="doc-section">
-    <h2 class="doc-title">computed — Derived State</h2>
+    <h2 class="doc-title" t="docs.stateManagement.computed.title">computed — Derived State</h2>
     <p class="doc-text">Values that are automatically recalculated when dependencies change.</p>
     <div class="demo-split">
       <div class="demo-code"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">state</span>=<span class="hl-str">"{ price: 100, qty: 2, tax: 0.1 }"</span><span class="hl-tag">&gt;</span>
@@ -94,7 +94,7 @@
 
   <!-- watch -->
   <div class="doc-section">
-    <h2 class="doc-title">watch — Side Effects</h2>
+    <h2 class="doc-title" t="docs.stateManagement.watch.title">watch — Side Effects</h2>
     <p class="doc-text">Execute an action whenever a value changes.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">state</span>=<span class="hl-str">"{ search: '' }"</span>
      <span class="hl-attr">watch</span>=<span class="hl-str">"search"</span>
@@ -105,7 +105,7 @@
 
   <!-- persistence -->
   <div class="doc-section">
-    <h2 class="doc-title">State Persistence</h2>
+    <h2 class="doc-title" t="docs.stateManagement.persistence.title">State Persistence</h2>
     <p class="doc-text">Persist state across page reloads using <code>localStorage</code> or <code>sessionStorage</code>.</p>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- Persists to localStorage --&gt;</span>
 <span class="hl-tag">&lt;div</span> <span class="hl-attr">state</span>=<span class="hl-str">"{ theme: 'dark', sidebar: true }"</span>

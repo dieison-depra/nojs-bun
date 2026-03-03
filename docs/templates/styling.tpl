@@ -1,16 +1,16 @@
 <!-- Styling — from styling.md -->
 
 <section class="hero-section">
-  <span class="badge">Guides</span>
-  <h1 class="hero-title">Dynamic Styling</h1>
-  <p class="hero-subtitle">Toggle CSS classes and inline styles reactively</p>
+  <span class="badge" t="docs.styling.hero.badge">Guides</span>
+  <h1 class="hero-title" t="docs.styling.hero.title">Dynamic Styling</h1>
+  <p class="hero-subtitle" t="docs.styling.hero.subtitle">Toggle CSS classes and inline styles reactively</p>
 </section>
 
 <div class="doc-content">
 
   <!-- class-* -->
   <div class="doc-section">
-    <h2 class="doc-title">class-* — Toggle Classes</h2>
+    <h2 class="doc-title" t-html="docs.styling.classToggle.title">class-* — Toggle Classes</h2>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- Toggle a single class based on expression --&gt;</span>
 <span class="hl-tag">&lt;div</span> <span class="hl-attr">class-active</span>=<span class="hl-str">"isActive"</span>
      <span class="hl-attr">class-disabled</span>=<span class="hl-str">"!isEnabled"</span>
@@ -26,7 +26,7 @@
 
   <!-- style-* -->
   <div class="doc-section">
-    <h2 class="doc-title">style-* — Inline Styles</h2>
+    <h2 class="doc-title" t-html="docs.styling.inlineStyles.title">style-* — Inline Styles</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">style-color</span>=<span class="hl-str">"isError ? 'red' : 'green'"</span>
      <span class="hl-attr">style-font-size</span>=<span class="hl-str">"fontSize + 'px'"</span>
      <span class="hl-attr">style-opacity</span>=<span class="hl-str">"isVisible ? 1 : 0.5"</span>
@@ -43,7 +43,7 @@
 
   <!-- Live Demo -->
   <div class="doc-section">
-    <h2 class="doc-title">Live Demo — Dynamic Styling</h2>
+    <h2 class="doc-title" t="docs.styling.liveDemo.title">Live Demo — Dynamic Styling</h2>
     <div class="demo-split">
       <div class="demo-code">
         <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">state</span>=<span class="hl-str">"{ active: false, color: '#0EA5E9' }"</span><span class="hl-tag">&gt;</span>

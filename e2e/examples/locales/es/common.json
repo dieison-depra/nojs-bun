@@ -1,0 +1,5 @@
+{
+  "ext_welcome": "Bienvenido desde archivo",
+  "ext_greeting": "¡Hola, {name}!",
+  "ext_items": "una cosa | {count} cosas"
+}

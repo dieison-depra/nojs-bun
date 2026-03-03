@@ -101,6 +101,10 @@ Complete reference of every No.JS directive.
 | `route` | `route="/path"` | Define route or link |
 | `route-view` | `route-view` | Route outlet |
 | `route-view="name"` | `route-view="sidebar"` | Named route outlet |
+| `route-view[src]` | `route-view src="./pages/"` | File-based routing outlet |
+| `route-index` | `route-index="overview"` | Filename for root `/` (default `"index"`) |
+| `ext` | `ext=".html"` | File extension (default `".tpl"`, fallback `".html"`) |
+| `i18n-ns` | `i18n-ns` | Auto-derive i18n namespace from route filename |
 | `outlet` | `outlet="sidebar"` | Target a named outlet from a route template |
 | `route-active` | `route-active="cls"` | Active link class |
 | `guard` | `guard="expr"` | Route guard condition |

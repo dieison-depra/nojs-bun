@@ -1,25 +1,25 @@
 <!-- Getting Started — from getting-started.md -->
 
 <section class="hero-section">
-  <span class="badge">Getting Started</span>
-  <h1 class="hero-title">Documentation</h1>
-  <p class="hero-subtitle">Everything you need to build reactive web apps with No.JS</p>
+  <span class="badge" t="docs.gettingStarted.hero.badge">Getting Started</span>
+  <h1 class="hero-title" t="docs.gettingStarted.hero.title">Documentation</h1>
+  <p class="hero-subtitle" t="docs.gettingStarted.hero.subtitle">Everything you need to build reactive web apps with No.JS</p>
 </section>
 
 <div class="doc-content">
 
   <!-- Introduction -->
   <div class="doc-section">
-    <h2 class="doc-title">Introduction</h2>
+    <h2 class="doc-title" t="docs.gettingStarted.introduction.title">Introduction</h2>
     <p class="doc-text">No.JS is an HTML-first reactive framework. Build dynamic, data-driven web applications using nothing but HTML attributes — no build step, no virtual DOM, no JSX.</p>
     <div class="callout">
-      <p><strong>~11KB gzipped</strong> · Zero dependencies · Works in all modern browsers · No build step required</p>
+      <p><strong>~14KB gzipped</strong> · Zero dependencies · Works in all modern browsers · No build step required</p>
     </div>
   </div>
 
   <!-- Installation -->
   <div class="doc-section">
-    <h2 class="doc-title">Installation</h2>
+    <h2 class="doc-title" t="docs.gettingStarted.installation.title">Installation</h2>
 
     <h3 class="doc-subtitle">CDN (recommended)</h3>
     <div class="code-block"><pre><span class="hl-tag">&lt;script</span> <span class="hl-attr">src</span>=<span class="hl-str">"https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js"</span><span class="hl-tag">&gt;&lt;/script&gt;</span></pre></div>
@@ -39,12 +39,12 @@
     </div>
 
     <h3 class="doc-subtitle">Self-hosted</h3>
-    <p class="doc-text">Download <code>dist/iife/no.js</code> and include it with a <code>&lt;script&gt;</code> tag. It's a single file, ~11 KB gzipped.</p>
+    <p class="doc-text">Download <code>dist/iife/no.js</code> and include it with a <code>&lt;script&gt;</code> tag. It's a single file, ~14 KB gzipped.</p>
   </div>
 
   <!-- Quick Start -->
   <div class="doc-section" id="quick-start">
-    <h2 class="doc-title">Quick Start</h2>
+    <h2 class="doc-title" t="docs.gettingStarted.quickStart.title">Quick Start</h2>
     <p class="doc-text">Create an <code>index.html</code> file: include the script, add some attributes, and you're done. No <code>app.mount()</code>, no <code>createApp()</code>, no <code>NgModule</code>. It just works.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;!DOCTYPE html&gt;</span>
 <span class="hl-tag">&lt;html&gt;</span>
@@ -64,7 +64,7 @@
 
   <!-- How It Works -->
   <div class="doc-section">
-    <h2 class="doc-title">How It Works</h2>
+    <h2 class="doc-title" t="docs.gettingStarted.howItWorks.title">How It Works</h2>
     <p class="doc-text">On <code>DOMContentLoaded</code>, No.JS walks the DOM looking for elements with known attributes. Each attribute maps to a directive that is executed by priority.</p>
     <div class="concepts-grid">
       <div class="concept-card">
@@ -88,7 +88,7 @@
 
   <!-- Core Concepts -->
   <div class="doc-section" id="core-concepts">
-    <h2 class="doc-title">Core Concepts</h2>
+    <h2 class="doc-title" t="docs.gettingStarted.coreConcepts.title">Core Concepts</h2>
 
     <h3 class="doc-subtitle">Reactive Context</h3>
     <p class="doc-text">Every element can have a context — a reactive data object. Contexts are created by <code>state</code>, <code>get</code>, <code>store</code>, etc. Child elements inherit their parent's context automatically.</p>

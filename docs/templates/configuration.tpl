@@ -1,16 +1,16 @@
 <!-- Configuration — from configuration.md -->
 
 <section class="hero-section">
-  <span class="badge">API Reference</span>
-  <h1 class="hero-title">Configuration &amp; Security</h1>
-  <p class="hero-subtitle">Global settings, request interceptors, and security best practices</p>
+  <span class="badge" t="docs.configuration.hero.badge">API Reference</span>
+  <h1 class="hero-title" t-html="docs.configuration.hero.title">Configuration &amp; Security</h1>
+  <p class="hero-subtitle" t="docs.configuration.hero.subtitle">Global settings, request interceptors, and security best practices</p>
 </section>
 
 <div class="doc-content">
 
   <!-- Global Settings -->
   <div class="doc-section">
-    <h2 class="doc-title">Global Settings</h2>
+    <h2 class="doc-title" t="docs.configuration.globalSettings.title">Global Settings</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;script&gt;</span>
   <span class="hl-fn">NoJS</span>.<span class="hl-fn">config</span>({
     <span class="hl-cmt">// API</span>
@@ -42,7 +42,9 @@
     <span class="hl-attr">router</span>: {
       <span class="hl-attr">mode</span>: <span class="hl-str">'history'</span>,        <span class="hl-cmt">// 'history' (default) | 'hash'</span>
       <span class="hl-attr">base</span>: <span class="hl-str">'/'</span>,
-      <span class="hl-attr">scrollBehavior</span>: <span class="hl-str">'top'</span>   <span class="hl-cmt">// 'top' | 'preserve' | 'smooth'</span>
+      <span class="hl-attr">scrollBehavior</span>: <span class="hl-str">'top'</span>,  <span class="hl-cmt">// 'top' | 'preserve' | 'smooth'</span>
+      <span class="hl-attr">templates</span>: <span class="hl-str">'pages'</span>,      <span class="hl-cmt">// Default base path for file-based routing</span>
+      <span class="hl-attr">ext</span>: <span class="hl-str">'.tpl'</span>               <span class="hl-cmt">// Default file extension (fallback: '.html')</span>
     },
     <span class="hl-cmt">// In hash mode, standard anchor links (href="#id")</span>
     <span class="hl-cmt">// are automatically intercepted — they scroll to the</span>
@@ -52,7 +54,10 @@
     <span class="hl-attr">i18n</span>: {
       <span class="hl-attr">defaultLocale</span>: <span class="hl-str">'en'</span>,
       <span class="hl-attr">fallbackLocale</span>: <span class="hl-str">'en'</span>,
-      <span class="hl-attr">detectBrowser</span>: <span class="hl-kw">true</span>
+      <span class="hl-attr">detectBrowser</span>: <span class="hl-kw">true</span>,
+      <span class="hl-attr">loadPath</span>: <span class="hl-str">'/locales/{locale}.json'</span>,  <span class="hl-cmt">// Load from external JSON (default: null)</span>
+      <span class="hl-attr">ns</span>: [<span class="hl-str">'common'</span>],           <span class="hl-cmt">// Namespaces to preload (default: [])</span>
+      <span class="hl-attr">cache</span>: <span class="hl-kw">true</span>               <span class="hl-cmt">// Cache fetched locale files (default: true)</span>
     },
 
     <span class="hl-cmt">// Debugging</span>
@@ -68,7 +73,7 @@
 
   <!-- Config Option Details -->
   <div class="doc-section">
-    <h2 class="doc-title">Config Option Details</h2>
+    <h2 class="doc-title" t="docs.configuration.configOptions.title">Config Option Details</h2>
 
     <h3 class="doc-title"><code>sanitize</code></h3>
     <p class="doc-text"><strong>Type:</strong> <code>boolean</code> &nbsp;|&nbsp; <strong>Default:</strong> <code>true</code></p>
@@ -95,11 +100,33 @@
 
 <span class="hl-cmt">// Default — caching is on, no configuration needed</span>
 <span class="hl-fn">NoJS</span>.<span class="hl-fn">config</span>({ <span class="hl-attr">templates</span>: { <span class="hl-attr">cache</span>: <span class="hl-kw">true</span> } });</pre></div>
-    <p class="doc-text">Set to <code>false</code> during local development if you want changes to <code>.tpl</code> files to be reflected without a hard page reload.</p>  </div>
+    <p class="doc-text">Set to <code>false</code> during local development if you want changes to <code>.tpl</code> files to be reflected without a hard page reload.</p>
+
+    <h3 class="doc-title"><code>i18n.loadPath</code></h3>
+    <p class="doc-text"><strong>Type:</strong> <code>string | null</code> &nbsp;|&nbsp; <strong>Default:</strong> <code>null</code></p>
+    <p class="doc-text">URL template for loading locale JSON files via <code>fetch</code>. Use <code>{locale}</code> and optionally <code>{ns}</code> as placeholders. When <code>null</code>, translations must be provided inline via <code>NoJS.i18n({ locales })</code>.</p>
+    <div class="code-block"><pre><span class="hl-fn">NoJS</span>.<span class="hl-fn">i18n</span>({
+  <span class="hl-attr">loadPath</span>: <span class="hl-str">'/locales/{locale}.json'</span>          <span class="hl-cmt">// Flat mode</span>
+  <span class="hl-attr">loadPath</span>: <span class="hl-str">'/locales/{locale}/{ns}.json'</span>   <span class="hl-cmt">// Namespace mode</span>
+});</pre></div>
+
+    <h3 class="doc-title"><code>i18n.ns</code></h3>
+    <p class="doc-text"><strong>Type:</strong> <code>string[]</code> &nbsp;|&nbsp; <strong>Default:</strong> <code>[]</code></p>
+    <p class="doc-text">Array of namespace identifiers to preload at <code>init()</code>. Each namespace corresponds to a separate JSON file per locale. Additional namespaces can be loaded on-demand via the <code>i18n-ns</code> directive or route attribute.</p>
+    <div class="code-block"><pre><span class="hl-fn">NoJS</span>.<span class="hl-fn">i18n</span>({
+  <span class="hl-attr">loadPath</span>: <span class="hl-str">'/locales/{locale}/{ns}.json'</span>,
+  <span class="hl-attr">ns</span>: [<span class="hl-str">'common'</span>, <span class="hl-str">'auth'</span>]
+});</pre></div>
+
+    <h3 class="doc-title"><code>i18n.cache</code></h3>
+    <p class="doc-text"><strong>Type:</strong> <code>boolean</code> &nbsp;|&nbsp; <strong>Default:</strong> <code>true</code></p>
+    <p class="doc-text">Controls whether fetched locale JSON files are stored in an in-memory <code>Map</code> after the first request. Set to <code>false</code> during development for hot-reload of translation files.</p>
+    <div class="code-block"><pre><span class="hl-fn">NoJS</span>.<span class="hl-fn">i18n</span>({ <span class="hl-attr">cache</span>: <span class="hl-kw">false</span> }); <span class="hl-cmt">// Always re-fetch locale files</span></pre></div>
+  </div>
 
   <!-- API Properties -->
   <div class="doc-section">
-    <h2 class="doc-title">API Properties</h2>
+    <h2 class="doc-title" t="docs.configuration.apiProperties.title">API Properties</h2>
 
     <h3 class="doc-title"><code>NoJS.baseApiUrl</code></h3>
     <p class="doc-text">Getter/setter for the base API URL used by all <code>fetch</code> directives and <code>NoJS.http</code> calls. Can be read or reassigned at runtime.</p>
@@ -119,7 +146,7 @@ console.<span class="hl-fn">log</span>(<span class="hl-fn">NoJS</span>.baseApiUr
 
   <!-- Request Interceptors -->
   <div class="doc-section">
-    <h2 class="doc-title">Request Interceptors</h2>
+    <h2 class="doc-title" t="docs.configuration.interceptors.title">Request Interceptors</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;script&gt;</span>
   <span class="hl-cmt">// Before every request</span>
   <span class="hl-fn">NoJS</span>.<span class="hl-fn">interceptor</span>(<span class="hl-str">'request'</span>, (<span class="hl-attr">url</span>, <span class="hl-attr">options</span>) <span class="hl-op">=&gt;</span> {
@@ -141,7 +168,7 @@ console.<span class="hl-fn">log</span>(<span class="hl-fn">NoJS</span>.baseApiUr
 
   <!-- XSS Protection -->
   <div class="doc-section">
-    <h2 class="doc-title">Security</h2>
+    <h2 class="doc-title" t="docs.configuration.security.title">Security</h2>
 
     <h3 class="doc-title">XSS Protection</h3>
     <ul class="doc-text">

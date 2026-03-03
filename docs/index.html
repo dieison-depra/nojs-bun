@@ -28,18 +28,32 @@
   <header class="header">
     <a route="/" class="header-logo"><img src="logo.svg" alt="No.JS" class="logo-img"><span class="logo-title">No<span class="logo-dot">.</span>JS</span><span class="header-version" bind="'v' + version"></span></a>
     <nav class="header-nav">
-      <a route="/features">Features</a>
-      <a route="/examples">Examples</a>
-      <a route="/docs">Docs</a>
+      <a route="/" t="shell.header.home">Home</a>
+      <a route="/features" t="shell.header.features">Features</a>
+      <a route="/examples" t="shell.header.examples">Examples</a>
+      <a route="/docs" t="shell.header.docs">Docs</a>
       <a href="https://github.com/ErickXavier/no-js" target="_blank" class="github-link">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
       </a>
-      <a route="/docs" class="nav-cta">Get Started</a>
+      <a route="/docs" class="nav-cta" t="shell.header.getStarted">Get Started</a>
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" popovertarget="lang-menu">
+          <span t="shell.flag">🇧🇷</span>
+          <svg class="lang-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+        </button>
+        <div id="lang-menu" class="lang-dropdown-menu" popover>
+          <a on:click="NoJS.locale = 'en'" class-active="NoJS.locale === 'en'">🇺🇸 English</a>
+          <a on:click="NoJS.locale = 'es'" class-active="NoJS.locale === 'es'">🇪🇸 Español</a>
+          <a on:click="NoJS.locale = 'pt'" class-active="NoJS.locale === 'pt'">🇧🇷 Português</a>
+          <a on:click="NoJS.locale = 'it'" class-active="NoJS.locale === 'it'">🇮🇹 Italiano</a>
+          <a on:click="NoJS.locale = 'fr'" class-active="NoJS.locale === 'fr'">🇫🇷 Français</a>
+        </div>
+      </div>
     </nav>
   </header>
 
-  <!-- ═══ Main Content (route outlet) ═══ -->
-  <main route-view class="content"></main>
+  <!-- ═══ Main Content (route outlet — file-based routing) ═══ -->
+  <main route-view src="templates/" route-index="landing" i18n-ns class="content"></main>
 
   <!-- ═══ PageFooter: #0F172A bg, border-top #1E293B ═══ -->
   <footer class="footer">
@@ -63,31 +77,25 @@
 
     <path class="b" d="m119.5 16h-54l-26 51h18l-27 67 73-67h-18z"/>
 </svg><span class="logo-title">No<span class="logo-dot">.</span>JS</span></div>
-          <p class="footer-desc">The HTML-first reactive framework</p>
+          <p class="footer-desc" t="shell.footer.desc">The HTML-first reactive framework</p>
         </div>
         <div class="footer-cols">
           <div class="footer-col">
-            <h4>Resources</h4>
-            <a route="/docs">Documentation</a>
-            <a route="/examples">Examples</a>
-            <a route="/docs#cheatsheet">API Reference</a>
+            <h4 t="shell.footer.resources">Resources</h4>
+            <a route="/docs" t="shell.footer.documentation">Documentation</a>
+            <a route="/examples" t="shell.footer.examples">Examples</a>
+            <a route="/docs#cheatsheet" t="shell.footer.apiReference">API Reference</a>
             <a href="https://github.com/ErickXavier/no-js" target="_blank">GitHub</a>
           </div>
         </div>
       </div>
       <div class="footer-divider"></div>
       <div class="footer-bottom">
-        <span>2026 No.JS - MIT License</span>
+        <span t="shell.footer.license">2026 No.JS - MIT License</span>
         <span class="footer-version" bind="'No.JS v' + version"></span>
       </div>
     </div>
   </footer>
-
-  <!-- ═══ Route Templates ═══ -->
-  <template route="/"                   src="templates/landing.tpl"></template>
-  <template route="/features"           src="templates/features.tpl"></template>
-  <template route="/examples"           src="templates/examples.tpl"></template>
-  <template route="/docs"               src="templates/docs.tpl"></template>
 
   <!-- ═══ Scripts ═══ -->
   <script src="https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js"></script>
@@ -98,66 +106,12 @@
         router: { mode: 'hash' },
     });
 
-    // ── i18n setup (for i18n demo page) ──
+    // ── i18n setup (external locale files) ──
     NoJS.i18n({
-      locales: {
-        en: {
-          welcome: 'Welcome to No.JS',
-          greeting: 'Hello, {name}!',
-          items: '{count} item | {count} items',
-          nav: { home: 'Home', docs: 'Documentation', examples: 'Examples' },
-          actions: { save: 'Save', cancel: 'Cancel', delete: 'Delete' },
-          fruits: { apple: 'Apple', banana: 'Banana', cherry: 'Cherry' },
-          messages: {
-            success: 'Operation completed successfully!',
-            error: 'Something went wrong.',
-            empty: 'No items found.',
-            confirm: 'Are you sure you want to {action}?'
-          }
-        },
-        es: {
-          welcome: 'Bienvenido a No.JS',
-          greeting: '¡Hola, {name}!',
-          items: '{count} elemento | {count} elementos',
-          nav: { home: 'Inicio', docs: 'Documentación', examples: 'Ejemplos' },
-          actions: { save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar' },
-          fruits: { apple: 'Manzana', banana: 'Plátano', cherry: 'Cereza' },
-          messages: {
-            success: '¡Operación completada con éxito!',
-            error: 'Algo salió mal.',
-            empty: 'No se encontraron elementos.',
-            confirm: '¿Estás seguro de que quieres {action}?'
-          }
-        },
-        fr: {
-          welcome: 'Bienvenue sur No.JS',
-          greeting: 'Bonjour, {name} !',
-          items: '{count} élément | {count} éléments',
-          nav: { home: 'Accueil', docs: 'Documentation', examples: 'Exemples' },
-          actions: { save: 'Sauvegarder', cancel: 'Annuler', delete: 'Supprimer' },
-          fruits: { apple: 'Pomme', banana: 'Banane', cherry: 'Cerise' },
-          messages: {
-            success: 'Opération terminée avec succès !',
-            error: 'Quelque chose a mal tourné.',
-            empty: 'Aucun élément trouvé.',
-            confirm: 'Êtes-vous sûr de vouloir {action} ?'
-          }
-        },
-        pt: {
-          welcome: 'Bem-vindo ao No.JS',
-          greeting: 'Olá, {name}!',
-          items: '{count} item | {count} itens',
-          nav: { home: 'Início', docs: 'Documentação', examples: 'Exemplos' },
-          actions: { save: 'Salvar', cancel: 'Cancelar', delete: 'Excluir' },
-          fruits: { apple: 'Maçã', banana: 'Banana', cherry: 'Cereja' },
-          messages: {
-            success: 'Operação concluída com sucesso!',
-            error: 'Algo deu errado.',
-            empty: 'Nenhum item encontrado.',
-            confirm: 'Tem certeza de que deseja {action}?'
-          }
-        }
-      },
+      loadPath: 'locales/{locale}/{ns}.json',
+      ns: ['shell'],
+      persist: true,
+      detectBrowser: true,
       defaultLocale: 'pt'
     });
 

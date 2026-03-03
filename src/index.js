@@ -16,7 +16,7 @@ import {
   setRouterInstance,
   _log,
 } from "./globals.js";
-import { _i18n } from "./i18n.js";
+import { _i18n, _loadI18nForLocale } from "./i18n.js";
 import { createContext } from "./context.js";
 import { evaluate, resolve } from "./evaluate.js";
 import { findContext, _loadRemoteTemplates, _loadRemoteTemplatesPhase1, _loadRemoteTemplatesPhase2, _processTemplateIncludes } from "./dom.js";
@@ -60,6 +60,13 @@ const NoJS = {
     _config.baseApiUrl = v;
   },
 
+  get locale() {
+    return _i18n.locale;
+  },
+  set locale(v) {
+    _i18n.locale = v;
+  },
+
   config(opts = {}) {
     // Save nested objects before shallow assign overwrites them
     const prevHeaders = { ..._config.headers };
@@ -84,6 +91,12 @@ const NoJS = {
     if (typeof document === "undefined") return;
     root = root || document.body;
     _log("Initializing...");
+
+    // Load external locale files (blocking — translations must be available for first paint)
+    if (_config.i18n.loadPath) {
+      const locales = new Set([_i18n.locale, _config.i18n.fallbackLocale]);
+      await Promise.all([...locales].map((l) => _loadI18nForLocale(l)));
+    }
 
     // Inline template includes (e.g. skeletons) — synchronous, before any fetch
     _processTemplateIncludes(root);
@@ -141,13 +154,32 @@ const NoJS = {
 
   // i18n
   i18n(opts) {
+    // Set config options BEFORE locale (setter checks loadPath)
+    if (opts.loadPath != null) _config.i18n.loadPath = opts.loadPath;
+    if (opts.ns) _config.i18n.ns = opts.ns;
+    if (opts.cache != null) _config.i18n.cache = opts.cache;
+    if (opts.persist != null) _config.i18n.persist = opts.persist;
     if (opts.locales) _i18n.locales = opts.locales;
-    if (opts.defaultLocale) _i18n.locale = opts.defaultLocale;
     if (opts.fallbackLocale) _config.i18n.fallbackLocale = opts.fallbackLocale;
+
+    // Set defaultLocale WITHOUT the setter (avoids overwriting localStorage)
+    if (opts.defaultLocale) _i18n._locale = opts.defaultLocale;
+
+    // Restore persisted locale (highest priority)
+    if (_config.i18n.persist && typeof localStorage !== "undefined") {
+      try {
+        const saved = localStorage.getItem("nojs-locale");
+        if (saved && _i18n.locales[saved]) { _i18n._locale = saved; return; }
+      } catch (_) {}
+    }
+
+    // Detect browser language (second priority)
     if (opts.detectBrowser) {
       const browserLang =
         typeof navigator !== "undefined" ? navigator.language : "en";
-      if (_i18n.locales[browserLang]) _i18n.locale = browserLang;
+      const prefix = browserLang.split("-")[0];
+      if (_i18n.locales[browserLang]) _i18n._locale = browserLang;
+      else if (_i18n.locales[prefix]) _i18n._locale = prefix;
     }
   },
 
@@ -183,7 +215,7 @@ const NoJS = {
   resolve,
 
   // Version
-  version: "1.0.3",
+  version: "1.1.0",
 };
 
 export default NoJS;

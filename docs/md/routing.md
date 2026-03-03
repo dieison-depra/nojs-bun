@@ -154,6 +154,86 @@ Nested remote templates (a remote template that itself contains more `<template 
 
 ---
 
+## File-Based Routing
+
+Instead of declaring each route template manually, point your `route-view` outlet at a folder. No.JS will automatically resolve route paths to template files inside that folder.
+
+```html
+<!-- Traditional (explicit) routing -->
+<template route="/" src="./pages/overview.tpl"></template>
+<template route="/analytics" src="./pages/analytics.tpl"></template>
+<template route="/users" src="./pages/users.tpl"></template>
+
+<!-- File-based routing — one line replaces all of the above! -->
+<main route-view src="./pages/" route-index="overview"></main>
+```
+
+### How it works
+
+1. Add `route-view` to your outlet element — file-based routing is enabled by default (config `router.templates: "pages"`). Override per-outlet with `src="folder/"`.
+2. When a user navigates to `/analytics`, No.JS resolves it to `pages/analytics.tpl`
+3. The template is fetched, cached, and rendered — automatically
+
+### Attributes
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| `src` | `"pages"` | Base folder for template resolution (per-outlet override; config: `router.templates`) |
+| `route-index` | `"index"` | Filename for the root route `/` |
+| `ext` | `".tpl"` | File extension appended to route segments (fallback: `".html"`) |
+| `i18n-ns` | — | When present, auto-derives i18n namespace from filename |
+
+> **Config default:** The default `router.templates` is `"pages"`, so file-based routing works out of the box — just add `route-view` to your outlet. Override with `NoJS.config({ router: { templates: 'views' } })` or per-outlet via `src="./custom/"`.
+
+### Example — SaaS Dashboard
+
+```
+pages/
+├── overview.tpl    ← /
+├── analytics.tpl   ← /analytics
+├── users.tpl       ← /users
+├── revenue.tpl     ← /revenue
+├── billing.tpl     ← /billing
+└── settings.tpl    ← /settings
+```
+
+```html
+<template src="./components/sidebar.tpl"></template>
+
+<main route-view src="./pages/" route-index="overview"></main>
+```
+
+That's it — **two lines** for a full SPA with six routes.
+
+### Mixing Explicit & File-Based Routes
+
+Explicit `<template route="...">` declarations **always take priority**. This lets you combine both approaches — use file-based routing for simple pages and explicit templates for routes that need guards, params, or named outlets:
+
+```html
+<!-- File-based routing handles most pages automatically -->
+<main route-view src="./pages/"></main>
+
+<!-- Explicit route for param-based pages -->
+<template route="/users/:id" src="./pages/user-detail.tpl"></template>
+
+<!-- Explicit route with guard -->
+<template route="/admin" src="./pages/admin.tpl"
+          guard="$store.auth.isAdmin" redirect="/"></template>
+```
+
+### Auto i18n Namespace
+
+When the `route-view` element has an `i18n-ns` attribute (even without a value), No.JS automatically loads the i18n namespace matching the filename:
+
+```html
+<!-- Auto-derives namespace: "/" → "landing", "/features" → "features", etc. -->
+<main route-view src="templates/" route-index="landing" i18n-ns></main>
+```
+
+This replaces the need to add `i18n-ns="..."` on each route template individually.
+
+---
+
 ## Lazy Template Loading
 
 Route templates support a `lazy` attribute to control when their remote file is fetched:

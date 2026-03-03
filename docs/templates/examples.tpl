@@ -2,18 +2,18 @@
 
 <!-- ═══ Hero ═══ -->
 <section class="hero-section">
-  <span class="badge">Learn by Example</span>
-  <h1 class="hero-title">Examples</h1>
-  <p class="hero-subtitle">Real-world patterns you'll actually use in production — in pure HTML.</p>
+  <span class="badge" t="examples.hero.badge">Learn by Example</span>
+  <h1 class="hero-title" t="examples.hero.title">Examples</h1>
+  <p class="hero-subtitle" t="examples.hero.subtitle">Real-world patterns you'll actually use in production — in pure HTML.</p>
 </section>
 
 <!-- ═══ Example 1 — Login with JWT (white bg, Intermediate) ═══ -->
 <section class="example-section">
   <div class="example-header">
-    <h2 class="example-title">Login with JWT</h2>
-    <span class="badge">Intermediate</span>
+    <h2 class="example-title" t="examples.login.title">Login with JWT</h2>
+    <span class="badge" t="examples.login.badge">Intermediate</span>
   </div>
-  <p class="example-desc">
+  <p class="example-desc" t="examples.login.desc">
     A complete login flow: form validation, POST to auth endpoint, save the JWT
     to a global store, and automatically attach the token to every subsequent
     request via a request interceptor.
@@ -77,19 +77,19 @@
         </div>
         <button class="btn btn-primary" style="width:100%;margin-top:4px"
                 on:click="loggedIn = (email && password) ? true : false"
-                bind-disabled="!email || !password">Sign in</button>
-        <p style="font-size:12px;color:var(--text-muted);text-align:center">
+                bind-disabled="!email || !password" t="examples.login.signIn">Sign in</button>
+        <p style="font-size:12px;color:var(--text-muted);text-align:center" t="examples.login.previewHint">
           Fill both fields to try the interactive preview
         </p>
       </div>
       <div show="loggedIn" style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 0">
         <div style="width:52px;height:52px;border-radius:50%;background:var(--primary-surface);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:22px">✓</div>
-        <p style="font-family:var(--font-heading);font-size:17px;font-weight:600;color:var(--text)">Signed in!</p>
+        <p style="font-family:var(--font-heading);font-size:17px;font-weight:600;color:var(--text)" t="examples.login.signedIn">Signed in!</p>
         <p style="font-size:13px;color:var(--text-muted)" bind="email"></p>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text-muted);font-family:var(--font-mono);width:100%;text-align:center">
           Authorization: Bearer eyJ0eXAiOi...
         </div>
-        <button class="btn btn-outline btn-sm" on:click="loggedIn=false;email='';password=''">Sign out</button>
+        <button class="btn btn-outline btn-sm" on:click="loggedIn=false;email='';password=''" t="examples.login.signOut">Sign out</button>
       </div>
     </div>
   </div>
@@ -98,10 +98,10 @@
 <!-- ═══ Example 2 — Protected Dashboard + Token Validation (#F8FAFC bg, Intermediate) ═══ -->
 <section class="example-section alt">
   <div class="example-header">
-    <h2 class="example-title">Protected Route &amp; Token Validation</h2>
-    <span class="badge">Intermediate</span>
+    <h2 class="example-title" t="examples.dashboard.title">Protected Route &amp; Token Validation</h2>
+    <span class="badge" t="examples.dashboard.badge">Intermediate</span>
   </div>
-  <p class="example-desc">
+  <p class="example-desc" t="examples.dashboard.desc" t-html>
     A route guarded by the auth store, paired with a <strong>response interceptor</strong>
     that acts as a control script: on every API call, if the server returns
     <code>401</code> or <code>403</code>, the token is invalidated and the user
@@ -146,28 +146,28 @@
     <!-- Static preview: dashboard mock -->
     <div class="example-preview-panel" style="flex-direction:column;gap:14px;padding:24px">
       <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border)">
-        <span style="font-family:var(--font-heading);font-weight:600;color:var(--text)">Welcome back, Jane</span>
-        <span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:600;padding:4px 10px;border-radius:100px">● Active session</span>
+        <span style="font-family:var(--font-heading);font-weight:600;color:var(--text)" t="examples.dashboard.welcome">Welcome back, Jane</span>
+        <span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:600;padding:4px 10px;border-radius:100px" t="examples.dashboard.activeSession">● Active session</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Requests today</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px" t="examples.dashboard.requestsToday">Requests today</div>
           <div style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--text)">1,284</div>
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Error rate</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px" t="examples.dashboard.errorRate">Error rate</div>
           <div style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--success)">0.3%</div>
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Uptime</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px" t="examples.dashboard.uptime">Uptime</div>
           <div style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--text)">99.9%</div>
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Active users</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px" t="examples.dashboard.activeUsers">Active users</div>
           <div style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--primary)">342</div>
         </div>
       </div>
-      <div style="background:var(--primary-surface);border-left:3px solid var(--primary);padding:10px 14px;border-radius:0 6px 6px 0;font-size:12px;color:var(--text-secondary)">
+      <div style="background:var(--primary-surface);border-left:3px solid var(--primary);padding:10px 14px;border-radius:0 6px 6px 0;font-size:12px;color:var(--text-secondary)" t="examples.dashboard.interceptorNote" t-html>
         If any request returns <code>401</code> or <code>403</code>, the interceptor clears the token and redirects to <code>/login</code> automatically.
       </div>
     </div>
@@ -177,10 +177,10 @@
 <!-- ═══ Example 3 — Live Search (white bg, Beginner) ═══ -->
 <section class="example-section">
   <div class="example-header">
-    <h2 class="example-title">Live Search</h2>
-    <span class="badge">Beginner</span>
+    <h2 class="example-title" t="examples.search.title">Live Search</h2>
+    <span class="badge" t="examples.search.badge">Beginner</span>
   </div>
-  <p class="example-desc">
+  <p class="example-desc" t="examples.search.desc" t-html>
     An instant search input that fires a debounced GET request on every keystroke,
     rendering results reactively. No <code>addEventListener</code>, no
     <code>setTimeout</code>, no DOM manipulation.
@@ -240,7 +240,7 @@
       <!-- Results panel: only visible when user has typed something -->
       <div show="query" style="width:100%;border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:var(--white)">
         <div each="p in filtered" template="srch-row-tpl"></div>
-        <div show="!filtered.length" style="padding:10px 12px;font-size:12px;color:var(--text-muted);text-align:center">No results</div>
+        <div show="!filtered.length" style="padding:10px 12px;font-size:12px;color:var(--text-muted);text-align:center" t="examples.search.noResults">No results</div>
       </div>
     </div>
   </div>
@@ -249,10 +249,10 @@
 <!-- ═══ Example 4 — Shopping Cart with Global Store (#F8FAFC bg, Intermediate) ═══ -->
 <section class="example-section alt">
   <div class="example-header">
-    <h2 class="example-title">Shopping Cart</h2>
-    <span class="badge">Intermediate</span>
+    <h2 class="example-title" t="examples.cart.title">Shopping Cart</h2>
+    <span class="badge" t="examples.cart.badge">Intermediate</span>
   </div>
-  <p class="example-desc">
+  <p class="example-desc" t="examples.cart.desc">
     A global store shared between a product list and a cart badge — in different
     parts of the page. When a product is added, the badge and the cart summary
     update simultaneously, with no event bus or shared component needed.
@@ -320,7 +320,7 @@
       </template>
       <!-- Badge -->
       <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
-        <span style="font-family:var(--font-heading);font-weight:600;font-size:14px;color:var(--text)">Products</span>
+        <span style="font-family:var(--font-heading);font-weight:600;font-size:14px;color:var(--text)" t="examples.cart.products">Products</span>
         <span style="background:var(--primary);color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px">
           🛒 <span bind="cart.reduce((s,i) => s+i.qty, 0)"></span>
         </span>
@@ -330,14 +330,14 @@
       <!-- Cart summary -->
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);width:100%"
            show="cart.length > 0">
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:6px">Cart</p>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:6px" t="examples.cart.cartLabel">Cart</p>
         <div each="item in cart" template="cart-item-tpl"></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--text);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-          <span>Total</span>
+          <span t="examples.cart.total">Total</span>
           <span bind="'$' + cart.reduce((s, i) => s + i.price * i.qty, 0)"></span>
         </div>
       </div>
-      <p show="!cart.length" style="font-size:12px;color:var(--text-muted);margin-top:12px;text-align:center">Add a product to see the cart</p>
+      <p show="!cart.length" style="font-size:12px;color:var(--text-muted);margin-top:12px;text-align:center" t="examples.cart.addHint">Add a product to see the cart</p>
     </div>
   </div>
 </section>
@@ -345,10 +345,10 @@
 <!-- ═══ Example 5 — Live Polling (white bg, Beginner) ═══ -->
 <section class="example-section">
   <div class="example-header">
-    <h2 class="example-title">Live Polling</h2>
-    <span class="badge">Beginner</span>
+    <h2 class="example-title" t="examples.polling.title">Live Polling</h2>
+    <span class="badge" t="examples.polling.badge">Beginner</span>
   </div>
-  <p class="example-desc">
+  <p class="example-desc" t="examples.polling.desc" t-html>
     A server-status dashboard that refreshes automatically every 5 seconds using
     the <code>poll</code> attribute. Conditional styling reacts instantly to the
     current health state — no <code>setInterval</code>, no <code>fetch</code> loop.
@@ -377,7 +377,7 @@
     <!-- Static preview: server status mock -->
     <div class="example-preview-panel" style="flex-direction:column;gap:14px;padding:24px">
       <div style="display:flex;align-items:center;justify-content:space-between">
-        <span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--text)">Server Status</span>
+        <span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--text)" t="examples.polling.serverStatus">Server Status</span>
         <span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;display:flex;align-items:center;gap:5px">
           <span style="display:inline-block;width:6px;height:6px;background:#16A34A;border-radius:50%"></span>
           Online
@@ -385,29 +385,29 @@
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
         <div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px">
-          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">CPU</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px" t="examples.polling.cpu">CPU</div>
           <div style="font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--text)">42%</div>
         </div>
         <div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px">
-          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">Req/s</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px" t="examples.polling.reqPerSec">Req/s</div>
           <div style="font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--text)">318</div>
         </div>
         <div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px">
-          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">Errors</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px" t="examples.polling.errors">Errors</div>
           <div style="font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--success)">0.1%</div>
         </div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 14px">
         <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px">
-          <span>Last response time</span>
+          <span t="examples.polling.lastResponse">Last response time</span>
           <span style="color:var(--text);font-family:var(--font-mono)">84ms</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted)">
-          <span>Next poll in</span>
+          <span t="examples.polling.nextPoll">Next poll in</span>
           <span style="color:var(--primary);font-family:var(--font-mono)">5s</span>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);text-align:center">
+      <div style="font-size:11px;color:var(--text-muted);text-align:center" t="examples.polling.refreshNote" t-html>
         Refreshes automatically via <code>poll="5000"</code>
       </div>
     </div>
@@ -416,10 +416,10 @@
 
 <!-- ═══ CTA: #0F172A bg ═══ -->
 <section class="cta-section">
-  <h2 class="cta-title">Want More Examples?</h2>
-  <p class="cta-subtitle">Check out the full documentation for advanced patterns.</p>
+  <h2 class="cta-title" t="examples.cta.title">Want More Examples?</h2>
+  <p class="cta-subtitle" t="examples.cta.subtitle">Check out the full documentation for advanced patterns.</p>
   <div class="cta-buttons">
-    <a route="/docs" class="btn btn-cta-primary">View Documentation</a>
-    <a href="https://github.com/ErickXavier/no-js" target="_blank" class="btn btn-cta-secondary">GitHub Repository</a>
+    <a route="/docs" class="btn btn-cta-primary" t="examples.cta.viewDocs">View Documentation</a>
+    <a href="https://github.com/ErickXavier/no-js" target="_blank" class="btn btn-cta-secondary" t="examples.cta.github">GitHub Repository</a>
   </div>
 </section>

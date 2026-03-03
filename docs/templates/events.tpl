@@ -1,16 +1,16 @@
 <!-- Events — from events.md -->
 
 <section class="hero-section">
-  <span class="badge">Guides</span>
-  <h1 class="hero-title">Event Handling</h1>
-  <p class="hero-subtitle">Bind DOM events directly in HTML with on:event syntax</p>
+  <span class="badge" t="docs.events.hero.badge">Guides</span>
+  <h1 class="hero-title" t="docs.events.hero.title">Event Handling</h1>
+  <p class="hero-subtitle" t="docs.events.hero.subtitle">Bind DOM events directly in HTML with on:event syntax</p>
 </section>
 
 <div class="doc-content">
 
   <!-- on:* -->
   <div class="doc-section">
-    <h2 class="doc-title">on:* — Event Handlers</h2>
+    <h2 class="doc-title" t="docs.events.handlers.title">on:* — Event Handlers</h2>
     <p class="doc-text">Bind any DOM event directly in HTML. Access state and context variables directly in the handler expression.</p>
     <div class="demo-split">
       <div class="demo-code"><pre><span class="hl-cmt">&lt;!-- Click --&gt;</span>
@@ -42,7 +42,7 @@
 
   <!-- modifiers -->
   <div class="doc-section">
-    <h2 class="doc-title">Event Modifiers</h2>
+    <h2 class="doc-title" t="docs.events.modifiers.title">Event Modifiers</h2>
     <p class="doc-text">Modifiers let you control event behavior directly in the attribute:</p>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- .prevent — calls preventDefault() --&gt;</span>
 <span class="hl-tag">&lt;form</span> <span class="hl-attr">on:submit.prevent</span>=<span class="hl-str">"handleSubmit()"</span><span class="hl-tag">&gt;</span>
@@ -67,7 +67,7 @@
 
   <!-- $event & $el -->
   <div class="doc-section">
-    <h2 class="doc-title">$event &amp; $el</h2>
+    <h2 class="doc-title" t-html="docs.events.eventAndEl.title">$event &amp; $el</h2>
     <p class="doc-text"><code>$event</code> is the native DOM event. <code>$el</code> refers to the current element.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;input</span> <span class="hl-attr">on:input</span>=<span class="hl-str">"name = $event.target.value"</span> <span class="hl-tag">/&gt;</span>
 <span class="hl-tag">&lt;input</span> <span class="hl-attr">on:focus</span>=<span class="hl-str">"$el.select()"</span> <span class="hl-tag">/&gt;</span>
@@ -76,7 +76,7 @@
 
   <!-- lifecycle -->
   <div class="doc-section">
-    <h2 class="doc-title">Lifecycle Hooks</h2>
+    <h2 class="doc-title" t="docs.events.lifecycle.title">Lifecycle Hooks</h2>
     <table class="doc-table">
       <thead>
         <tr><th>Hook</th><th>When</th></tr>

@@ -1,16 +1,16 @@
 <!-- Error Handling — from error-handling.md -->
 
 <section class="hero-section">
-  <span class="badge">API Reference</span>
-  <h1 class="hero-title">Error Handling</h1>
-  <p class="hero-subtitle">Per-element error templates, retry logic, and global error handlers</p>
+  <span class="badge" t="docs.errorHandling.hero.badge">API Reference</span>
+  <h1 class="hero-title" t="docs.errorHandling.hero.title">Error Handling</h1>
+  <p class="hero-subtitle" t="docs.errorHandling.hero.subtitle">Per-element error templates, retry logic, and global error handlers</p>
 </section>
 
 <div class="doc-content">
 
   <!-- Per-Element Error Handling -->
   <div class="doc-section">
-    <h2 class="doc-title">Per-Element Error Handling</h2>
+    <h2 class="doc-title" t="docs.errorHandling.perElement.title">Per-Element Error Handling</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">get</span>=<span class="hl-str">"/api/users"</span>
      <span class="hl-attr">as</span>=<span class="hl-str">"users"</span>
      <span class="hl-attr">error</span>=<span class="hl-str">"#usersError"</span>
@@ -32,7 +32,7 @@
 
   <!-- Global Error Handler -->
   <div class="doc-section">
-    <h2 class="doc-title">Global Error Handler</h2>
+    <h2 class="doc-title" t="docs.errorHandling.globalHandler.title">Global Error Handler</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;script&gt;</span>
   <span class="hl-fn">NoJS</span>.<span class="hl-fn">on</span>(<span class="hl-str">'error'</span>, (<span class="hl-attr">error</span>, <span class="hl-attr">context</span>) <span class="hl-op">=&gt;</span> {
     console.<span class="hl-fn">error</span>(<span class="hl-str">'[No.JS Error]'</span>, error);
@@ -50,7 +50,7 @@
 
   <!-- error-boundary -->
   <div class="doc-section">
-    <h2 class="doc-title">error-boundary — Catch Errors in Subtree</h2>
+    <h2 class="doc-title" t="docs.errorHandling.errorBoundary.title">error-boundary — Catch Errors in Subtree</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">error-boundary</span>=<span class="hl-str">"#errorFallback"</span><span class="hl-tag">&gt;</span>
   <span class="hl-cmt">&lt;!-- Catches uncaught runtime errors (via window error listener) in this subtree --&gt;</span>
   <span class="hl-tag">&lt;div</span> <span class="hl-attr">get</span>=<span class="hl-str">"/api/fragile-endpoint"</span> <span class="hl-attr">as</span>=<span class="hl-str">"data"</span><span class="hl-tag">&gt;</span>

@@ -1,16 +1,16 @@
 <!-- Loops — from loops.md -->
 
 <section class="hero-section">
-  <span class="badge">Guides</span>
-  <h1 class="hero-title">Loops</h1>
-  <p class="hero-subtitle">Iterate over arrays with each and foreach</p>
+  <span class="badge" t="docs.loops.hero.badge">Guides</span>
+  <h1 class="hero-title" t="docs.loops.hero.title">Loops</h1>
+  <p class="hero-subtitle" t="docs.loops.hero.subtitle">Iterate over arrays with each and foreach</p>
 </section>
 
 <div class="doc-content">
 
   <!-- each -->
   <div class="doc-section">
-    <h2 class="doc-title">each — Iterate Over Arrays</h2>
+    <h2 class="doc-title" t="docs.loops.each.title">each — Iterate Over Arrays</h2>
     <div class="demo-split">
       <div class="demo-code"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">get</span>=<span class="hl-str">"/posts"</span> <span class="hl-attr">as</span>=<span class="hl-str">"posts"</span><span class="hl-tag">&gt;</span>
   <span class="hl-tag">&lt;div</span> <span class="hl-attr">each</span>=<span class="hl-str">"post in posts"</span>
@@ -38,7 +38,7 @@
 
   <!-- foreach -->
   <div class="doc-section">
-    <h2 class="doc-title">foreach — Extended Loop</h2>
+    <h2 class="doc-title" t="docs.loops.foreach.title">foreach — Extended Loop</h2>
     <p class="doc-text">Offers more control with filtering, sorting, pagination, and custom variable names.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;ul&gt;</span>
   <span class="hl-tag">&lt;li</span> <span class="hl-attr">foreach</span>=<span class="hl-str">"item"</span>
@@ -79,7 +79,7 @@
 
   <!-- loop context variables -->
   <div class="doc-section">
-    <h2 class="doc-title">Loop Context Variables</h2>
+    <h2 class="doc-title" t="docs.loops.contextVars.title">Loop Context Variables</h2>
     <table class="doc-table">
       <thead>
         <tr><th>Variable</th><th>Description</th></tr>
@@ -107,7 +107,7 @@
 
   <!-- nested loops -->
   <div class="doc-section">
-    <h2 class="doc-title">Nested Loops</h2>
+    <h2 class="doc-title" t="docs.loops.nested.title">Nested Loops</h2>
     <p class="doc-text">Child loops can access parent scope variables.</p>
     <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">each</span>=<span class="hl-str">"category in categories"</span>
      <span class="hl-attr">template</span>=<span class="hl-str">"categoryTpl"</span><span class="hl-tag">&gt;&lt;/div&gt;</span>

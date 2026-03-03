@@ -1,16 +1,16 @@
 <!-- Forms & Validation — from forms-validation.md -->
 
 <section class="hero-section">
-  <span class="badge">Guides</span>
-  <h1 class="hero-title">Forms &amp; Validation</h1>
-  <p class="hero-subtitle">Declarative form submission with built-in and custom validation rules</p>
+  <span class="badge" t="docs.formsValidation.hero.badge">Guides</span>
+  <h1 class="hero-title" t-html="docs.formsValidation.hero.title">Forms &amp; Validation</h1>
+  <p class="hero-subtitle" t="docs.formsValidation.hero.subtitle">Declarative form submission with built-in and custom validation rules</p>
 </section>
 
 <div class="doc-content">
 
   <!-- Declarative Form Submission -->
   <div class="doc-section">
-    <h2 class="doc-title">Declarative Form Submission</h2>
+    <h2 class="doc-title" t="docs.formsValidation.submission.title">Declarative Form Submission</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;form</span> <span class="hl-attr">post</span>=<span class="hl-str">"/api/register"</span>
       <span class="hl-attr">success</span>=<span class="hl-str">"#registerSuccess"</span>
       <span class="hl-attr">error</span>=<span class="hl-str">"#registerError"</span>
@@ -29,7 +29,7 @@
 
   <!-- Validation Rules -->
   <div class="doc-section">
-    <h2 class="doc-title">Validation Rules</h2>
+    <h2 class="doc-title" t="docs.formsValidation.rules.title">Validation Rules</h2>
     <div class="code-block"><pre><span class="hl-cmt">&lt;!-- Built-in HTML5 validation --&gt;</span>
 <span class="hl-tag">&lt;input</span> <span class="hl-attr">required</span> <span class="hl-tag">/&gt;</span>
 <span class="hl-tag">&lt;input</span> <span class="hl-attr">minlength</span>=<span class="hl-str">"3"</span> <span class="hl-attr">maxlength</span>=<span class="hl-str">"50"</span> <span class="hl-tag">/&gt;</span>
@@ -58,7 +58,7 @@
 
   <!-- $form Context -->
   <div class="doc-section">
-    <h2 class="doc-title">$form — Form Context</h2>
+    <h2 class="doc-title" t="docs.formsValidation.formContext.title">$form — Form Context</h2>
     <p class="doc-text">Inside any <code>&lt;form&gt;</code> with the <code>validate</code> attribute, <code>$form</code> provides:</p>
     <table class="doc-table">
       <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
@@ -91,7 +91,7 @@
 
   <!-- Custom Validators -->
   <div class="doc-section">
-    <h2 class="doc-title">Custom Validators</h2>
+    <h2 class="doc-title" t="docs.formsValidation.customValidators.title">Custom Validators</h2>
     <div class="code-block"><pre><span class="hl-tag">&lt;script&gt;</span>
   <span class="hl-fn">NoJS</span>.<span class="hl-fn">validator</span>(<span class="hl-str">'strongPassword'</span>, (<span class="hl-attr">value</span>) <span class="hl-op">=&gt;</span> {
     <span class="hl-kw">if</span> (value.length <span class="hl-op">&lt;</span> <span class="hl-num">8</span>) <span class="hl-kw">return</span> <span class="hl-str">'Must be at least 8 characters'</span>;
@@ -106,7 +106,7 @@
 
   <!-- Live Demo -->
   <div class="doc-section">
-    <h2 class="doc-title">Live Demo — Contact Form</h2>
+    <h2 class="doc-title" t="docs.formsValidation.liveDemo.title">Live Demo — Contact Form</h2>
     <div class="demo-split">
       <div class="demo-code">
         <div class="code-block"><pre><span class="hl-tag">&lt;div</span> <span class="hl-attr">state</span>=<span class="hl-str">"{ name: '', email: '', sent: false }"</span><span class="hl-tag">&gt;</span>

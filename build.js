@@ -7,7 +7,7 @@ const banner = `/**
  * No.JS v${pkg.version} — The HTML-First Reactive Framework
  * No more JavaScript. Just HTML attributes with superpowers.
  * @license MIT
- * @see https://github.com/erickillian/nojs
+ * @see https://github.com/ErickXavier/no-js
  */`;
 
 const shared = {

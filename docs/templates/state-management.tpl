@@ -21,11 +21,11 @@
 <span class="hl-tag">&lt;/div&gt;</span></pre></div>
       <div class="demo-preview" state="{ count: 0, name: 'World' }">
         <div class="demo-result-label" t="docs.stateManagement.state.preview">Preview</div>
-        <h3>Hello, <span bind="name"></span>!</h3>
-        <p>Count: <span bind="count"></span></p>
+        <h3><span t="docs.stateManagement.state.helloLabel">Hello,</span> <span bind="name"></span>!</h3>
+        <p><span t="docs.stateManagement.state.countLabel">Count:</span> <span bind="count"></span></p>
         <div class="flex gap-2">
           <button class="btn btn-primary btn-sm" on:click="count++">+1</button>
-          <button class="btn btn-outline btn-sm" on:click="count = 0">Reset</button>
+          <button class="btn btn-outline btn-sm" on:click="count = 0" t="docs.stateManagement.state.resetBtn">Reset</button>
         </div>
       </div>
     </div>
@@ -84,10 +84,10 @@
         <div class="demo-result-label" t="docs.stateManagement.computed.preview">Preview</div>
         <div computed="subtotal" expr="price * qty"></div>
         <div computed="total" expr="subtotal * (1 + tax)"></div>
-        <p>Price: $<span bind="price"></span></p>
-        <p>Qty: <input type="number" model="qty" class="input" style="width:80px;display:inline-block" /></p>
-        <p>Subtotal: $<span bind="subtotal"></span></p>
-        <p><strong>Total: $<span bind="total"></span></strong></p>
+        <p><span t="docs.stateManagement.computed.priceLabel">Price:</span> $<span bind="price"></span></p>
+        <p><span t="docs.stateManagement.computed.qtyLabel">Qty:</span> <input type="number" model="qty" class="input" style="width:80px;display:inline-block" /></p>
+        <p><span t="docs.stateManagement.computed.subtotalLabel">Subtotal:</span> $<span bind="subtotal"></span></p>
+        <p><strong><span t="docs.stateManagement.computed.totalLabel">Total:</span> $<span bind="total"></span></strong></p>
       </div>
     </div>
   </div>

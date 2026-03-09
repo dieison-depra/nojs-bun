@@ -66,7 +66,7 @@
         <label class="checkbox-label">
           <input type="checkbox" model="agreed" /> <span t="docs.dataBinding.model.checkbox">I agree</span>
         </label>
-        <p class="mt-3">Hello, <strong bind="name || '...'"></strong></p>
+        <p class="mt-3"><span t="docs.dataBinding.model.helloPrefix">Hello,</span> <strong bind="name || '...'"></strong></p>
         <p class="text-sm text-muted"><span t="docs.dataBinding.model.agreedLabel">Agreed:</span> <span bind="agreed"></span></p>
       </div>
     </div>

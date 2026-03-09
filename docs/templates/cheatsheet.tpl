@@ -154,10 +154,10 @@
         <tr><td><code>route</code></td><td><code>route="/path"</code></td><td t="docs.cheatsheet.routing.route">Define route or link</td></tr>
         <tr><td><code>route-view</code></td><td><code>route-view</code></td><td t="docs.cheatsheet.routing.routeView">Route outlet</td></tr>
         <tr><td><code>route-view="name"</code></td><td><code>&lt;aside route-view="sidebar"&gt;</code></td><td t="docs.cheatsheet.routing.routeViewNamed">Named route outlet</td></tr>
-        <tr><td><code>route-view[src]</code></td><td><code>&lt;main route-view src="./pages/"&gt;</code></td><td>File-based routing outlet</td></tr>
-        <tr><td><code>route-index</code></td><td><code>route-index="overview"</code></td><td>Filename for root <code>/</code> (default <code>"index"</code>)</td></tr>
-        <tr><td><code>ext</code></td><td><code>ext=".html"</code></td><td>File extension (default <code>".tpl"</code>, fallback <code>".html"</code>)</td></tr>
-        <tr><td><code>i18n-ns</code></td><td><code>i18n-ns</code></td><td>Auto-derive i18n namespace from route filename</td></tr>
+        <tr><td><code>route-view[src]</code></td><td><code>&lt;main route-view src="./pages/"&gt;</code></td><td t-html="docs.cheatsheet.routing.routeViewSrc">File-based routing outlet</td></tr>
+        <tr><td><code>route-index</code></td><td><code>route-index="overview"</code></td><td t-html="docs.cheatsheet.routing.routeIndex">Filename for root <code>/</code> (default <code>"index"</code>)</td></tr>
+        <tr><td><code>ext</code></td><td><code>ext=".html"</code></td><td t-html="docs.cheatsheet.routing.routeExt">File extension (default <code>".tpl"</code>, fallback <code>".html"</code>)</td></tr>
+        <tr><td><code>i18n-ns</code></td><td><code>i18n-ns</code></td><td t="docs.cheatsheet.routing.i18nNs">Auto-derive i18n namespace from route filename</td></tr>
         <tr><td><code>outlet</code></td><td><code>&lt;template route="/x" outlet="sidebar"&gt;</code></td><td t="docs.cheatsheet.routing.outlet">Target a named outlet</td></tr>
         <tr><td><code>route-active</code></td><td><code>route-active="cls"</code></td><td t="docs.cheatsheet.routing.routeActive">Active link class</td></tr>
         <tr><td><code>guard</code></td><td><code>guard="expr"</code></td><td t="docs.cheatsheet.routing.guard">Route guard condition</td></tr>
@@ -205,7 +205,7 @@
         <tr><td><code>drop-accept</code></td><td><code>drop-accept="task"</code></td><td t="docs.cheatsheet.dnd.dropAccept">Accepted drag type(s)</td></tr>
         <tr><td><code>drop-effect</code></td><td><code>drop-effect="move"</code></td><td t="docs.cheatsheet.dnd.dropEffect">Visual feedback effect</td></tr>
         <tr><td><code>drop-class</code></td><td><code>drop-class="over"</code></td><td t="docs.cheatsheet.dnd.dropClass">Class added on drag-over</td></tr>
-        <tr><td><code>drop-reject-class</code></td><td><code>drop-reject-class="nope"</code></td><td>Class added on rejected drag-over</td></tr>
+        <tr><td><code>drop-reject-class</code></td><td><code>drop-reject-class="nope"</code></td><td t="docs.cheatsheet.dnd.dropRejectClass">Class added on rejected drag-over</td></tr>
         <tr><td><code>drop-disabled</code></td><td><code>drop-disabled="full"</code></td><td t="docs.cheatsheet.dnd.dropDisabled">Disable drop conditionally</td></tr>
         <tr><td><code>drop-max</code></td><td><code>drop-max="5"</code></td><td t="docs.cheatsheet.dnd.dropMax">Maximum items in drop zone</td></tr>
         <tr><td><code>drop-sort</code></td><td><code>drop-sort</code></td><td t="docs.cheatsheet.dnd.dropSort">Enable positional sorting</td></tr>

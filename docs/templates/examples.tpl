@@ -68,11 +68,11 @@
     <div class="example-preview-panel" state="{ loggedIn: false, email: '', password: '' }" style="justify-content:center;">
       <div show="!loggedIn" style="display:flex;flex-direction:column;gap:14px;width:100%">
         <div class="form-group" style="margin-bottom:0">
-          <label class="form-label">Email</label>
+          <label class="form-label" t="examples.login.emailLabel">Email</label>
           <input type="email" class="input" model="email" placeholder="you@company.com">
         </div>
         <div class="form-group" style="margin-bottom:0">
-          <label class="form-label">Password</label>
+          <label class="form-label" t="examples.login.passwordLabel">Password</label>
           <input type="password" class="input" model="password" placeholder="••••••••">
         </div>
         <button class="btn btn-primary" style="width:100%;margin-top:4px"
@@ -380,7 +380,7 @@
         <span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--text)" t="examples.polling.serverStatus">Server Status</span>
         <span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;display:flex;align-items:center;gap:5px">
           <span style="display:inline-block;width:6px;height:6px;background:#16A34A;border-radius:50%"></span>
-          Online
+          <span t="examples.polling.onlineBadge">Online</span>
         </span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">

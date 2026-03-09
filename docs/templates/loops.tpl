@@ -68,7 +68,7 @@
         <tr><td><code>from</code></td><td t="docs.loops.foreach.from">Source array from context</td></tr>
         <tr><td><code>index</code></td><td t="docs.loops.foreach.index">Variable name for the index (default: <code>$index</code>)</td></tr>
         <tr><td><code>key</code></td><td t="docs.loops.foreach.key">Unique key expression for element identification and tracking</td></tr>
-        <tr><td><code>else</code></td><td>Template ID to render when array is empty</td></tr>
+        <tr><td><code>else</code></td><td t="docs.loops.foreach.else">Template ID to render when array is empty</td></tr>
         <tr><td><code>filter</code></td><td t="docs.loops.foreach.filter">Expression to filter items</td></tr>
         <tr><td><code>sort</code></td><td t="docs.loops.foreach.sort">Property path to sort by (prefix <code>-</code> for descending)</td></tr>
         <tr><td><code>limit</code></td><td t="docs.loops.foreach.limit">Maximum number of items to render</td></tr>

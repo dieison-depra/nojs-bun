@@ -126,7 +126,7 @@
             <input class="input" model="email" placeholder="Your email" t-placeholder="docs.formsValidation.liveDemo.emailPlaceholder" />
           </div>
           <button class="btn btn-primary btn-sm" on:click="sent = true" t="docs.formsValidation.liveDemo.sendButton">Send</button>
-          <p show="sent" style="margin-top: 12px; color: var(--success);">Thanks, <span bind="name"></span>!</p>
+          <p show="sent" style="margin-top: 12px; color: var(--success);"><span t="docs.formsValidation.liveDemo.thanks">Thanks,</span> <span bind="name"></span>!</p>
         </div>
       </div>
     </div>

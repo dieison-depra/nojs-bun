@@ -28,13 +28,13 @@
      <span class="hl-attr">on:mouseleave</span>=<span class="hl-str">"hovered = false"</span><span class="hl-tag">&gt;</span><span class="hl-tag">&lt;/div&gt;</span></pre></div>
       <div class="demo-preview" state="{ count: 0, msg: '' }">
         <div class="demo-result-label" t="docs.events.handlers.preview">Preview</div>
-        <p>Count: <strong bind="count"></strong></p>
+        <p><span t="docs.events.handlers.countLabel">Count:</span> <strong bind="count"></strong></p>
         <div class="flex gap-2 mb-3">
           <button class="btn btn-primary btn-sm" on:click="count++">+1</button>
           <button class="btn btn-outline btn-sm" on:click="count--">-1</button>
           <button class="btn btn-outline btn-sm" on:click="count = 0">Reset</button>
         </div>
-        <input class="input" model="msg" placeholder="Type something..." />
+        <input class="input" model="msg" placeholder="Type something..." t-placeholder="docs.events.handlers.inputPlaceholder" />
         <p class="text-sm text-muted mt-2"><span t="docs.events.handlers.youTyped">You typed:</span> <span bind="msg"></span></p>
       </div>
     </div>

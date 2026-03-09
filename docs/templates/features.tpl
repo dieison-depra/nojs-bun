@@ -22,7 +22,7 @@
   </div>
   <div class="showcase-code">
     <div class="showcase-preview" state="{ user: 'World' }">
-      <span class="showcase-preview-label">▶  PREVIEW</span>
+      <span class="showcase-preview-label" t="features.showcase.previewLabel">▶  PREVIEW</span>
       <div class="showcase-preview-inner">
         <input class="input" model="user" placeholder="Enter name..." style="margin-bottom:0">
         <p class="showcase-preview-output" bind="'Hello, ' + user"></p>
@@ -52,11 +52,11 @@
   </div>
   <div class="showcase-code">
     <div class="showcase-preview">
-      <span class="showcase-preview-label">▶  PREVIEW</span>
+      <span class="showcase-preview-label" t="features.showcase.previewLabel">▶  PREVIEW</span>
       <div class="showcase-preview-inner">
-        <div class="showcase-list-item"><span class="showcase-list-dot active"></span> Buy groceries</div>
-        <div class="showcase-list-item"><span class="showcase-list-dot active"></span> Take out trash</div>
-        <div class="showcase-list-item inactive"><span class="showcase-list-dot"></span> Fix the bug</div>
+        <div class="showcase-list-item"><span class="showcase-list-dot active"></span> <span t="features.showcase2.item1">Buy groceries</span></div>
+        <div class="showcase-list-item"><span class="showcase-list-dot active"></span> <span t="features.showcase2.item2">Take out trash</span></div>
+        <div class="showcase-list-item inactive"><span class="showcase-list-dot"></span> <span t="features.showcase2.item3">Fix the bug</span></div>
       </div>
     </div>
     <div class="code-block">
@@ -83,10 +83,10 @@
   </div>
   <div class="showcase-code">
     <div class="showcase-preview" state="{ count: 0 }">
-      <span class="showcase-preview-label">▶  PREVIEW</span>
+      <span class="showcase-preview-label" t="features.showcase.previewLabel">▶  PREVIEW</span>
       <div class="showcase-preview-inner" style="align-items:center">
         <p class="showcase-counter" bind="count"></p>
-        <button class="btn btn-primary" on:click="count++">Clicked:&nbsp;<span bind="count"></span></button>
+        <button class="btn btn-primary" on:click="count++"><span t="features.showcase3.clickedLabel">Clicked:</span>&nbsp;<span bind="count"></span></button>
       </div>
     </div>
     <div class="code-block">

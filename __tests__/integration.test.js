@@ -14,6 +14,7 @@ import { _i18n } from '../src/i18n.js';
 
 beforeEach(() => {
   document.body.innerHTML = '';
+  NoJS._initialized = false;
   _config.debug = false;
   _config.baseApiUrl = '';
   _config.headers = {};

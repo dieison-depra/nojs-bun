@@ -90,6 +90,8 @@ const NoJS = {
 
   async init(root) {
     if (typeof document === "undefined") return;
+    if (NoJS._initialized) return;
+    NoJS._initialized = true;
     root = root || document.body;
     _log("Initializing...");
 
@@ -216,7 +218,7 @@ const NoJS = {
   resolve,
 
   // Version
-  version: "1.4.2",
+  version: "1.4.3",
 };
 
 export default NoJS;

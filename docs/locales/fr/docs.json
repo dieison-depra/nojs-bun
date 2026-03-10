@@ -337,7 +337,7 @@
         "title": "on:* — Gestionnaires d'événements",
         "text": "Liez n'importe quel événement DOM directement en HTML. Accédez à l'état et aux variables de contexte directement dans l'expression du gestionnaire.",
         "preview": "Aperçu",
-        "placeholder": "Tapez quelque chose...",
+        "inputPlaceholder": "Tapez quelque chose...",
         "youTyped": "Vous avez tapé :",
         "countLabel": "Compteur :"
       },

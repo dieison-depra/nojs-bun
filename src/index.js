@@ -170,7 +170,7 @@ const NoJS = {
     if (_config.i18n.persist && typeof localStorage !== "undefined") {
       try {
         const saved = localStorage.getItem("nojs-locale");
-        if (saved && _i18n.locales[saved]) { _i18n._locale = saved; return; }
+        if (saved) { _i18n._locale = saved; return; }
       } catch (_) {}
     }
 
@@ -216,7 +216,7 @@ const NoJS = {
   resolve,
 
   // Version
-  version: "1.4.1",
+  version: "1.4.2",
 };
 
 export default NoJS;

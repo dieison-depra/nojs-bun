@@ -337,7 +337,7 @@
         "title": "on:* — Manejadores de Eventos",
         "text": "Enlaza cualquier evento del DOM directamente en HTML. Accede al estado y las variables de contexto directamente en la expresión del manejador.",
         "preview": "Vista previa",
-        "placeholder": "Escribe algo...",
+        "inputPlaceholder": "Escribe algo...",
         "youTyped": "Escribiste:",
         "countLabel": "Conteo:"
       },

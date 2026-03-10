@@ -15,8 +15,8 @@
           <div class="sidebar-group-title" t="faq.sidebar.questions"></div>
           <a href="#getting-started" class="sidebar-link" t="faq.sidebar.gettingStarted"></a>
           <a href="#core-concepts" class="sidebar-link" t="faq.sidebar.coreConcepts"></a>
-          <a href="#features" class="sidebar-link" t="faq.sidebar.features"></a>
-          <a href="#performance" class="sidebar-link" t="faq.sidebar.performance"></a>
+          <a href="#comparisons" class="sidebar-link" t="faq.sidebar.comparisons"></a>
+          <a href="#security" class="sidebar-link" t="faq.sidebar.security"></a>
         </div>
         <div class="sidebar-group">
           <div class="sidebar-group-title" t="faq.sidebar.resources"></div>
@@ -96,48 +96,48 @@
         </div>
       </section>
 
-      <!-- Features & Capabilities -->
-      <section id="features" class="faq-category" faq-filter>
-        <h2 class="faq-category-title" t="faq.features.title"></h2>
+      <!-- Comparisons -->
+      <section id="comparisons" class="faq-category" faq-filter>
+        <h2 class="faq-category-title" t="faq.comparisons.title"></h2>
         <div class="faq-list">
-          <details class="faq-item" faq-filter="faq.features.q9.question">
-            <summary class="faq-question"><span t="faq.features.q9.question"></span><span class="faq-chevron"></span></summary>
-            <div class="faq-answer" t="faq.features.q9.answer" t-html></div>
+          <details class="faq-item" faq-filter="faq.comparisons.q9.question">
+            <summary class="faq-question"><span t="faq.comparisons.q9.question"></span><span class="faq-chevron"></span></summary>
+            <div class="faq-answer" t="faq.comparisons.q9.answer" t-html></div>
           </details>
-          <details class="faq-item" faq-filter="faq.features.q10.question">
-            <summary class="faq-question"><span t="faq.features.q10.question"></span><span class="faq-chevron"></span></summary>
-            <div class="faq-answer" t="faq.features.q10.answer" t-html></div>
+          <details class="faq-item" faq-filter="faq.comparisons.q10.question">
+            <summary class="faq-question"><span t="faq.comparisons.q10.question"></span><span class="faq-chevron"></span></summary>
+            <div class="faq-answer" t="faq.comparisons.q10.answer" t-html></div>
           </details>
-          <details class="faq-item" faq-filter="faq.features.q11.question">
-            <summary class="faq-question"><span t="faq.features.q11.question"></span><span class="faq-chevron"></span></summary>
-            <div class="faq-answer" t="faq.features.q11.answer" t-html></div>
+          <details class="faq-item" faq-filter="faq.comparisons.q11.question">
+            <summary class="faq-question"><span t="faq.comparisons.q11.question"></span><span class="faq-chevron"></span></summary>
+            <div class="faq-answer" t="faq.comparisons.q11.answer" t-html></div>
           </details>
-          <details class="faq-item" faq-filter="faq.features.q12.question">
-            <summary class="faq-question"><span t="faq.features.q12.question"></span><span class="faq-chevron"></span></summary>
-            <div class="faq-answer" t="faq.features.q12.answer" t-html></div>
+          <details class="faq-item" faq-filter="faq.comparisons.q12.question">
+            <summary class="faq-question"><span t="faq.comparisons.q12.question"></span><span class="faq-chevron"></span></summary>
+            <div class="faq-answer" t="faq.comparisons.q12.answer" t-html></div>
           </details>
         </div>
       </section>
 
-      <!-- Performance & Production -->
-      <section id="performance" class="faq-category" faq-filter>
-        <h2 class="faq-category-title" t="faq.performance.title"></h2>
+      <!-- Security & Production -->
+      <section id="security" class="faq-category" faq-filter>
+        <h2 class="faq-category-title" t="faq.security.title"></h2>
         <div class="faq-list">
-          <details class="faq-item" faq-filter="faq.performance.q13.question">
-            <summary class="faq-question"><span t="faq.performance.q13.question"></span><span class="faq-chevron"></span></summary>
-            <div class="faq-answer" t="faq.performance.q13.answer" t-html></div>
+          <details class="faq-item" faq-filter="faq.security.q13.question">
+            <summary class="faq-question"><span t="faq.security.q13.question"></span><span class="faq-chevron"></span></summary>
+            <div class="faq-answer" t="faq.security.q13.answer" t-html></div>
           </details>
-          <details class="faq-item" faq-filter="faq.performance.q14.question">
-            <summary class="faq-question"><span t="faq.performance.q14.question"></span><span class="faq-chevron"></span></summary>
-            <div class="faq-answer" t="faq.performance.q14.answer" t-html></div>
+          <details class="faq-item" faq-filter="faq.security.q14.question">
+            <summary class="faq-question"><span t="faq.security.q14.question"></span><span class="faq-chevron"></span></summary>
+            <div class="faq-answer" t="faq.security.q14.answer" t-html></div>
           </details>
-          <details class="faq-item" faq-filter="faq.performance.q15.question">
-            <summary class="faq-question"><span t="faq.performance.q15.question"></span><span class="faq-chevron"></span></summary>
-            <div class="faq-answer" t="faq.performance.q15.answer" t-html></div>
+          <details class="faq-item" faq-filter="faq.security.q15.question">
+            <summary class="faq-question"><span t="faq.security.q15.question"></span><span class="faq-chevron"></span></summary>
+            <div class="faq-answer" t="faq.security.q15.answer" t-html></div>
           </details>
-          <details class="faq-item" faq-filter="faq.performance.q16.question">
-            <summary class="faq-question"><span t="faq.performance.q16.question"></span><span class="faq-chevron"></span></summary>
-            <div class="faq-answer" t="faq.performance.q16.answer" t-html></div>
+          <details class="faq-item" faq-filter="faq.security.q16.question">
+            <summary class="faq-question"><span t="faq.security.q16.question"></span><span class="faq-chevron"></span></summary>
+            <div class="faq-answer" t="faq.security.q16.answer" t-html></div>
           </details>
         </div>
       </section>

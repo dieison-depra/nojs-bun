@@ -337,7 +337,7 @@
         "title": "on:* — Gestori di Eventi",
         "text": "Collega qualsiasi evento DOM direttamente in HTML. Accedi allo stato e alle variabili di contesto direttamente nell'espressione del gestore.",
         "preview": "Anteprima",
-        "placeholder": "Digita qualcosa...",
+        "inputPlaceholder": "Digita qualcosa...",
         "youTyped": "Hai digitato:",
         "countLabel": "Conteggio:"
       },

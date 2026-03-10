@@ -337,7 +337,7 @@
         "title": "on:* — Handlers de Eventos",
         "text": "Vincule qualquer evento DOM diretamente no HTML. Acesse variáveis de estado e contexto diretamente na expressão do handler.",
         "preview": "Pré-visualização",
-        "placeholder": "Digite algo...",
+        "inputPlaceholder": "Digite algo...",
         "youTyped": "Você digitou:",
         "countLabel": "Contagem:"
       },

@@ -337,7 +337,7 @@
         "title": "on:* — Event Handlers",
         "text": "Bind any DOM event directly in HTML. Access state and context variables directly in the handler expression.",
         "preview": "Preview",
-        "placeholder": "Type something...",
+        "inputPlaceholder": "Type something...",
         "youTyped": "You typed:",
         "countLabel": "Count:"
       },

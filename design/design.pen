@@ -5535,7 +5535,7 @@
                       "name": "cdnCode",
                       "descendants": {
                         "salq5": {
-                          "content": "<script src=\"https://unpkg.com/@erickxavier/no-js@1.0.0/dist/iife/no.js\">"
+                          "content": "<script src=\"https://cdn.no-js.dev/\">"
                         },
                         "IAMDC": {
                           "content": "</script>"
@@ -6512,7 +6512,7 @@
                       "id": "ZEa8r",
                       "name": "v3_s1c",
                       "fill": "#64748B",
-                      "content": "<script src=\"https://unpkg.com/@erickxavier/no-js@1.0.0/dist/iife/no.js\"></script>",
+                      "content": "<script src=\"https://cdn.no-js.dev/\"></script>",
                       "fontFamily": "JetBrains Mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -6727,7 +6727,7 @@
                       "fill": "#E2E8F0",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "<!DOCTYPE html>\n<html>\n<head>\n  <script src=\"https://unpkg.com/@erickxavier/no-js@1.0.0/dist/iife/no.js\"></script>\n</head>\n<body>\n  <div state=\"{ count: 0 }\">\n    <h1 bind=\"'Counter: ' + count\"></h1>\n    <button on:click=\"count++\">Increment</button>\n    <button on:click=\"count--\">Decrement</button>\n  </div>\n</body>\n</html>",
+                      "content": "<!DOCTYPE html>\n<html>\n<head>\n  <script src=\"https://cdn.no-js.dev/\"></script>\n</head>\n<body>\n  <div state=\"{ count: 0 }\">\n    <h1 bind=\"'Counter: ' + count\"></h1>\n    <button on:click=\"count++\">Increment</button>\n    <button on:click=\"count--\">Decrement</button>\n  </div>\n</body>\n</html>",
                       "lineHeight": 1.7,
                       "fontFamily": "JetBrains Mono",
                       "fontSize": 14,

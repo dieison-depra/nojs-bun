@@ -207,7 +207,7 @@ All five patterns combined into a single production-grade SPA:
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js"></script>
+  <script src="https://cdn.no-js.dev/"></script>
   <script>
     NoJS.config({
       baseApiUrl: 'https://api.myapp.com/v1',

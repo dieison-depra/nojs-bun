@@ -7,7 +7,7 @@ const DOCS = __dirname;
 const PROJECT = path.resolve(DOCS, '..');
 const LOCAL_BUILD = path.join(PROJECT, 'dist/iife/no.js');
 
-const CDN_PATTERN = /https:\/\/unpkg\.com\/@erickxavier\/no-js@[^"']*\/dist\/iife\/no\.js/g;
+const CDN_PATTERN = /https:\/\/cdn\.no-js\.dev\//g;
 const LOCAL_SCRIPT = '/__local__/no.js';
 
 const MIME = {
@@ -66,6 +66,6 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`\n  🚀 No.JS Docs — http://localhost:${PORT}`);
-  console.log(`  ⚡ unpkg CDN → local build (on-the-fly rewrite)`);
+  console.log(`  ⚡ cdn.no-js.dev → local build (on-the-fly rewrite)`);
   console.log(`  📁 ${LOCAL_BUILD}\n`);
 });

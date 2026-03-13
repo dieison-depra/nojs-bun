@@ -39,7 +39,7 @@ No build step. No virtual DOM. No transpiler. No JSX. Just HTML.
 ### CDN
 
 ```html
-<script src="https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js"></script>
+<script src="https://cdn.no-js.dev/"></script>
 ```
 
 ### NPM
@@ -66,7 +66,7 @@ await NoJS.init();
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js"></script>
+  <script src="https://cdn.no-js.dev/"></script>
 </head>
 <body base="https://jsonplaceholder.typicode.com">
 

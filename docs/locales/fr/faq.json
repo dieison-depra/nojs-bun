@@ -29,7 +29,7 @@
       },
       "q2": {
         "question": "Comment commencer ?",
-        "answer": "Ajoutez une balise script :<br><br><code>&lt;script src=\"https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js\"&gt;&lt;/script&gt;</code><br><br>Pas de build, pas de gestionnaire de paquets. Commencez à écrire des attributs."
+        "answer": "Ajoutez une balise script :<br><br><code>&lt;script src=\"https://cdn.no-js.dev/\"&gt;&lt;/script&gt;</code><br><br>Pas de build, pas de gestionnaire de paquets. Commencez à écrire des attributs."
       },
       "q3": {
         "question": "Faut-il connaître JavaScript ?",

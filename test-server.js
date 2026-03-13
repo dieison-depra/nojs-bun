@@ -6,7 +6,7 @@ const PORT = 3000;
 const ROOT = __dirname;
 const LOCAL_BUILD = path.join(ROOT, 'dist/iife/no.js');
 
-const CDN_PATTERN = /https:\/\/unpkg\.com\/@erickxavier\/no-js@[^"']*\/dist\/iife\/no\.js/g;
+const CDN_PATTERN = /https:\/\/cdn\.no-js\.dev\//g;
 const LOCAL_SCRIPT = '/__local__/no.js';
 
 const MIME = {

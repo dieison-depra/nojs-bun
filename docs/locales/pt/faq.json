@@ -29,7 +29,7 @@
       },
       "q2": {
         "question": "Como começo?",
-        "answer": "Adicione uma tag script:<br><br><code>&lt;script src=\"https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js\"&gt;&lt;/script&gt;</code><br><br>Sem etapa de build, sem gerenciador de pacotes. Comece a escrever atributos."
+        "answer": "Adicione uma tag script:<br><br><code>&lt;script src=\"https://cdn.no-js.dev/\"&gt;&lt;/script&gt;</code><br><br>Sem etapa de build, sem gerenciador de pacotes. Comece a escrever atributos."
       },
       "q3": {
         "question": "Preciso saber JavaScript?",

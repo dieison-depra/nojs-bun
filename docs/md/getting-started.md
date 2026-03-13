@@ -5,7 +5,7 @@
 ### CDN (recommended)
 
 ```html
-<script src="https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js"></script>
+<script src="https://cdn.no-js.dev/"></script>
 ```
 
 ### NPM
@@ -38,7 +38,7 @@ Download `dist/iife/no.js` and include it with a `<script>` tag. It's a single f
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js"></script>
+  <script src="https://cdn.no-js.dev/"></script>
 </head>
 <body base="https://jsonplaceholder.typicode.com">
 

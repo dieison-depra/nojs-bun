@@ -325,7 +325,7 @@
         + '    };\n'
         + '  <\/script>\n'
         + '  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@latest"><\/script>\n'
-        + '  <script src="' + (location.hostname === 'localhost' ? '/__local__/no.js' : 'https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js') + '"><\/script>\n'
+        + '  <script src="' + (location.hostname === 'localhost' ? '/__local__/no.js' : 'https://cdn.no-js.dev/') + '"><\/script>\n'
         + '</head>\n'
         + '<body class="font-sans">\n'
         + processedHtml + '\n'

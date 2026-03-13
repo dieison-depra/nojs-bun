@@ -29,7 +29,7 @@
       },
       "q2": {
         "question": "¿Cómo empiezo?",
-        "answer": "Agrega una etiqueta script:<br><br><code>&lt;script src=\"https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js\"&gt;&lt;/script&gt;</code><br><br>Sin paso de build, sin gestor de paquetes. Empieza a escribir atributos."
+        "answer": "Agrega una etiqueta script:<br><br><code>&lt;script src=\"https://cdn.no-js.dev/\"&gt;&lt;/script&gt;</code><br><br>Sin paso de build, sin gestor de paquetes. Empieza a escribir atributos."
       },
       "q3": {
         "question": "¿Necesito saber JavaScript?",

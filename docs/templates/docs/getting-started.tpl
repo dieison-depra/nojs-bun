@@ -22,7 +22,7 @@
     <h2 class="doc-title" t="docs.gettingStarted.installation.title"></h2>
 
     <h3 class="doc-subtitle" t="docs.gettingStarted.installation.cdnSubtitle"></h3>
-    <div class="code-block"><pre><span class="hl-tag">&lt;script</span> <span class="hl-attr">src</span>=<span class="hl-str">"https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js"</span><span class="hl-tag">&gt;&lt;/script&gt;</span></pre></div>
+    <div class="code-block"><pre><span class="hl-tag">&lt;script</span> <span class="hl-attr">src</span>=<span class="hl-str">"https://cdn.no-js.dev/"</span><span class="hl-tag">&gt;&lt;/script&gt;</span></pre></div>
 
     <h3 class="doc-subtitle" t="docs.gettingStarted.installation.selfHostedSubtitle"></h3>
     <p class="doc-text" t="docs.gettingStarted.installation.selfHostedText"></p>
@@ -35,7 +35,7 @@
     <div class="code-block"><pre><span class="hl-tag">&lt;!DOCTYPE html&gt;</span>
 <span class="hl-tag">&lt;html&gt;</span>
 <span class="hl-tag">&lt;head&gt;</span>
-  <span class="hl-tag">&lt;script</span> <span class="hl-attr">src</span>=<span class="hl-str">"https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js"</span><span class="hl-tag">&gt;&lt;/script&gt;</span>
+  <span class="hl-tag">&lt;script</span> <span class="hl-attr">src</span>=<span class="hl-str">"https://cdn.no-js.dev/"</span><span class="hl-tag">&gt;&lt;/script&gt;</span>
 <span class="hl-tag">&lt;/head&gt;</span>
 <span class="hl-tag">&lt;body</span> <span class="hl-attr">base</span>=<span class="hl-str">"https://jsonplaceholder.typicode.com"</span><span class="hl-tag">&gt;</span>
 

@@ -29,7 +29,7 @@
       },
       "q2": {
         "question": "Come si inizia?",
-        "answer": "Aggiungi un tag script:<br><br><code>&lt;script src=\"https://unpkg.com/@erickxavier/no-js@latest/dist/iife/no.js\"&gt;&lt;/script&gt;</code><br><br>Nessun build step, nessun package manager. Inizia a scrivere attributi."
+        "answer": "Aggiungi un tag script:<br><br><code>&lt;script src=\"https://cdn.no-js.dev/\"&gt;&lt;/script&gt;</code><br><br>Nessun build step, nessun package manager. Inizia a scrivere attributi."
       },
       "q3": {
         "question": "Devo conoscere JavaScript?",

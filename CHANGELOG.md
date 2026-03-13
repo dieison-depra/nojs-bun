@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0](https://github.com/ErickXavier/no-js/compare/v1.6.1...v1.7.0) — 2026-03-13
+
+### Added
+
+- Complete form validation revamp with declarative HTML-first API ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- Built-in validators: `required`, `email`, `url`, `min`, `max`, `custom` ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- Per-rule error messages via `error-{rule}` attributes (e.g. `error-required="Field is required"`) ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `$form.errors` object with per-field error messages ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `$form.firstError` — first error message in DOM order ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `$form.errorCount` — count of invalid fields ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `$form.fields` — per-field state (`valid`, `dirty`, `touched`, `error`, `value`) ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `$form.values` — reactive form values object ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `$form.pending` — async validator support ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `$form.reset()` — reset form state (dirty, touched, errors) ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `error-class` attribute for automatic CSS class toggling on invalid fields ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `validate-on` attribute to control validation trigger (`input`, `blur`, `submit`) ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `validate-if` attribute for conditional field validation ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- Error template references (`error-required="#tpl"`) for custom error rendering ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- Pristine-aware validation: errors only display for fields the user has interacted with ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- Submit automatically marks all fields as touched (revealing all errors) ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- E2E test suite for form validation (Playwright) ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- Updated docs with interactive Registration Form demo ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- Updated all locale files (en, es, fr, it, pt) with new form demo content ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+
+### Removed
+
+- `cpf`, `cnpj`, `phone`, `creditcard` validators (region-specific, use `custom` instead) ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `between` validator (use `min` + `max` instead) ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+- `match` validator (use `custom` instead) ([`cad7be4`](https://github.com/ErickXavier/no-js/commit/cad7be4))
+
 ## [1.6.1](https://github.com/ErickXavier/no-js/compare/v1.6.0...v1.6.1) — 2026-03-13
 
 ### Changed

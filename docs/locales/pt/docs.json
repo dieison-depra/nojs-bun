@@ -654,8 +654,8 @@
         "ondemandDesc": "Válido apenas em templates de rota. Nunca pré-carregado — buscado na primeira vez que o usuário navega para essa rota. Ideal para páginas pesadas ou raramente visitadas."
       },
       "anchor": {
-        "title": "Links Âncora no Modo Hash",
-        "text1": "Ao usar mode: 'hash', o hash da URL (#) é usado para roteamento (ex: #/docs). Normalmente isso conflita com links âncora padrão como <a href=\"#section\"> — mas o No.JS lida com isso automaticamente.",
+        "title": "Links Âncora",
+        "text1": "Ao usar useHash: true, o hash da URL (#) é usado para roteamento (ex: #/docs). Normalmente isso conflita com links âncora padrão como <a href=\"#section\"> — mas o No.JS lida com isso automaticamente em ambos os modos (hash e history).",
         "text2": "Links âncora que apontam para um id de elemento na página são interceptados pelo router: o elemento alvo é rolado até ficar visível suavemente, e o link clicado recebe uma classe active. A rota em si não é afetada.",
         "howItWorks": "Como funciona:",
         "list1": "Clicar em <a href=\"#introduction\"> rola até <div id=\"introduction\"> com comportamento suave",

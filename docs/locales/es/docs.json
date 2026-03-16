@@ -654,8 +654,8 @@
         "ondemandDesc": "Solo válido en plantillas de ruta. Nunca se precarga — se obtiene la primera vez que el usuario navega a esa ruta. Ideal para páginas pesadas o raramente visitadas."
       },
       "anchor": {
-        "title": "Enlaces Ancla en Modo Hash",
-        "text1": "Al usar mode: 'hash', el hash de la URL (#) se usa para el enrutamiento (ej. #/docs). Esto normalmente entra en conflicto con los enlaces ancla estándar como <a href=\"#section\"> — pero No.JS lo maneja automáticamente.",
+        "title": "Enlaces Ancla",
+        "text1": "Al usar useHash: true, el hash de la URL (#) se usa para el enrutamiento (ej. #/docs). Esto normalmente entra en conflicto con los enlaces ancla estándar como <a href=\"#section\"> — pero No.JS lo maneja automáticamente en ambos modos (hash e history).",
         "text2": "Los enlaces ancla que apuntan a un id de elemento en la página son interceptados por el enrutador: el elemento destino se desplaza a la vista suavemente, y el enlace clickeado recibe una clase active. La ruta en sí no se ve afectada.",
         "howItWorks": "Cómo funciona:",
         "list1": "Al hacer clic en <a href=\"#introduction\"> se desplaza a <div id=\"introduction\"> con comportamiento suave",

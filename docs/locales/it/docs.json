@@ -654,8 +654,8 @@
         "ondemandDesc": "Valido solo per i template di route. Mai precaricato — recuperato la prima volta che l'utente naviga verso quella route. Ideale per pagine pesanti o poco visitate."
       },
       "anchor": {
-        "title": "Link Ancora in Modalità Hash",
-        "text1": "Quando si usa mode: 'hash', l'hash dell'URL (#) viene usato per il routing (es. #/docs). Questo normalmente confligge con i link ancora standard come <a href=\"#section\"> — ma No.JS lo gestisce automaticamente.",
+        "title": "Link Ancora",
+        "text1": "Quando si usa useHash: true, l'hash dell'URL (#) viene usato per il routing (es. #/docs). Questo normalmente confligge con i link ancora standard come <a href=\"#section\"> — ma No.JS lo gestisce automaticamente in entrambe le modalità (hash e history).",
         "text2": "I link ancora che puntano a un id di elemento nella pagina vengono intercettati dal router: l'elemento target viene portato in vista con scroll fluido, e il link cliccato riceve una classe active. La route stessa non viene influenzata.",
         "howItWorks": "Come funziona:",
         "list1": "Cliccando <a href=\"#introduction\"> si scorre verso <div id=\"introduction\"> con comportamento fluido",

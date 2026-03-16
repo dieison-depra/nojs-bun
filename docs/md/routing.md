@@ -263,9 +263,9 @@ Route templates support a `lazy` attribute to control when their remote file is 
 
 ---
 
-## Anchor Links in Hash Mode
+## Anchor Links
 
-When using `mode: 'hash'`, the URL hash (`#`) is used for routing (e.g. `#/docs`). This normally conflicts with standard anchor links like `<a href="#section">` — but No.JS handles it automatically.
+When using `useHash: true`, the URL hash (`#`) is used for routing (e.g. `#/docs`). This normally conflicts with standard anchor links like `<a href="#section">` — but No.JS handles it automatically in both hash and history modes.
 
 Anchor links that point to an element `id` on the page are intercepted by the router: the target element is scrolled into view smoothly, and the clicked link receives an `active` class. The route itself is **not** affected.
 

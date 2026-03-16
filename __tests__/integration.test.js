@@ -20,7 +20,7 @@ beforeEach(() => {
   _config.headers = {};
   _config.csrf = { enabled: false, token: null, header: 'X-CSRF-Token' };
   _config.cache = { strategy: 'none', ttl: 300000, prefix: 'nojs_' };
-  _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+  _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
   _config.sanitize = true;
   _config.i18n = { fallbackLocale: null };
 
@@ -120,8 +120,8 @@ describe('NoJS.config()', () => {
   });
 
   test('sets router config', () => {
-    NoJS.config({ router: { mode: 'history' } });
-    expect(_config.router.mode).toBe('history');
+    NoJS.config({ router: { useHash: false } });
+    expect(_config.router.useHash).toBe(false);
   });
 
   test('sets i18n and defaultLocale', () => {

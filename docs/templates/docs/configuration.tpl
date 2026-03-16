@@ -40,14 +40,14 @@
 
     <span class="hl-cmt">// Router</span>
     <span class="hl-attr">router</span>: {
-      <span class="hl-attr">mode</span>: <span class="hl-str">'history'</span>,        <span class="hl-cmt">// 'history' (default) | 'hash'</span>
+      <span class="hl-attr">useHash</span>: <span class="hl-kw">false</span>,          <span class="hl-cmt">// true = hash mode, false = history mode (default)</span>
       <span class="hl-attr">base</span>: <span class="hl-str">'/'</span>,
       <span class="hl-attr">scrollBehavior</span>: <span class="hl-str">'top'</span>,  <span class="hl-cmt">// 'top' | 'preserve' | 'smooth'</span>
       <span class="hl-attr">templates</span>: <span class="hl-str">'pages'</span>,      <span class="hl-cmt">// Default base path for file-based routing</span>
       <span class="hl-attr">ext</span>: <span class="hl-str">'.tpl'</span>               <span class="hl-cmt">// Default file extension (fallback: '.html')</span>
     },
-    <span class="hl-cmt">// In hash mode, standard anchor links (href="#id")</span>
-    <span class="hl-cmt">// are automatically intercepted — they scroll to the</span>
+    <span class="hl-cmt">// Anchor links (href="#id") are automatically</span>
+    <span class="hl-cmt">// intercepted in both modes — they scroll to the</span>
     <span class="hl-cmt">// target element without triggering route navigation.</span>
 
     <span class="hl-cmt">// i18n</span>

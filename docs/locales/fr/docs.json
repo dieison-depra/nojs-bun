@@ -654,8 +654,8 @@
         "ondemandDesc": "Valable uniquement sur les templates de route. Jamais préchargé — récupéré lors de la première navigation de l'utilisateur vers cette route. Idéal pour les pages lourdes ou rarement visitées."
       },
       "anchor": {
-        "title": "Liens d'ancrage en mode hash",
-        "text1": "En mode hash, le hash de l'URL (#) est utilisé pour le routage (ex. #/docs). Cela entre normalement en conflit avec les liens d'ancrage standard comme <a href=\"#section\"> — mais No.JS le gère automatiquement.",
+        "title": "Liens d'ancrage",
+        "text1": "En utilisant useHash: true, le hash de l'URL (#) est utilisé pour le routage (ex. #/docs). Cela entre normalement en conflit avec les liens d'ancrage standard comme <a href=\"#section\"> — mais No.JS le gère automatiquement dans les deux modes (hash et history).",
         "text2": "Les liens d'ancrage qui pointent vers un id d'élément sur la page sont interceptés par le routeur : l'élément cible est scrollé en vue de manière fluide, et le lien cliqué reçoit une classe active. La route elle-même n'est pas affectée.",
         "howItWorks": "Comment ça marche :",
         "list1": "Cliquer sur <a href=\"#introduction\"> fait défiler vers <div id=\"introduction\"> avec un comportement fluide",

@@ -211,7 +211,7 @@ All five patterns combined into a single production-grade SPA:
   <script>
     NoJS.config({
       baseApiUrl: 'https://api.myapp.com/v1',
-      router: { mode: 'history' }
+      router: { useHash: false }
     });
 
     // Attach JWT to every request

@@ -146,7 +146,9 @@
     // ── Global NoJS configuration ──
     NoJS.config({
         debug: true,
-        router: { mode: 'hash' },
+        router: {
+          useHash: true
+        },
     });
 
     // ── i18n setup (external locale files) ──

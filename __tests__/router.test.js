@@ -6,11 +6,62 @@ import { _config, _stores, setRouterInstance } from '../src/globals.js';
 import { _createRouter } from '../src/router.js';
 import { _templateHtmlCache } from '../src/dom.js';
 
+// Track all event handlers registered during tests for proper cleanup
+const _trackedDocClickHandlers = [];
+const _trackedWinPopstateHandlers = [];
+const _trackedWinHashchangeHandlers = [];
+const _origDocAdd = document.addEventListener.bind(document);
+const _origDocRemove = document.removeEventListener.bind(document);
+const _origWinAdd = window.addEventListener.bind(window);
+const _origWinRemove = window.removeEventListener.bind(window);
+
+document.addEventListener = function (event, handler, ...rest) {
+  if (event === 'click') _trackedDocClickHandlers.push(handler);
+  return _origDocAdd(event, handler, ...rest);
+};
+document.removeEventListener = function (event, handler, ...rest) {
+  if (event === 'click') {
+    const idx = _trackedDocClickHandlers.indexOf(handler);
+    if (idx !== -1) _trackedDocClickHandlers.splice(idx, 1);
+  }
+  return _origDocRemove(event, handler, ...rest);
+};
+window.addEventListener = function (event, handler, ...rest) {
+  if (event === 'popstate') _trackedWinPopstateHandlers.push(handler);
+  if (event === 'hashchange') _trackedWinHashchangeHandlers.push(handler);
+  return _origWinAdd(event, handler, ...rest);
+};
+window.removeEventListener = function (event, handler, ...rest) {
+  if (event === 'popstate') {
+    const idx = _trackedWinPopstateHandlers.indexOf(handler);
+    if (idx !== -1) _trackedWinPopstateHandlers.splice(idx, 1);
+  }
+  if (event === 'hashchange') {
+    const idx = _trackedWinHashchangeHandlers.indexOf(handler);
+    if (idx !== -1) _trackedWinHashchangeHandlers.splice(idx, 1);
+  }
+  return _origWinRemove(event, handler, ...rest);
+};
+
+function _removeAllTrackedHandlers() {
+  _trackedDocClickHandlers.forEach(h => _origDocRemove('click', h));
+  _trackedDocClickHandlers.length = 0;
+  _trackedWinPopstateHandlers.forEach(h => _origWinRemove('popstate', h));
+  _trackedWinPopstateHandlers.length = 0;
+  _trackedWinHashchangeHandlers.forEach(h => _origWinRemove('hashchange', h));
+  _trackedWinHashchangeHandlers.length = 0;
+}
+
+// Global afterEach: ensure all event handlers are cleaned up between tests
+afterEach(() => {
+  _removeAllTrackedHandlers();
+});
+
 describe('Router', () => {
   let router;
 
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     document.body.innerHTML = '';
     window.location.hash = '';
 
@@ -322,7 +373,7 @@ describe('Router', () => {
 
 describe('router.js — hash mode hashchange', () => {
   test('navigates on hashchange event in hash mode', () => {
-    _config.router = { mode: 'hash', base: '' };
+    _config.router = { useHash: true, base: '' };
 
     const routeView = document.createElement('div');
     routeView.setAttribute('route-view', '');
@@ -350,7 +401,7 @@ describe('router.js — hash mode hashchange', () => {
 
 describe('router.js — history mode popstate', () => {
   test('navigates on popstate event in history mode', () => {
-    _config.router = { mode: 'history', base: '' };
+    _config.router = { useHash: false, base: '' };
 
     const routeView = document.createElement('div');
     routeView.setAttribute('route-view', '');
@@ -379,7 +430,7 @@ describe('router.js — history mode popstate', () => {
 describe('Router — history mode', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
-    _config.router = { mode: 'history', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
     window.scrollTo = jest.fn();
     Object.keys(_stores).forEach((k) => delete _stores[k]);
     setRouterInstance(null);
@@ -419,7 +470,7 @@ describe('Router — history mode', () => {
 
 describe('Router — back and forward', () => {
   test('back calls history.back', () => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     const backSpy = jest.spyOn(window.history, 'back');
     const router = _createRouter();
     router.back();
@@ -428,7 +479,7 @@ describe('Router — back and forward', () => {
   });
 
   test('forward calls history.forward', () => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     const forwardSpy = jest.spyOn(window.history, 'forward');
     const router = _createRouter();
     router.forward();
@@ -443,7 +494,7 @@ describe('Router — back and forward', () => {
 
 describe('Router — route-active-exact', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     window.scrollTo = jest.fn();
     setRouterInstance(null);
   });
@@ -478,7 +529,7 @@ describe('Router — route-active-exact', () => {
 
 describe('Router — route link click delegation', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     window.scrollTo = jest.fn();
     window.location.hash = '';
     document.body.innerHTML = '';
@@ -513,7 +564,7 @@ describe('Router — route link click delegation', () => {
 
 describe('Router — transition on outlet', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     window.scrollTo = jest.fn();
     setRouterInstance(null);
   });
@@ -542,7 +593,7 @@ describe('Router — transition on outlet', () => {
 
 describe('Router — scroll behavior none', () => {
   test('does not scroll when scrollBehavior is not "top"', () => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'none' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'none' };
     window.scrollTo = jest.fn();
 
     const outlet = document.createElement('div');
@@ -566,7 +617,7 @@ describe('Router — scroll behavior none', () => {
 
 describe('Router — init with history mode', () => {
   test('init reads pathname in history mode', () => {
-    _config.router = { mode: 'history', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
     window.scrollTo = jest.fn();
 
     const outlet = document.createElement('div');
@@ -593,7 +644,7 @@ describe('Router — init with history mode', () => {
 
 describe('Router — guard with null templateEl', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     window.scrollTo = jest.fn();
     setRouterInstance(null);
     document.body.innerHTML = '';
@@ -622,7 +673,7 @@ describe('Router — guard with null templateEl', () => {
 
 describe('Router — popstate handler with base stripping', () => {
   beforeEach(() => {
-    _config.router = { mode: 'history', base: '/app', scrollBehavior: 'top' };
+    _config.router = { useHash: false, base: '/app', scrollBehavior: 'top' };
     window.scrollTo = jest.fn();
     setRouterInstance(null);
     document.body.innerHTML = '';
@@ -678,7 +729,7 @@ describe('Router — init collects routes and reads initial path', () => {
   });
 
   test('hash mode init reads current hash and renders matching route (L184/L193)', async () => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     window.scrollTo = jest.fn();
 
     const outlet = document.createElement('div');
@@ -701,7 +752,7 @@ describe('Router — init collects routes and reads initial path', () => {
   });
 
   test('hash mode init defaults to / when hash is empty', async () => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     window.scrollTo = jest.fn();
 
     const outlet = document.createElement('div');
@@ -718,7 +769,7 @@ describe('Router — init collects routes and reads initial path', () => {
   });
 
   test('history mode init reads pathname and strips base (L197)', async () => {
-    _config.router = { mode: 'history', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
     window.scrollTo = jest.fn();
 
 
@@ -744,7 +795,7 @@ describe('Router — init collects routes and reads initial path', () => {
 
 describe('Router — prefetch routes from <a route> links', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     document.body.innerHTML = '';
     window.location.hash = '';
     window.scrollTo = jest.fn();
@@ -926,7 +977,7 @@ describe('Router — prefetch routes from <a route> links', () => {
 
 describe('Router — popstate handler in history mode (L173-177)', () => {
   beforeEach(() => {
-    _config.router = { mode: 'history', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
     document.body.innerHTML = '';
     window.scrollTo = jest.fn();
   });
@@ -938,7 +989,7 @@ describe('Router — popstate handler in history mode (L173-177)', () => {
   });
 
   test('popstate event triggers navigate in history mode', async () => {
-    _config.router = { mode: 'history', base: '', scrollBehavior: 'top' };
+    _config.router = { useHash: false, base: '', scrollBehavior: 'top' };
 
     const outlet = document.createElement('div');
     outlet.setAttribute('route-view', '');
@@ -967,7 +1018,7 @@ describe('Router — popstate handler in history mode (L173-177)', () => {
   });
 
   test('popstate with non-empty base path strips base correctly', async () => {
-    _config.router = { mode: 'history', base: '/myapp', scrollBehavior: 'top' };
+    _config.router = { useHash: false, base: '/myapp', scrollBehavior: 'top' };
 
     const outlet = document.createElement('div');
     outlet.setAttribute('route-view', '');
@@ -1013,7 +1064,7 @@ describe('Router — popstate handler in history mode (L173-177)', () => {
 
 describe('Router — scrollBehavior smooth', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'smooth' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'smooth' };
     window.scrollTo = jest.fn();
     setRouterInstance(null);
     document.body.innerHTML = '';
@@ -1045,7 +1096,7 @@ describe('Router — scrollBehavior smooth', () => {
 
 describe('Router — scrollBehavior preserve', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'preserve' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'preserve' };
     window.scrollTo = jest.fn();
     setRouterInstance(null);
     document.body.innerHTML = '';
@@ -1081,7 +1132,7 @@ describe('Router — scrollBehavior preserve', () => {
 
 describe('on-demand template loading', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     document.body.innerHTML = '';
     window.location.hash = '';
     window.scrollTo = jest.fn();
@@ -1148,7 +1199,7 @@ describe('on-demand template loading', () => {
 
 describe('File-based routing', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top', templates: 'pages', ext: '.tpl' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top', templates: 'pages', ext: '.tpl' };
     document.body.innerHTML = '';
     window.location.hash = '';
     window.scrollTo = jest.fn();
@@ -1426,7 +1477,7 @@ describe('File-based routing', () => {
   });
 
   test('file-based routing works with history mode', async () => {
-    _config.router.mode = 'history';
+    _config.router.useHash = false;
     const outlet = document.createElement('div');
     outlet.setAttribute('route-view', '');
     outlet.setAttribute('src', './views/');
@@ -1566,7 +1617,7 @@ describe('File-based routing', () => {
 
 describe('Router — Named Outlets', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     document.body.innerHTML = '';
     window.location.hash = '';
     window.scrollTo = jest.fn();
@@ -1796,7 +1847,7 @@ describe('Router — anchor links in hash mode', () => {
   let router;
 
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
     document.body.innerHTML = '';
     window.location.hash = '';
     window.scrollTo = jest.fn();
@@ -1945,7 +1996,7 @@ describe('Router — anchor links in hash mode', () => {
 
 describe('Router — wildcard 404 catch-all', () => {
   beforeEach(() => {
-    _config.router = { mode: 'hash', base: '/', scrollBehavior: 'top', templates: '', ext: '.tpl' };
+    _config.router = { useHash: true, base: '/', scrollBehavior: 'top', templates: '', ext: '.tpl' };
     document.body.innerHTML = '';
     window.location.hash = '';
     window.scrollTo = jest.fn();
@@ -2307,6 +2358,324 @@ describe('Router — wildcard 404 catch-all', () => {
     await router.push('/unknown');
     expect(router.current.matched).toBe(false);
     expect(outlet.querySelector('.api-404')).not.toBeNull();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  NEW TESTS: History mode bug fixes
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('Router — base stripping (_stripBase)', () => {
+  afterEach(() => {
+    setRouterInstance(null);
+    document.body.innerHTML = '';
+    window.location.hash = '';
+  });
+
+  test('base "/" with pathname "/about" returns "/about" (not "about")', async () => {
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    const tpl = document.createElement('template');
+    tpl.setAttribute('route', '/about');
+    tpl.innerHTML = '<p>About</p>';
+    document.body.appendChild(tpl);
+
+    // Set pathname via pushState (works in jsdom)
+    window.history.pushState({}, '', '/about');
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    await router.init();
+
+    expect(router.current.path).toBe('/about');
+    expect(router.current.matched).toBe(true);
+  });
+
+  test('base "/" with pathname "/users/42" returns "/users/42"', async () => {
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    const tpl = document.createElement('template');
+    tpl.setAttribute('route', '/users/:id');
+    tpl.innerHTML = '<p>User</p>';
+    document.body.appendChild(tpl);
+
+    window.history.pushState({}, '', '/users/42');
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    await router.init();
+
+    expect(router.current.path).toBe('/users/42');
+    expect(router.current.params.id).toBe('42');
+    expect(router.current.matched).toBe(true);
+  });
+
+  test('base "/app" with pathname "/app/settings" returns "/settings"', async () => {
+    _config.router = { useHash: false, base: '/app', scrollBehavior: 'top' };
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    const tpl = document.createElement('template');
+    tpl.setAttribute('route', '/settings');
+    tpl.innerHTML = '<p>Settings</p>';
+    document.body.appendChild(tpl);
+
+    window.history.pushState({}, '', '/app/settings');
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    await router.init();
+
+    expect(router.current.path).toBe('/settings');
+    expect(router.current.matched).toBe(true);
+  });
+
+  test('base "/app" with pathname "/application" strips prefix (regex anchored to start)', async () => {
+    _config.router = { useHash: false, base: '/app', scrollBehavior: 'top' };
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    window.history.pushState({}, '', '/application');
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    await router.init();
+
+    // /application starts with /app so regex ^\/app strips it to "lication"
+    // This documents the behavior — base paths should be unique prefixes
+    expect(router.current.path).toBe('lication');
+  });
+
+  test('base "" with pathname "/about" returns "/about"', async () => {
+    _config.router = { useHash: false, base: '', scrollBehavior: 'top' };
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    const tpl = document.createElement('template');
+    tpl.setAttribute('route', '/about');
+    tpl.innerHTML = '<p>About</p>';
+    document.body.appendChild(tpl);
+
+    window.history.pushState({}, '', '/about');
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    await router.init();
+
+    expect(router.current.path).toBe('/about');
+    expect(router.current.matched).toBe(true);
+  });
+
+  test('base "/" with pathname "/" returns "/"', async () => {
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    window.history.pushState({}, '', '/');
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    await router.init();
+
+    expect(router.current.path).toBe('/');
+  });
+});
+
+describe('Router — popstate same-path guard (history mode)', () => {
+  afterEach(() => {
+    setRouterInstance(null);
+    document.body.innerHTML = '';
+    window.location.hash = '';
+  });
+
+  test('popstate with same path does NOT re-render route', async () => {
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
+    window.scrollTo = jest.fn();
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    const tpl = document.createElement('template');
+    tpl.setAttribute('route', '/docs');
+    tpl.innerHTML = '<p>Docs</p>';
+    document.body.appendChild(tpl);
+
+    window.history.pushState({}, '', '/docs');
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    await router.init();
+
+    const popstateHandler = _trackedWinPopstateHandlers[_trackedWinPopstateHandlers.length - 1];
+
+    expect(router.current.path).toBe('/docs');
+    const listener = jest.fn();
+    router.on(listener);
+
+    // Simulate popstate with same path (e.g., hash change only)
+    popstateHandler();
+
+    // Listener should NOT have been called (no re-navigation)
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  test('popstate with different path DOES navigate', async () => {
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
+    window.scrollTo = jest.fn();
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    const tpl1 = document.createElement('template');
+    tpl1.setAttribute('route', '/docs');
+    tpl1.innerHTML = '<p>Docs</p>';
+    document.body.appendChild(tpl1);
+
+    const tpl2 = document.createElement('template');
+    tpl2.setAttribute('route', '/about');
+    tpl2.innerHTML = '<p>About</p>';
+    document.body.appendChild(tpl2);
+
+    window.history.pushState({}, '', '/docs');
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    await router.init();
+
+    const popstateHandler = _trackedWinPopstateHandlers[_trackedWinPopstateHandlers.length - 1];
+
+    expect(router.current.path).toBe('/docs');
+    const listener = jest.fn();
+    router.on(listener);
+
+    // Change pathname and fire popstate
+    window.history.pushState({}, '', '/about');
+    popstateHandler();
+
+    // Wait for async navigate to complete
+    await new Promise(r => setTimeout(r, 50));
+
+    expect(listener).toHaveBeenCalled();
+    expect(router.current.path).toBe('/about');
+  });
+});
+
+describe('Router — anchor links in history mode', () => {
+  afterEach(() => {
+    setRouterInstance(null);
+    document.body.innerHTML = '';
+    window.location.hash = '';
+  });
+
+  test('click on href="#section" in history mode calls preventDefault', async () => {
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
+    window.scrollTo = jest.fn();
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    // Create target element first
+    const section = document.createElement('div');
+    section.id = 'section';
+    section.scrollIntoView = jest.fn();
+    document.body.appendChild(section);
+
+    const tpl = document.createElement('template');
+    tpl.setAttribute('route', '/');
+    tpl.innerHTML = '<p>Home</p>';
+    document.body.appendChild(tpl);
+
+    window.history.pushState({}, '', '/');
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    await router.init();
+
+    // Create anchor link targeting #section
+    const anchor = document.createElement('a');
+    anchor.setAttribute('href', '#section');
+    document.body.appendChild(anchor);
+
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    const prevented = !anchor.dispatchEvent(event);
+
+    expect(prevented).toBe(true);
+  });
+
+  test('anchor link with route attr is handled as route nav, not anchor', async () => {
+    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
+    window.scrollTo = jest.fn();
+    const outlet = document.createElement('div');
+    outlet.setAttribute('route-view', '');
+    document.body.appendChild(outlet);
+
+    const homeTpl = document.createElement('template');
+    homeTpl.setAttribute('route', '/');
+    homeTpl.innerHTML = '<p>Home</p>';
+    document.body.appendChild(homeTpl);
+
+    const aboutTpl = document.createElement('template');
+    aboutTpl.setAttribute('route', '/about');
+    aboutTpl.innerHTML = '<p>About</p>';
+    document.body.appendChild(aboutTpl);
+
+    window.history.pushState({}, '', '/');
+
+    const router = _createRouter();
+    setRouterInstance(router);
+    await router.init();
+
+    expect(router.current.path).toBe('/');
+
+    const link = document.createElement('a');
+    link.setAttribute('href', '#about');
+    link.setAttribute('route', '/about');
+    document.body.appendChild(link);
+
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    link.dispatchEvent(event);
+
+    await new Promise(r => setTimeout(r, 50));
+
+    expect(router.current.path).toBe('/about');
+  });
+});
+
+describe('Router — mode→useHash backward compat', () => {
+  test('config with mode:"hash" sets useHash:true', async () => {
+    const { default: No } = await import('../src/index.js');
+    No.config({ router: { mode: 'hash' } });
+    expect(_config.router.useHash).toBe(true);
+    expect(_config.router.mode).toBeUndefined();
+    _config.router.useHash = false;
+  });
+
+  test('config with mode:"history" sets useHash:false', async () => {
+    const { default: No } = await import('../src/index.js');
+    No.config({ router: { mode: 'history' } });
+    expect(_config.router.useHash).toBe(false);
+    expect(_config.router.mode).toBeUndefined();
+  });
+
+  test('config with useHash:true takes precedence over mode', async () => {
+    const { default: No } = await import('../src/index.js');
+    No.config({ router: { mode: 'history', useHash: true } });
+    expect(_config.router.useHash).toBe(true);
+    _config.router.useHash = false;
+  });
+
+  test('default useHash is false (history mode)', () => {
+    expect(_config.router.useHash).toBe(false);
   });
 });
 

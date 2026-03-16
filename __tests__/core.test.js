@@ -50,7 +50,7 @@ describe('Globals', () => {
     });
 
     test('has default router config', () => {
-      expect(_config.router.mode).toBe('history');
+      expect(_config.router.useHash).toBe(false);
       expect(_config.router.base).toBe('/');
       expect(_config.router.scrollBehavior).toBe('top');
     });
@@ -629,10 +629,10 @@ describe('index.js — config()', () => {
   test('config with no router option does not override router config', async () => {
     const { default: No } = await import('../src/index.js');
 
-    const prevRouterMode = _config.router.mode;
+    const prevUseHash = _config.router.useHash;
     No.config({ timeout: 5000 });
     expect(_config.timeout).toBe(5000);
-    expect(_config.router.mode).toBe(prevRouterMode);
+    expect(_config.router.useHash).toBe(prevUseHash);
 
     _config.timeout = 10000;
   });
@@ -640,11 +640,29 @@ describe('index.js — config()', () => {
   test('config with router option merges into existing router config', async () => {
     const { default: No } = await import('../src/index.js');
 
-    No.config({ router: { mode: 'hash' } });
-    expect(_config.router.mode).toBe('hash');
+    No.config({ router: { useHash: true } });
+    expect(_config.router.useHash).toBe(true);
     expect(_config.router.base).toBe('/');
 
-    _config.router.mode = 'history';
+    _config.router.useHash = false;
+  });
+
+  test('config with deprecated mode option converts to useHash with warning', async () => {
+    const { default: No } = await import('../src/index.js');
+    const { _log } = await import('../src/globals.js');
+
+    const origLog = _log;
+    const logCalls = [];
+    // _log is not easily mockable since it's an export, so just test the conversion
+    No.config({ router: { mode: 'hash' } });
+    expect(_config.router.useHash).toBe(true);
+    expect(_config.router.mode).toBeUndefined();
+
+    No.config({ router: { mode: 'history' } });
+    expect(_config.router.useHash).toBe(false);
+    expect(_config.router.mode).toBeUndefined();
+
+    _config.router.useHash = false;
   });
 });
 

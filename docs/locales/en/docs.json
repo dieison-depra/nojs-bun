@@ -654,8 +654,8 @@
         "ondemandDesc": "Only valid on route templates. Never preloaded — fetched the first time the user navigates to that route. Ideal for heavy or rarely-visited pages."
       },
       "anchor": {
-        "title": "Anchor Links in Hash Mode",
-        "text1": "When using mode: 'hash', the URL hash (#) is used for routing (e.g. #/docs). This normally conflicts with standard anchor links like <a href=\"#section\"> — but No.JS handles it automatically.",
+        "title": "Anchor Links",
+        "text1": "When using useHash: true, the URL hash (#) is used for routing (e.g. #/docs). This normally conflicts with standard anchor links like <a href=\"#section\"> — but No.JS handles it automatically in both hash and history modes.",
         "text2": "Anchor links that point to an element id on the page are intercepted by the router: the target element is scrolled into view smoothly, and the clicked link receives an active class. The route itself is not affected.",
         "howItWorks": "How it works:",
         "list1": "Clicking <a href=\"#introduction\"> scrolls to <div id=\"introduction\"> with smooth behavior",

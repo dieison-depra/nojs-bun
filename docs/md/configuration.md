@@ -32,14 +32,14 @@
 
     // Router
     router: {
-      mode: 'hash',           // 'hash' | 'history'
+      useHash: false,          // true = hash mode, false = history mode (default)
       base: '/',
       scrollBehavior: 'top',  // 'top' | 'preserve' | 'smooth'
       templates: 'pages',       // Default base path for file-based routing (default: 'pages')
       ext: '.tpl'              // Default file extension for file-based routing (fallback: '.html')
     },
-    // Note: In hash mode, standard anchor links (href="#id")
-    // are automatically intercepted — they scroll to the target
+    // Note: Anchor links (href="#id") are automatically
+    // intercepted in both modes — they scroll to the target
     // element without triggering route navigation.
 
     // i18n

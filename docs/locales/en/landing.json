@@ -3,7 +3,7 @@
     "hero": {
       "badge": "v1.8.0 — HTML-first reactive framework",
       "headline": "Build reactive apps\nwith zero JavaScript.",
-      "subtitle": "No.JS is an HTML-first framework that turns attributes into a full reactive engine. ~20 KB gzipped, zero dependencies, zero build step.",
+      "subtitle": "No.JS is an HTML-first framework that turns attributes into a full reactive engine. ~24 KB gzipped, zero dependencies, zero build step.",
       "getStarted": "Get Started",
       "playground": "Playground"
     },
@@ -36,7 +36,7 @@
     "bundle": {
       "badge": "The outcome.",
       "h1": "Your bundle is 2.3 MB.",
-      "h2": "Ours is 20 KB.",
+      "h2": "Ours is 24 KB.",
       "subtitle": "No build step. No bundler. No excuses.",
       "getStarted": "Get Started",
       "seeFeatures": "Read the Docs"

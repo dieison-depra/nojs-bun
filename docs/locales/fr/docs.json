@@ -9,13 +9,13 @@
       "introduction": {
         "title": "Introduction",
         "text": "No.JS est un framework réactif HTML-first. Construisez des applications web dynamiques et orientées données en utilisant uniquement des attributs HTML — pas de build, pas de DOM virtuel, pas de JSX.",
-        "callout": "~20 Ko gzippé · Zéro dépendance · Fonctionne dans tous les navigateurs modernes · Aucune étape de build requise"
+        "callout": "~24 Ko gzippé · Zéro dépendance · Fonctionne dans tous les navigateurs modernes · Aucune étape de build requise"
       },
       "installation": {
         "title": "Installation",
         "cdnSubtitle": "CDN (recommandé)",
         "selfHostedSubtitle": "Auto-hébergé",
-        "selfHostedText": "Téléchargez dist/iife/no.js et incluez-le avec une balise <script>. C'est un fichier unique, ~20 Ko gzippé."
+        "selfHostedText": "Téléchargez dist/iife/no.js et incluez-le avec une balise <script>. C'est un fichier unique, ~24 Ko gzippé."
       },
       "quickStart": {
         "title": "Démarrage rapide",

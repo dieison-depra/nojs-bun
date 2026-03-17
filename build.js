@@ -6,6 +6,8 @@ const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
 const banner = `/**
  * No.JS v${pkg.version} — The HTML-First Reactive Framework
  * No more JavaScript. Just HTML attributes with superpowers.
+ * @author ${pkg.author}
+ * @homepage https://no-js.dev
  * @license MIT
  * @see https://github.com/ErickXavier/no-js
  */`;

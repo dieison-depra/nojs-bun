@@ -20,7 +20,6 @@ npm-debug.log*
 coverage/
 
 # Build output
-dist/
 playwright-report
 test-results
 .github/specs

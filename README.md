@@ -31,7 +31,7 @@ No build step. No virtual DOM. No transpiler. No JSX. Just HTML.
 - **Filters** — `uppercase`, `currency`, `date`, `truncate`, 32 built-in pipes
 - **Drag & Drop** — `drag`, `drop`, `drag-image`, `drag-data`, `drop-zone`
 - **Custom Directives** — Extend with `NoJS.directive()`
-- **~20 KB gzipped** — Zero dependencies
+- **~24 KB gzipped** — Zero dependencies
 
 ---
 
@@ -41,17 +41,6 @@ No build step. No virtual DOM. No transpiler. No JSX. Just HTML.
 
 ```html
 <script src="https://cdn.no-js.dev/"></script>
-```
-
-### NPM
-
-```bash
-npm install @erickxavier/no-js
-```
-
-```js
-import NoJS from "@erickxavier/no-js";
-NoJS.init();
 ```
 
 With the CDN, No.JS auto-starts on `DOMContentLoaded`. You can configure it before it loads:
@@ -168,5 +157,5 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 <p align="center">
   <strong>No.JS</strong> — Because the best JavaScript is the JavaScript you don't write.<br>
-  <code>~20 KB gzipped</code> · <code>Zero dependencies</code> · <code>MIT License</code>
+  <code>~24 KB gzipped</code> · <code>Zero dependencies</code> · <code>MIT License</code>
 </p>

@@ -3,7 +3,7 @@
     "hero": {
       "badge": "v1.8.0 — Framework reativo HTML-first",
       "headline": "Construa apps reativos\nsem JavaScript.",
-      "subtitle": "No.JS é um framework HTML-first que transforma atributos em um motor reativo completo. ~20 KB gzipped, zero dependências, sem build.",
+      "subtitle": "No.JS é um framework HTML-first que transforma atributos em um motor reativo completo. ~24 KB gzipped, zero dependências, sem build.",
       "getStarted": "Começar",
       "playground": "Playground"
     },
@@ -36,7 +36,7 @@
     "bundle": {
       "badge": "O resultado.",
       "h1": "Seu bundle tem 2.3 MB.",
-      "h2": "O nosso tem 20 KB.",
+      "h2": "O nosso tem 24 KB.",
       "subtitle": "Sem build. Sem bundler. Sem desculpas.",
       "getStarted": "Começar",
       "seeFeatures": "Ler a Documentação"

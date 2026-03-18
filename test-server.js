@@ -1,68 +1,68 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+/**
+ * No.JS Test Server — Bun Native
+ */
+import path from "node:path";
 
 const PORT = 3000;
-const ROOT = __dirname;
-const LOCAL_BUILD = path.join(ROOT, 'dist/iife/no.js');
+const ROOT = import.meta.dir;
+const LOCAL_BUILD = path.join(ROOT, "dist/iife/no.js");
 
 const CDN_PATTERN = /https:\/\/cdn\.no-js\.dev\//g;
-const LOCAL_SCRIPT = '/__local__/no.js';
+const LOCAL_SCRIPT = "/__local__/no.js";
 
 const MIME = {
-  '.html': 'text/html',
-  '.css':  'text/css',
-  '.js':   'application/javascript',
-  '.json': 'application/json',
-  '.svg':  'image/svg+xml',
-  '.png':  'image/png',
-  '.ico':  'image/x-icon',
-  '.woff2':'font/woff2',
-  '.map':  'application/json',
-  '.tpl':  'text/html',
-  '.md':   'text/markdown',
+	".html": "text/html",
+	".css": "text/css",
+	".js": "application/javascript",
+	".json": "application/json",
+	".svg": "image/svg+xml",
+	".png": "image/png",
+	".ico": "image/x-icon",
+	".woff2": "font/woff2",
+	".map": "application/json",
+	".tpl": "text/html",
+	".md": "text/markdown",
 };
 
-const server = http.createServer((req, res) => {
-  let url = req.url.split('?')[0];
+const server = Bun.serve({
+	port: PORT,
+	async fetch(req) {
+		const url = new URL(req.url);
+		const pathname = url.pathname;
 
-  // ── Serve local build at /__local__/no.js ──
-  if (url === LOCAL_SCRIPT) {
-    res.writeHead(200, { 'Content-Type': 'application/javascript' });
-    fs.createReadStream(LOCAL_BUILD).pipe(res);
-    return;
-  }
+		// ── Serve local build at /__local__/no.js ──
+		if (pathname === LOCAL_SCRIPT) {
+			return new Response(Bun.file(LOCAL_BUILD));
+		}
 
-  // ── SPA fallback: root or extensionless path → docs/index.html ──
-  let filePath = path.join(ROOT, url === '/' ? 'docs/index.html' : url);
-  if (!path.extname(url)) filePath = path.join(ROOT, 'docs/index.html');
+		// ── SPA fallback: root or extensionless path → docs/index.html ──
+		let filePath = path.join(
+			ROOT,
+			pathname === "/" ? "docs/index.html" : pathname,
+		);
+		if (!path.extname(pathname)) filePath = path.join(ROOT, "docs/index.html");
 
-  fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      res.writeHead(404);
-      res.end('Not Found');
-      return;
-    }
+		const file = Bun.file(filePath);
+		if (!(await file.exists())) {
+			return new Response("Not Found", { status: 404 });
+		}
 
-    const ext = path.extname(filePath);
+		const ext = path.extname(filePath);
 
-    // ── For HTML files: rewrite CDN URL → local path on-the-fly ──
-    if (ext === '.html') {
-      fs.readFile(filePath, 'utf8', (err, html) => {
-        if (err) { res.writeHead(500); res.end('Error'); return; }
-        const rewritten = html.replace(CDN_PATTERN, LOCAL_SCRIPT);
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(rewritten);
-      });
-      return;
-    }
+		// ── For HTML files: rewrite CDN URL → local path on-the-fly ──
+		if (ext === ".html") {
+			const html = await file.text();
+			const rewritten = html.replace(CDN_PATTERN, LOCAL_SCRIPT);
+			return new Response(rewritten, {
+				headers: { "Content-Type": "text/html" },
+			});
+		}
 
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
-    fs.createReadStream(filePath).pipe(res);
-  });
+		return new Response(file, {
+			headers: { "Content-Type": MIME[ext] || "application/octet-stream" },
+		});
+	},
 });
 
-server.listen(PORT, () => {
-  console.log(`\n  🚀 No.JS Test Server — http://localhost:${PORT}`);
-  console.log(`  📁 Serving from project root: ${ROOT}\n`);
-});
+console.log(`\n  🚀 No.JS Test Server — http://localhost:${server.port}`);
+console.log(`  📁 Serving from project root: ${ROOT}\n`);

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.7/schema.json",
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "useIterableCallbackReturn": "error"
+      },
+      "style": {
+        "useTemplate": "error"
+      },
+      "correctness": {
+        "noInnerDeclarations": "off",
+        "noUnusedVariables": "warn"
+      },
+      "a11y": {
+        "useAnchorContent": "off",
+        "noSvgWithoutTitle": "off",
+        "useButtonType": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["__tests__/**/*.js"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "useIterableCallbackReturn": "off"
+          },
+          "style": {
+            "useTemplate": "off"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -55,6 +55,9 @@
   </section>
 
   <script src="../../dist/iife/no.js"></script>
-  <script>NoJS.init();</script>
+  <script>
+    NoJS.config({ testing: true });
+    NoJS.init();
+  </script>
 </body>
 </html>

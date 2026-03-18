@@ -1,5 +1,5 @@
 {
-  "ext_welcome": "Welcome from file",
-  "ext_greeting": "Hi, {name}!",
-  "ext_items": "one thing | {count} things"
+	"ext_welcome": "Welcome from file",
+	"ext_greeting": "Hi, {name}!",
+	"ext_items": "one thing | {count} things"
 }

@@ -161,40 +161,36 @@
     });
 
     // ── Custom filters (for filter demos) ──
-    NoJS.filter('highlight', function(text, term) {
+    NoJS.filter('highlight', (text, term) => {
       if (!term) return text;
-      var re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+      var re = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
       return text.replace(re, '<mark>$1</mark>');
     });
-    NoJS.filter('initials', function(name) {
+    NoJS.filter('initials', (name) => {
       if (!name) return '';
-      return name.split(' ').map(function(w) { return w[0]; }).join('').toUpperCase();
+      return name.split(' ').map((w) => w[0]).join('').toUpperCase();
     });
-    NoJS.filter('timeAgo', function(date) {
-      var seconds = Math.floor((new Date() - new Date(date)) / 1000);
-      if (seconds < 60) return seconds + 's ago';
-      if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
-      if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
-      return Math.floor(seconds / 86400) + 'd ago';
+    NoJS.filter('timeAgo', (date) => {
+      var seconds = Math.floor((Date.now()- new Date(date)) / 1000);
+      if (seconds < 60) return `${seconds}s ago`;
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+      if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+      return `${Math.floor(seconds / 86400)}d ago`;
     });
 
     // ── Custom validators (for validation demos) ──
-    NoJS.validator('phone', function(value) {
-      return /^\+?[\d\s\-()]{7,15}$/.test(value);
-    });
-    NoJS.validator('strongPassword', function(value) {
-      return value && value.length >= 8 && /[A-Z]/.test(value) && /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value);
-    });
-    NoJS.validator('url', function(value) {
-      try { new URL(value); return true; } catch(e) { return false; }
+    NoJS.validator('phone', (value) => /^\+?[\d\s\-()]{7,15}$/.test(value));
+    NoJS.validator('strongPassword', (value) => value && value.length >= 8 && /[A-Z]/.test(value) && /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value));
+    NoJS.validator('url', (value) => {
+      try { new URL(value); return true; } catch(_e) { return false; }
     });
 
     // ── Custom directives (for directive demos) ──
     NoJS.directive('tooltip', {
-      init: function(el, attrName, value) {
+      init: (el, _attrName, value) => {
         var ctx = NoJS.findContext(el);
         if (ctx) {
-          ctx.__watchers.push(function() { el.title = NoJS.evaluate(value, ctx); });
+          ctx.__watchers.push(() => { el.title = NoJS.evaluate(value, ctx); });
         } else { el.title = value; }
         el.style.cursor = 'help';
         el.style.borderBottom = '1px dashed currentColor';
@@ -215,17 +211,17 @@
     _loadPlaygroundEngine();
 
     NoJS.directive('auto-focus', {
-      init: function(el) { setTimeout(function() { el.focus(); }, 100); }
+      init: (el) => { setTimeout(() => { el.focus(); }, 100); }
     });
     NoJS.directive('char-count', {
-      init: function(el, attrName, maxStr) {
-        var max = parseInt(maxStr) || 100;
+      init: (el, _attrName, maxStr) => {
+        var max = parseInt(maxStr, 10) || 100;
         var counter = document.createElement('div');
         counter.style.cssText = 'font-size:0.75rem;color:var(--text-dim);text-align:right;margin-top:0.25rem;';
         el.parentNode.insertBefore(counter, el.nextSibling);
         function update() {
           var remaining = max - el.value.length;
-          counter.textContent = remaining + ' / ' + max + ' characters remaining';
+          counter.textContent = `${remaining} / ${max} characters remaining`;
           counter.style.color = remaining < 10 ? 'var(--error)' : remaining < 30 ? 'var(--warning)' : 'var(--text-dim)';
         }
         el.addEventListener('input', update);
@@ -235,10 +231,10 @@
 
     NoJS.directive('faq-filter', {
       priority: 25,
-      init: function(el, attrName, keysAttr) {
+      init: (el, _attrName, keysAttr) => {
         var ctx = NoJS.findContext(el);
         var isGroup = !keysAttr;
-        var keys = isGroup ? [] : keysAttr.split(',').map(function(k) { return k.trim(); });
+        var keys = isGroup ? [] : keysAttr.split(',').map((k) => k.trim());
         var currentState;
 
         function update() {
@@ -249,16 +245,14 @@
             visible = true;
           } else if (isGroup) {
             var items = el.querySelectorAll('[faq-filter]:not(section)');
-            visible = Array.prototype.some.call(items, function(item) {
-              return item.style.display !== 'none';
-            });
+            visible = Array.prototype.some.call(items, (item) => item.style.display !== 'none');
           } else {
             var term = search.toLowerCase();
-            visible = keys.some(function(key) {
-              var text = NoJS.evaluate("$i18n.t('" + key + "')", ctx);
+            visible = keys.some((key) => {
+              var text = NoJS.evaluate(`$i18n.t('${key}')`, ctx);
               if (text && text.toLowerCase().indexOf(term) !== -1) return true;
               var answerKey = key.replace(/\.question$/, '.answer');
-              var answer = NoJS.evaluate("$i18n.t('" + answerKey + "')", ctx);
+              var answer = NoJS.evaluate(`$i18n.t('${answerKey}')`, ctx);
               return answer && answer.toLowerCase().indexOf(term) !== -1;
             });
           }

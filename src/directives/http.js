@@ -2,313 +2,318 @@
 //  DIRECTIVES: get, post, put, patch, delete
 // ═══════════════════════════════════════════════════════════════════════
 
-import {
-  _config,
-  _warn,
-  _stores,
-  _notifyStoreWatchers,
-  _emitEvent,
-  _routerInstance,
-  _onDispose,
-} from "../globals.js";
 import { createContext } from "../context.js";
-import { evaluate, _execStatement, _interpolate } from "../evaluate.js";
-import { _doFetch, _cacheGet, _cacheSet } from "../fetch.js";
-import { findContext, _clearDeclared, _cloneTemplate } from "../dom.js";
-import { registerDirective, processTree, _disposeChildren } from "../registry.js";
 import { _devtoolsEmit } from "../devtools.js";
+import { _clearDeclared, _cloneTemplate, findContext } from "../dom.js";
+import { _execStatement, _interpolate, evaluate } from "../evaluate.js";
+import { _cacheGet, _cacheSet, _doFetch } from "../fetch.js";
+import {
+	_config,
+	_emitEvent,
+	_notifyStoreWatchers,
+	_onDispose,
+	_routerInstance,
+	_stores,
+	_warn,
+} from "../globals.js";
+import {
+	_disposeChildren,
+	processTree,
+	registerDirective,
+} from "../registry.js";
 
 const HTTP_METHODS = ["get", "post", "put", "patch", "delete"];
 
 for (const method of HTTP_METHODS) {
-  registerDirective(method, {
-    priority: 1,
-    init(el, name, url) {
-      const asKey = el.getAttribute("as") || "data";
-      const loadingTpl = el.getAttribute("loading");
-      const errorTpl = el.getAttribute("error");
-      const emptyTpl = el.getAttribute("empty");
-      const successTpl = el.getAttribute("success");
-      const thenExpr = el.getAttribute("then");
-      const redirectPath = el.getAttribute("redirect");
-      const confirmMsg = el.getAttribute("confirm");
-      const refreshInterval = parseInt(el.getAttribute("refresh")) || 0;
-      const cachedRaw = el.getAttribute("cached");
-      const cacheStrategy = el.hasAttribute("cached")
-        ? cachedRaw || "memory"
-        : "none";
-      const bodyAttr = el.getAttribute("body");
-      const headersAttr = el.getAttribute("headers");
-      const varName = el.getAttribute("var");
-      const intoStore = el.getAttribute("into");
-      const retryCount =
-        parseInt(el.getAttribute("retry")) || _config.retries;
-      const retryDelay =
-        parseInt(el.getAttribute("retry-delay")) || _config.retryDelay || 1000;
-      const paramsAttr = el.getAttribute("params");
+	registerDirective(method, {
+		priority: 1,
+		init(el, _name, url) {
+			const asKey = el.getAttribute("as") || "data";
+			const loadingTpl = el.getAttribute("loading");
+			const errorTpl = el.getAttribute("error");
+			const emptyTpl = el.getAttribute("empty");
+			const successTpl = el.getAttribute("success");
+			const thenExpr = el.getAttribute("then");
+			const redirectPath = el.getAttribute("redirect");
+			const confirmMsg = el.getAttribute("confirm");
+			const refreshInterval = parseInt(el.getAttribute("refresh"), 10) || 0;
+			const cachedRaw = el.getAttribute("cached");
+			const cacheStrategy = el.hasAttribute("cached")
+				? cachedRaw || "memory"
+				: "none";
+			const bodyAttr = el.getAttribute("body");
+			const headersAttr = el.getAttribute("headers");
+			const varName = el.getAttribute("var");
+			const intoStore = el.getAttribute("into");
+			const retryCount =
+				parseInt(el.getAttribute("retry"), 10) || _config.retries;
+			const retryDelay =
+				parseInt(el.getAttribute("retry-delay"), 10) ||
+				_config.retryDelay ||
+				1000;
+			const paramsAttr = el.getAttribute("params");
 
-      const parentCtx = el.parentElement
-        ? findContext(el.parentElement)
-        : createContext();
-      const ctx = el.__ctx || createContext({}, parentCtx);
-      el.__ctx = ctx;
+			const parentCtx = el.parentElement
+				? findContext(el.parentElement)
+				: createContext();
+			const ctx = el.__ctx || createContext({}, parentCtx);
+			el.__ctx = ctx;
 
-      const originalChildren = [...el.childNodes].map((n) =>
-        n.cloneNode(true),
-      );
+			const originalChildren = [...el.childNodes].map((n) => n.cloneNode(true));
 
-      let _activeAbort = null;
+			let _activeAbort = null;
 
-      async function doRequest() {
-        // SwitchMap: abort previous in-flight request
-        if (_activeAbort) _activeAbort.abort();
-        _activeAbort = new AbortController();
+			async function doRequest() {
+				// SwitchMap: abort previous in-flight request
+				if (_activeAbort) _activeAbort.abort();
+				_activeAbort = new AbortController();
 
-        // Confirmation
-        if (confirmMsg && !window.confirm(confirmMsg)) return;
+				// Confirmation
+				if (confirmMsg && !window.confirm(confirmMsg)) return;
 
-        let resolvedUrl = _interpolate(url, ctx);
+				let resolvedUrl = _interpolate(url, ctx);
 
-        // Append query params
-        if (paramsAttr) {
-          const paramsObj = evaluate(paramsAttr, ctx);
-          if (paramsObj && typeof paramsObj === "object") {
-            const sep = resolvedUrl.includes("?") ? "&" : "?";
-            const qs = new URLSearchParams(paramsObj).toString();
-            if (qs) resolvedUrl += sep + qs;
-          }
-        }
+				// Append query params
+				if (paramsAttr) {
+					const paramsObj = evaluate(paramsAttr, ctx);
+					if (paramsObj && typeof paramsObj === "object") {
+						const sep = resolvedUrl.includes("?") ? "&" : "?";
+						const qs = new URLSearchParams(paramsObj).toString();
+						if (qs) resolvedUrl += sep + qs;
+					}
+				}
 
-        const cacheKey = method + ":" + resolvedUrl;
+				const cacheKey = `${method}:${resolvedUrl}`;
 
-        // Check cache
-        if (method === "get") {
-          const cached = _cacheGet(cacheKey, cacheStrategy);
-          if (cached != null) {
-            ctx.$set(asKey, cached);
-            _clearDeclared(el);
-            processTree(el);
-            return;
-          }
-        }
+				// Check cache
+				if (method === "get") {
+					const cached = _cacheGet(cacheKey, cacheStrategy);
+					if (cached != null) {
+						ctx.$set(asKey, cached);
+						_clearDeclared(el);
+						processTree(el);
+						return;
+					}
+				}
 
-        // Show loading
-        if (loadingTpl) {
-          const clone = _cloneTemplate(loadingTpl);
-          if (clone) {
-            _disposeChildren(el);
-            el.innerHTML = "";
-            el.appendChild(clone);
-            processTree(el);
-          }
-        }
+				// Show loading
+				if (loadingTpl) {
+					const clone = _cloneTemplate(loadingTpl);
+					if (clone) {
+						_disposeChildren(el);
+						el.innerHTML = "";
+						el.appendChild(clone);
+						processTree(el);
+					}
+				}
 
-        try {
-          let reqBody = null;
-          if (bodyAttr) {
-            const interpolated = _interpolate(bodyAttr, ctx);
-            try {
-              reqBody = JSON.parse(interpolated);
-            } catch {
-              reqBody = interpolated;
-            }
-          }
+				try {
+					let reqBody = null;
+					if (bodyAttr) {
+						const interpolated = _interpolate(bodyAttr, ctx);
+						try {
+							reqBody = JSON.parse(interpolated);
+						} catch {
+							reqBody = interpolated;
+						}
+					}
 
-          // For forms, collect form data
-          if (el.tagName === "FORM") {
-            const formData = new FormData(el);
-            reqBody = Object.fromEntries(formData.entries());
-          }
+					// For forms, collect form data
+					if (el.tagName === "FORM") {
+						const formData = new FormData(el);
+						reqBody = Object.fromEntries(formData.entries());
+					}
 
-          const extraHeaders = headersAttr ? JSON.parse(headersAttr) : {};
-          const savedRetries = _config.retries;
-          const savedRetryDelay = _config.retryDelay;
-          _config.retries = retryCount;
-          _config.retryDelay = retryDelay;
-          let data;
-          try {
-            data = await _doFetch(
-              resolvedUrl,
-              method,
-              reqBody,
-              extraHeaders,
-              el,
-              _activeAbort.signal,
-            );
-          } finally {
-            _config.retries = savedRetries;
-            _config.retryDelay = savedRetryDelay;
-          }
+					const extraHeaders = headersAttr ? JSON.parse(headersAttr) : {};
+					const savedRetries = _config.retries;
+					const savedRetryDelay = _config.retryDelay;
+					_config.retries = retryCount;
+					_config.retryDelay = retryDelay;
+					let data;
+					try {
+						data = await _doFetch(
+							resolvedUrl,
+							method,
+							reqBody,
+							extraHeaders,
+							el,
+							_activeAbort.signal,
+						);
+					} finally {
+						_config.retries = savedRetries;
+						_config.retryDelay = savedRetryDelay;
+					}
 
-          // Cache response
-          if (method === "get") _cacheSet(cacheKey, data, cacheStrategy);
+					// Cache response
+					if (method === "get") _cacheSet(cacheKey, data, cacheStrategy);
 
-          // Check empty
-          if (
-            emptyTpl &&
-            (data == null || (Array.isArray(data) && data.length === 0))
-          ) {
-            const clone = _cloneTemplate(emptyTpl);
-            if (clone) {
-              _disposeChildren(el);
-              el.innerHTML = "";
-              el.appendChild(clone);
-              processTree(el);
-            }
-            return;
-          }
+					// Check empty
+					if (
+						emptyTpl &&
+						(data == null || (Array.isArray(data) && data.length === 0))
+					) {
+						const clone = _cloneTemplate(emptyTpl);
+						if (clone) {
+							_disposeChildren(el);
+							el.innerHTML = "";
+							el.appendChild(clone);
+							processTree(el);
+						}
+						return;
+					}
 
-          ctx.$set(asKey, data);
+					ctx.$set(asKey, data);
 
-          // Write to global store if into attribute is present
-          if (intoStore) {
-            if (!_stores[intoStore]) _stores[intoStore] = createContext({});
-            _stores[intoStore].$set(asKey, data);
-            _notifyStoreWatchers();
-          }
+					// Write to global store if into attribute is present
+					if (intoStore) {
+						if (!_stores[intoStore]) _stores[intoStore] = createContext({});
+						_stores[intoStore].$set(asKey, data);
+						_notifyStoreWatchers();
+					}
 
-          // Success template
-          if (successTpl) {
-            const clone = _cloneTemplate(successTpl);
-            if (clone) {
-              _disposeChildren(el);
-              el.innerHTML = "";
-              // Inject var
-              const tplEl = document.getElementById(
-                successTpl.replace("#", ""),
-              );
-              const vn = tplEl?.getAttribute("var") || varName || "result";
-              const childCtx = createContext({ [vn]: data }, ctx);
-              const wrapper = document.createElement("div");
-              wrapper.style.display = "contents";
-              wrapper.__ctx = childCtx;
-              wrapper.appendChild(clone);
-              el.appendChild(wrapper);
-              processTree(wrapper);
-            }
-          } else {
-            // Restore original children and re-process
-            _disposeChildren(el);
-            el.innerHTML = "";
-            for (const child of originalChildren)
-              el.appendChild(child.cloneNode(true));
-            _clearDeclared(el);
-            processTree(el);
-          }
+					// Success template
+					if (successTpl) {
+						const clone = _cloneTemplate(successTpl);
+						if (clone) {
+							_disposeChildren(el);
+							el.innerHTML = "";
+							// Inject var
+							const tplEl = document.getElementById(
+								successTpl.replace("#", ""),
+							);
+							const vn = tplEl?.getAttribute("var") || varName || "result";
+							const childCtx = createContext({ [vn]: data }, ctx);
+							const wrapper = document.createElement("div");
+							wrapper.style.display = "contents";
+							wrapper.__ctx = childCtx;
+							wrapper.appendChild(clone);
+							el.appendChild(wrapper);
+							processTree(wrapper);
+						}
+					} else {
+						// Restore original children and re-process
+						_disposeChildren(el);
+						el.innerHTML = "";
+						for (const child of originalChildren)
+							el.appendChild(child.cloneNode(true));
+						_clearDeclared(el);
+						processTree(el);
+					}
 
-          // Then expression
-          if (thenExpr) _execStatement(thenExpr, ctx, { result: data });
+					// Then expression
+					if (thenExpr) _execStatement(thenExpr, ctx, { result: data });
 
-          // Redirect
-          if (redirectPath && _routerInstance)
-            _routerInstance.push(redirectPath);
+					// Redirect
+					if (redirectPath && _routerInstance)
+						_routerInstance.push(redirectPath);
 
-          _emitEvent("fetch:success", { url: resolvedUrl, data });
-          _devtoolsEmit("fetch:success", { method, url: resolvedUrl });
-        } catch (err) {
-          // SwitchMap: silently ignore aborted requests
-          if (err.name === "AbortError") return;
+					_emitEvent("fetch:success", { url: resolvedUrl, data });
+					_devtoolsEmit("fetch:success", { method, url: resolvedUrl });
+				} catch (err) {
+					// SwitchMap: silently ignore aborted requests
+					if (err.name === "AbortError") return;
 
-          _warn(
-            `${method.toUpperCase()} ${resolvedUrl} failed:`,
-            err.message,
-          );
-          _emitEvent("fetch:error", { url: resolvedUrl, error: err });
-          _emitEvent("error", { url: resolvedUrl, error: err });
-          _devtoolsEmit("fetch:error", { method, url: resolvedUrl, error: err.message });
+					_warn(`${method.toUpperCase()} ${resolvedUrl} failed:`, err.message);
+					_emitEvent("fetch:error", { url: resolvedUrl, error: err });
+					_emitEvent("error", { url: resolvedUrl, error: err });
+					_devtoolsEmit("fetch:error", {
+						method,
+						url: resolvedUrl,
+						error: err.message,
+					});
 
-          if (errorTpl) {
-            const clone = _cloneTemplate(errorTpl);
-            if (clone) {
-              _disposeChildren(el);
-              el.innerHTML = "";
-              const tplEl = document.getElementById(
-                errorTpl.replace("#", ""),
-              );
-              const vn = tplEl?.getAttribute("var") || "err";
-              const childCtx = createContext(
-                {
-                  [vn]: {
-                    message: err.message,
-                    status: err.status,
-                    body: err.body,
-                  },
-                },
-                ctx,
-              );
-              const wrapper = document.createElement("div");
-              wrapper.style.display = "contents";
-              wrapper.__ctx = childCtx;
-              wrapper.appendChild(clone);
-              el.appendChild(wrapper);
-              processTree(wrapper);
-            }
-          }
-        }
-      }
+					if (errorTpl) {
+						const clone = _cloneTemplate(errorTpl);
+						if (clone) {
+							_disposeChildren(el);
+							el.innerHTML = "";
+							const tplEl = document.getElementById(errorTpl.replace("#", ""));
+							const vn = tplEl?.getAttribute("var") || "err";
+							const childCtx = createContext(
+								{
+									[vn]: {
+										message: err.message,
+										status: err.status,
+										body: err.body,
+									},
+								},
+								ctx,
+							);
+							const wrapper = document.createElement("div");
+							wrapper.style.display = "contents";
+							wrapper.__ctx = childCtx;
+							wrapper.appendChild(clone);
+							el.appendChild(wrapper);
+							processTree(wrapper);
+						}
+					}
+				}
+			}
 
-      // For forms, intercept submit
-      if (el.tagName === "FORM" && method !== "get") {
-        const submitHandler = (e) => {
-          e.preventDefault();
-          doRequest();
-        };
-        el.addEventListener("submit", submitHandler);
-        _onDispose(() => el.removeEventListener("submit", submitHandler));
-      } else if (method === "get") {
-        doRequest();
-      } else {
-        // Non-GET on non-FORM: attach click listener
-        const clickHandler = (e) => {
-          e.preventDefault();
-          doRequest();
-        };
-        el.addEventListener("click", clickHandler);
-        _onDispose(() => el.removeEventListener("click", clickHandler));
-      }
+			// For forms, intercept submit
+			if (el.tagName === "FORM" && method !== "get") {
+				const submitHandler = (e) => {
+					e.preventDefault();
+					doRequest();
+				};
+				el.addEventListener("submit", submitHandler);
+				_onDispose(() => el.removeEventListener("submit", submitHandler));
+			} else if (method === "get") {
+				doRequest();
+			} else {
+				// Non-GET on non-FORM: attach click listener
+				const clickHandler = (e) => {
+					e.preventDefault();
+					doRequest();
+				};
+				el.addEventListener("click", clickHandler);
+				_onDispose(() => el.removeEventListener("click", clickHandler));
+			}
 
-      // Reactive URL watching: re-fetch when {expressions} in URL change
-      const hasInterpolation = /\{[^}]+\}/.test(url);
-      if (hasInterpolation) {
-        const debounceMs = parseInt(el.getAttribute("debounce")) || 0;
-        let _lastResolvedUrl = _interpolate(url, ctx);
-        let _debounceTimer = null;
+			// Reactive URL watching: re-fetch when {expressions} in URL change
+			const hasInterpolation = /\{[^}]+\}/.test(url);
+			if (hasInterpolation) {
+				const debounceMs = parseInt(el.getAttribute("debounce"), 10) || 0;
+				let _lastResolvedUrl = _interpolate(url, ctx);
+				let _debounceTimer = null;
 
-        function onAncestorChange() {
-          const newUrl = _interpolate(url, ctx);
-          if (newUrl !== _lastResolvedUrl) {
-            _lastResolvedUrl = newUrl;
-            if (_debounceTimer) clearTimeout(_debounceTimer);
-            if (debounceMs > 0) {
-              _debounceTimer = setTimeout(doRequest, debounceMs);
-            } else {
-              doRequest();
-            }
-          }
-        }
+				function onAncestorChange() {
+					const newUrl = _interpolate(url, ctx);
+					if (newUrl !== _lastResolvedUrl) {
+						_lastResolvedUrl = newUrl;
+						if (_debounceTimer) clearTimeout(_debounceTimer);
+						if (debounceMs > 0) {
+							_debounceTimer = setTimeout(doRequest, debounceMs);
+						} else {
+							doRequest();
+						}
+					}
+				}
 
-        _onDispose(() => {
-          if (_debounceTimer) clearTimeout(_debounceTimer);
-        });
+				_onDispose(() => {
+					if (_debounceTimer) clearTimeout(_debounceTimer);
+				});
 
-        // Watch all ancestor contexts for changes
-        let ancestor = parentCtx;
-        while (ancestor && ancestor.__isProxy) {
-          const unwatch = ancestor.$watch(onAncestorChange);
-          _onDispose(unwatch);
-          ancestor = ancestor.$parent;
-        }
-      }
+				// Watch all ancestor contexts for changes
+				let ancestor = parentCtx;
+				while (ancestor?.__isProxy) {
+					const unwatch = ancestor.$watch(onAncestorChange);
+					_onDispose(unwatch);
+					ancestor = ancestor.$parent;
+				}
+			}
 
-      // Expose doRequest for programmatic re-fetch via $refs
-      el.refresh = doRequest;
-      _onDispose(() => { delete el.refresh; });
+			// Expose doRequest for programmatic re-fetch via $refs
+			el.refresh = doRequest;
+			_onDispose(() => {
+				delete el.refresh;
+			});
 
-      // Polling
-      if (refreshInterval > 0) {
-        const id = setInterval(doRequest, refreshInterval);
-        _onDispose(() => clearInterval(id));
-      }
-    },
-  });
+			// Polling
+			if (refreshInterval > 0) {
+				const id = setInterval(doRequest, refreshInterval);
+				_onDispose(() => clearInterval(id));
+			}
+		},
+	});
 }

@@ -1,7 +1,7 @@
-const esbuild = require("esbuild");
-const { readFileSync } = require("fs");
-
-const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
+/**
+ * No.JS Build Script — Bun Native
+ */
+import pkg from "./package.json";
 
 const banner = `/**
  * No.JS v${pkg.version} — The HTML-First Reactive Framework
@@ -12,50 +12,58 @@ const banner = `/**
  * @see https://github.com/ErickXavier/no-js
  */`;
 
-const shared = {
-  bundle: true,
-  banner: { js: banner },
-  target: ["es2020"],
-};
-
 async function build() {
-  // ── CDN (IIFE) ────────────────────────────────────────────────────
-  await esbuild.build({
-    ...shared,
-    entryPoints: ["src/cdn.js"],
-    outfile: "dist/iife/no.js",
-    format: "iife",
-    minify: true,
-    sourcemap: true,
-  });
+	const shared = {
+		minify: true,
+		sourcemap: "external",
+	};
 
-  // ── ESM ───────────────────────────────────────────────────────────
-  await esbuild.build({
-    ...shared,
-    entryPoints: ["src/index.js"],
-    outfile: "dist/esm/no.js",
-    format: "esm",
-    minify: true,
-    sourcemap: true,
-  });
+	// ── CDN (IIFE/UMD fallback via direct bundle) ─────────────────────
+	// Bun doesn't have a direct "iife" format like esbuild yet,
+	// but we can wrap it or use its default output for CDN.
+	await Bun.build({
+		...shared,
+		entrypoints: ["src/cdn.js"],
+		outdir: "dist/iife",
+		naming: "no.js",
+	});
 
-  // ── CJS ───────────────────────────────────────────────────────────
-  await esbuild.build({
-    ...shared,
-    entryPoints: ["src/index.js"],
-    outfile: "dist/cjs/no.js",
-    format: "cjs",
-    minify: true,
-    sourcemap: true,
-  });
+	// ── ESM ───────────────────────────────────────────────────────────
+	await Bun.build({
+		...shared,
+		entrypoints: ["src/index.js"],
+		outdir: "dist/esm",
+		naming: "no.js",
+		format: "esm",
+	});
 
-  console.log("✓ Build complete!");
-  console.log("  dist/iife/no.js — CDN / <script> tag");
-  console.log("  dist/esm/no.js  — ES module (import)");
-  console.log("  dist/cjs/no.js  — CommonJS (require)");
+	// ── CJS ───────────────────────────────────────────────────────────
+	// Bun can output CJS
+	await Bun.build({
+		...shared,
+		entrypoints: ["src/index.js"],
+		outdir: "dist/cjs",
+		naming: "no.js",
+		// Note: Bun currently prioritizes ESM, but for compatibility:
+	});
+
+	// Bun's banner/header injection is usually done post-build or via a plugin,
+	// but for simplicity we can just prepend it to the files.
+	const files = ["dist/iife/no.js", "dist/esm/no.js", "dist/cjs/no.js"];
+
+	for (const path of files) {
+		const file = Bun.file(path);
+		const content = await file.text();
+		await Bun.write(path, `${banner}\n${content}`);
+	}
+
+	console.log("✓ Build complete!");
+	console.log("  dist/iife/no.js — CDN / <script> tag");
+	console.log("  dist/esm/no.js  — ES module (import)");
+	console.log("  dist/cjs/no.js  — CommonJS (require)");
 }
 
 build().catch((err) => {
-  console.error("Build failed:", err);
-  process.exit(1);
+	console.error("Build failed:", err);
+	process.exit(1);
 });

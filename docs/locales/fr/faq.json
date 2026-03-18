@@ -1,108 +1,108 @@
 {
-  "faq": {
-    "hero": {
-      "badge": "FAQ",
-      "title": "Questions Fréquentes",
-      "subtitle": "Tout ce que vous devez savoir sur No.JS.",
-      "cta": "Parcourir les Questions"
-    },
-    "search": {
-      "placeholder": "Rechercher dans la FAQ"
-    },
-    "sidebar": {
-      "questions": "Questions",
-      "gettingStarted": "Premiers Pas",
-      "coreConcepts": "Concepts Fondamentaux",
-      "comparisons": "Comparaisons",
-      "security": "Sécurité & Production",
-      "resources": "Ressources",
-      "documentation": "Documentation",
-      "examples": "Exemples",
-      "discussions": "GitHub Discussions",
-      "discord": "Communauté Discord"
-    },
-    "gettingStarted": {
-      "title": "Premiers Pas",
-      "q1": {
-        "question": "Qu'est-ce que No.JS ?",
-        "answer": "Un framework réactif HTML-first. État, fetch de données, routage, validation, i18n, animations : tout déclaré via des attributs HTML. ~24 Ko gzippé, zéro dépendance, pas de build."
-      },
-      "q2": {
-        "question": "Comment commencer ?",
-        "answer": "Ajoutez une balise script :<br><br><code>&lt;script src=\"https://cdn.no-js.dev/\"&gt;&lt;/script&gt;</code><br><br>Pas de build, pas de gestionnaire de paquets. Commencez à écrire des attributs."
-      },
-      "q3": {
-        "question": "Faut-il connaître JavaScript ?",
-        "answer": "Des connaissances basiques aident pour écrire des expressions dans les attributs, mais vous n'écrirez pas de <em>fichiers</em> JavaScript. Tout est déclaratif : <code>state</code>, <code>bind</code>, <code>on:click</code>, <code>each</code>.<br><br>Pour des cas avancés comme les filtres ou directives personnalisés, vous écrirez un peu de JS. L'objectif est de <strong>réduire</strong>, pas d'éliminer."
-      },
-      "q4": {
-        "question": "Puis-je l'utiliser avec des projets existants ?",
-        "answer": "Oui. Ajoutez la balise script à n'importe quelle page HTML. No.JS ne traite que les éléments avec ses attributs, donc il n'interfère pas avec le code existant ou d'autres bibliothèques. Adoption progressive par design."
-      }
-    },
-    "coreConcepts": {
-      "title": "Concepts Fondamentaux",
-      "q5": {
-        "question": "Comment fonctionne la réactivité ?",
-        "answer": "Objets <strong>Proxy</strong> JavaScript. Quand vous déclarez <code>state</code>, le framework enveloppe vos données dans un Proxy. À chaque changement de propriété, le trap <code>set</code> notifie les watchers enregistrés, qui mettent à jour le DOM directement. Pas de virtual DOM, pas de diffing."
-      },
-      "q6": {
-        "question": "Et l'état calculé et les données asynchrones ?",
-        "answer": "<strong>Calculé :</strong> <code>computed</code> + <code>expr</code> recalcule automatiquement quand les dépendances changent.<br><br><strong>Async :</strong> <code>get</code>, <code>post</code>, <code>put</code>, <code>patch</code>, <code>delete</code> récupèrent les données dans le contexte réactif. Utilisez <code>into</code> pour envoyer les résultats vers un store global.<br><br><strong>Batching :</strong> plusieurs changements dans le même cycle sont dédupliqués. Les watchers se déclenchent une fois."
-      },
-      "q7": {
-        "question": "Quelles fonctionnalités sont incluses ?",
-        "answer": "Tout est livré dans un seul fichier de ~24 Ko :<br><br>• État réactif et propriétés calculées<br>• Routage SPA avec lazy loading<br>• HTTP déclaratif (GET, POST, PUT, PATCH, DELETE)<br>• i18n avec fichiers de locale externes<br>• Validation de formulaires<br>• Animations et transitions<br>• Drag and drop<br>• 30+ filtres intégrés"
-      },
-      "q8": {
-        "question": "Quel est le cas d'usage idéal ?",
-        "answer": "Landing pages, dashboards, outils internes, prototypes, tout ce qui nécessite de la réactivité sans la cérémonie d'un framework complet.<br><br>Si la logique métier reste dans le backend, là où elle doit être, le frontend n'a jamais besoin d'être assez complexe pour justifier un framework lourd."
-      }
-    },
-    "comparisons": {
-      "title": "Comparaisons",
-      "q9": {
-        "question": "No.JS vs Alpine.js ?",
-        "answer": "Alpine est réactif et léger, mais manque de HTTP déclaratif, routage SPA, i18n, validation de formulaires et filtres intégrés.<br><br>No.JS couvre le cycle complet : fetch, bind, loop, route, validate, animate, tout via des attributs HTML."
-      },
-      "q10": {
-        "question": "No.JS vs HTMX ?",
-        "answer": "HTMX excelle en HTML server-driven. Il suppose un backend qui retourne des fragments HTML.<br><br>No.JS fonctionne avec n'importe quelle API (endpoints JSON, REST, APIs publiques) sans nécessiter un serveur pour composer les réponses. Philosophie différente : HTMX étend le serveur, No.JS étend le navigateur."
-      },
-      "q11": {
-        "question": "No.JS vs React ou Vue ?",
-        "answer": "React et Vue nécessitent un build, un virtual DOM et des fichiers JavaScript. No.JS ne nécessite rien de tout cela.<br><br>~24 Ko vs 100+ Ko. Fichiers HTML vs bundles compilés. Le déploiement, c'est envoyer du HTML, pas configurer un pipeline."
-      },
-      "q12": {
-        "question": "Ça me rappelle AngularJS. C'est similaire ?",
-        "answer": "Même intuition : ramener le développement web au HTML. Exécution différente : ~24 Ko, zéro dépendance, pas de spirale de complexité.<br><br>No.JS reste intentionnellement petit et focalisé sur les cas où un framework complet est excessif."
-      }
-    },
-    "security": {
-      "title": "Sécurité & Production",
-      "q13": {
-        "question": "Comment No.JS gère la sécurité ?",
-        "answer": "Trois couches de protection :<br><br>• <strong>Sanitisation HTML :</strong> supprime les balises <code>&lt;script&gt;</code>, les event handlers et les protocoles <code>javascript:</code><br>• <strong>Isolation de scope :</strong> le contexte de chaque composant est isolé via Proxy<br>• <strong>CSP-safe par défaut :</strong> les expressions sont évaluées par un parser personnalisé — aucun <code>eval()</code> ni constructeur <code>Function()</code> n'est utilisé"
-      },
-      "q14": {
-        "question": "Quelle est la taille du bundle ?",
-        "answer": "~24 Ko gzippé. Cela inclut réactivité, routage, fetch de données, i18n, animations, drag and drop, validation de formulaires et 30+ filtres. Zéro dépendance."
-      },
-      "q15": {
-        "question": "Ai-je besoin d'un build ?",
-        "answer": "Non. Une balise script, zéro configuration. Pas de compilation, pas de transpilation, pas de bundling. Le déploiement, c'est envoyer des fichiers HTML."
-      },
-      "q16": {
-        "question": "Est-il prêt pour la production ?",
-        "answer": "Oui. 800+ tests unitaires, testé sur les navigateurs modernes. Ce site de documentation est entièrement construit avec No.JS."
-      }
-    },
-    "cta": {
-      "title": "Encore des questions ?",
-      "subtitle": "Consultez la documentation ou rejoignez la communauté.",
-      "docs": "Voir la Documentation",
-      "discussions": "GitHub Discussions",
-      "discord": "Communauté Discord"
-    }
-  }
+	"faq": {
+		"hero": {
+			"badge": "FAQ",
+			"title": "Questions Fréquentes",
+			"subtitle": "Tout ce que vous devez savoir sur No.JS.",
+			"cta": "Parcourir les Questions"
+		},
+		"search": {
+			"placeholder": "Rechercher dans la FAQ"
+		},
+		"sidebar": {
+			"questions": "Questions",
+			"gettingStarted": "Premiers Pas",
+			"coreConcepts": "Concepts Fondamentaux",
+			"comparisons": "Comparaisons",
+			"security": "Sécurité & Production",
+			"resources": "Ressources",
+			"documentation": "Documentation",
+			"examples": "Exemples",
+			"discussions": "GitHub Discussions",
+			"discord": "Communauté Discord"
+		},
+		"gettingStarted": {
+			"title": "Premiers Pas",
+			"q1": {
+				"question": "Qu'est-ce que No.JS ?",
+				"answer": "Un framework réactif HTML-first. État, fetch de données, routage, validation, i18n, animations : tout déclaré via des attributs HTML. ~24 Ko gzippé, zéro dépendance, pas de build."
+			},
+			"q2": {
+				"question": "Comment commencer ?",
+				"answer": "Ajoutez une balise script :<br><br><code>&lt;script src=\"https://cdn.no-js.dev/\"&gt;&lt;/script&gt;</code><br><br>Pas de build, pas de gestionnaire de paquets. Commencez à écrire des attributs."
+			},
+			"q3": {
+				"question": "Faut-il connaître JavaScript ?",
+				"answer": "Des connaissances basiques aident pour écrire des expressions dans les attributs, mais vous n'écrirez pas de <em>fichiers</em> JavaScript. Tout est déclaratif : <code>state</code>, <code>bind</code>, <code>on:click</code>, <code>each</code>.<br><br>Pour des cas avancés comme les filtres ou directives personnalisés, vous écrirez un peu de JS. L'objectif est de <strong>réduire</strong>, pas d'éliminer."
+			},
+			"q4": {
+				"question": "Puis-je l'utiliser avec des projets existants ?",
+				"answer": "Oui. Ajoutez la balise script à n'importe quelle page HTML. No.JS ne traite que les éléments avec ses attributs, donc il n'interfère pas avec le code existant ou d'autres bibliothèques. Adoption progressive par design."
+			}
+		},
+		"coreConcepts": {
+			"title": "Concepts Fondamentaux",
+			"q5": {
+				"question": "Comment fonctionne la réactivité ?",
+				"answer": "Objets <strong>Proxy</strong> JavaScript. Quand vous déclarez <code>state</code>, le framework enveloppe vos données dans un Proxy. À chaque changement de propriété, le trap <code>set</code> notifie les watchers enregistrés, qui mettent à jour le DOM directement. Pas de virtual DOM, pas de diffing."
+			},
+			"q6": {
+				"question": "Et l'état calculé et les données asynchrones ?",
+				"answer": "<strong>Calculé :</strong> <code>computed</code> + <code>expr</code> recalcule automatiquement quand les dépendances changent.<br><br><strong>Async :</strong> <code>get</code>, <code>post</code>, <code>put</code>, <code>patch</code>, <code>delete</code> récupèrent les données dans le contexte réactif. Utilisez <code>into</code> pour envoyer les résultats vers un store global.<br><br><strong>Batching :</strong> plusieurs changements dans le même cycle sont dédupliqués. Les watchers se déclenchent une fois."
+			},
+			"q7": {
+				"question": "Quelles fonctionnalités sont incluses ?",
+				"answer": "Tout est livré dans un seul fichier de ~24 Ko :<br><br>• État réactif et propriétés calculées<br>• Routage SPA avec lazy loading<br>• HTTP déclaratif (GET, POST, PUT, PATCH, DELETE)<br>• i18n avec fichiers de locale externes<br>• Validation de formulaires<br>• Animations et transitions<br>• Drag and drop<br>• 30+ filtres intégrés"
+			},
+			"q8": {
+				"question": "Quel est le cas d'usage idéal ?",
+				"answer": "Landing pages, dashboards, outils internes, prototypes, tout ce qui nécessite de la réactivité sans la cérémonie d'un framework complet.<br><br>Si la logique métier reste dans le backend, là où elle doit être, le frontend n'a jamais besoin d'être assez complexe pour justifier un framework lourd."
+			}
+		},
+		"comparisons": {
+			"title": "Comparaisons",
+			"q9": {
+				"question": "No.JS vs Alpine.js ?",
+				"answer": "Alpine est réactif et léger, mais manque de HTTP déclaratif, routage SPA, i18n, validation de formulaires et filtres intégrés.<br><br>No.JS couvre le cycle complet : fetch, bind, loop, route, validate, animate, tout via des attributs HTML."
+			},
+			"q10": {
+				"question": "No.JS vs HTMX ?",
+				"answer": "HTMX excelle en HTML server-driven. Il suppose un backend qui retourne des fragments HTML.<br><br>No.JS fonctionne avec n'importe quelle API (endpoints JSON, REST, APIs publiques) sans nécessiter un serveur pour composer les réponses. Philosophie différente : HTMX étend le serveur, No.JS étend le navigateur."
+			},
+			"q11": {
+				"question": "No.JS vs React ou Vue ?",
+				"answer": "React et Vue nécessitent un build, un virtual DOM et des fichiers JavaScript. No.JS ne nécessite rien de tout cela.<br><br>~24 Ko vs 100+ Ko. Fichiers HTML vs bundles compilés. Le déploiement, c'est envoyer du HTML, pas configurer un pipeline."
+			},
+			"q12": {
+				"question": "Ça me rappelle AngularJS. C'est similaire ?",
+				"answer": "Même intuition : ramener le développement web au HTML. Exécution différente : ~24 Ko, zéro dépendance, pas de spirale de complexité.<br><br>No.JS reste intentionnellement petit et focalisé sur les cas où un framework complet est excessif."
+			}
+		},
+		"security": {
+			"title": "Sécurité & Production",
+			"q13": {
+				"question": "Comment No.JS gère la sécurité ?",
+				"answer": "Trois couches de protection :<br><br>• <strong>Sanitisation HTML :</strong> supprime les balises <code>&lt;script&gt;</code>, les event handlers et les protocoles <code>javascript:</code><br>• <strong>Isolation de scope :</strong> le contexte de chaque composant est isolé via Proxy<br>• <strong>CSP-safe par défaut :</strong> les expressions sont évaluées par un parser personnalisé — aucun <code>eval()</code> ni constructeur <code>Function()</code> n'est utilisé"
+			},
+			"q14": {
+				"question": "Quelle est la taille du bundle ?",
+				"answer": "~24 Ko gzippé. Cela inclut réactivité, routage, fetch de données, i18n, animations, drag and drop, validation de formulaires et 30+ filtres. Zéro dépendance."
+			},
+			"q15": {
+				"question": "Ai-je besoin d'un build ?",
+				"answer": "Non. Une balise script, zéro configuration. Pas de compilation, pas de transpilation, pas de bundling. Le déploiement, c'est envoyer des fichiers HTML."
+			},
+			"q16": {
+				"question": "Est-il prêt pour la production ?",
+				"answer": "Oui. 800+ tests unitaires, testé sur les navigateurs modernes. Ce site de documentation est entièrement construit avec No.JS."
+			}
+		},
+		"cta": {
+			"title": "Encore des questions ?",
+			"subtitle": "Consultez la documentation ou rejoignez la communauté.",
+			"docs": "Voir la Documentation",
+			"discussions": "GitHub Discussions",
+			"discord": "Communauté Discord"
+		}
+	}
 }

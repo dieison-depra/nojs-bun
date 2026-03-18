@@ -1,1469 +1,1490 @@
 import {
-  _config,
-  _interceptors,
-  _eventBus,
-  _stores,
-  _storeWatchers,
-  _filters,
-  _validators,
-  _cache,
-  _refs,
-  _routerInstance,
-  setRouterInstance,
-  _log,
-  _warn,
-  _notifyStoreWatchers,
-  _watchExpr,
-  _emitEvent,
-  _setCurrentEl,
-  _onDispose,
-} from '../src/globals.js';
-
-import { _disposeTree } from '../src/registry.js';
-
+	_collectKeys,
+	_endBatch,
+	_startBatch,
+	createContext,
+} from "../src/context.js";
 import {
-  createContext,
-  _collectKeys,
-  _startBatch,
-  _endBatch,
-} from '../src/context.js';
-
+	_execStatement,
+	_interpolate,
+	evaluate,
+	resolve,
+} from "../src/evaluate.js";
 import {
-  evaluate,
-  _execStatement,
-  resolve,
-  _interpolate,
-} from '../src/evaluate.js';
+	_cache,
+	_config,
+	_emitEvent,
+	_eventBus,
+	_filters,
+	_interceptors,
+	_log,
+	_notifyStoreWatchers,
+	_refs,
+	_setCurrentEl,
+	_stores,
+	_storeWatchers,
+	_validators,
+	_warn,
+	_watchExpr,
+	setRouterInstance,
+} from "../src/globals.js";
+import { _disposeTree } from "../src/registry.js";
 
-describe('Globals', () => {
-  describe('_config defaults', () => {
-    test('has default config values', () => {
-      expect(_config.baseApiUrl).toBe('');
-      expect(_config.timeout).toBe(10000);
-      expect(_config.retries).toBe(0);
-      expect(_config.retryDelay).toBe(1000);
-      expect(_config.credentials).toBe('same-origin');
-      expect(_config.csrf).toBeNull();
-      expect(_config.debug).toBe(false);
-      expect(_config.sanitize).toBe(true);
-    });
+describe("Globals", () => {
+	beforeAll(() => {
+		// Reset _config to defaults before running default tests
+		_config.baseApiUrl = "";
+		_config.timeout = 10000;
+		_config.retries = 0;
+		_config.retryDelay = 1000;
+		_config.credentials = "same-origin";
+		_config.csrf = null;
+		_config.debug = false;
+		_config.sanitize = true;
+		_config.cache = { strategy: "none", ttl: 300000 };
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		_config.i18n = { defaultLocale: "en", fallbackLocale: "en", detectBrowser: false };
+	});
 
-    test('has default cache config', () => {
-      expect(_config.cache.strategy).toBe('none');
-      expect(_config.cache.ttl).toBe(300000);
-    });
+	describe("_config defaults", () => {
+		test("has default config values", () => {
+			expect(_config.baseApiUrl).toBe("");
+			expect(_config.timeout).toBe(10000);
+			expect(_config.retries).toBe(0);
+			expect(_config.retryDelay).toBe(1000);
+			expect(_config.credentials).toBe("same-origin");
+			expect(_config.csrf).toBeNull();
+			expect(_config.debug).toBe(false);
+			expect(_config.sanitize).toBe(true);
+		});
 
-    test('has default router config', () => {
-      expect(_config.router.useHash).toBe(false);
-      expect(_config.router.base).toBe('/');
-      expect(_config.router.scrollBehavior).toBe('top');
-    });
+		test("has default cache config", () => {
+			expect(_config.cache.strategy).toBe("none");
+			expect(_config.cache.ttl).toBe(300000);
+		});
 
-    test('has default i18n config', () => {
-      expect(_config.i18n.defaultLocale).toBe('en');
-      expect(_config.i18n.fallbackLocale).toBe('en');
-      expect(_config.i18n.detectBrowser).toBe(false);
-    });
-  });
+		test("has default router config", () => {
+			expect(_config.router.useHash).toBe(false);
+			expect(_config.router.base).toBe("/");
+			expect(_config.router.scrollBehavior).toBe("top");
+		});
 
-  describe('shared state objects', () => {
-    test('_interceptors has request and response arrays', () => {
-      expect(_interceptors.request).toEqual([]);
-      expect(_interceptors.response).toEqual([]);
-    });
+		test("has default i18n config", () => {
+			expect(_config.i18n.defaultLocale).toBe("en");
+			expect(_config.i18n.fallbackLocale).toBe("en");
+			expect(_config.i18n.detectBrowser).toBe(false);
+		});
+	});
 
-    test('_stores is an object', () => {
-      expect(typeof _stores).toBe('object');
-    });
+	describe("shared state objects", () => {
+		test("_interceptors has request and response arrays", () => {
+			expect(_interceptors.request).toEqual([]);
+			expect(_interceptors.response).toEqual([]);
+		});
 
-    test('_validators is an object', () => {
-      expect(typeof _validators).toBe('object');
-    });
+		test("_stores is an object", () => {
+			expect(typeof _stores).toBe("object");
+		});
 
-    test('_cache is a Map', () => {
-      expect(_cache).toBeInstanceOf(Map);
-    });
+		test("_validators is an object", () => {
+			expect(typeof _validators).toBe("object");
+		});
 
-  });
+		test("_cache is a Map", () => {
+			expect(_cache).toBeInstanceOf(Map);
+		});
+	});
 
-  describe('setRouterInstance', () => {
-    afterEach(() => setRouterInstance(null));
+	describe("setRouterInstance", () => {
+		afterEach(() => setRouterInstance(null));
 
-    test('sets the router instance', () => {
-      const mockRouter = { current: { path: '/' } };
-      setRouterInstance(mockRouter);
-      const ctx = createContext({});
-      expect(ctx.$route).toEqual({ path: '/' });
-    });
-  });
+		test("sets the router instance", () => {
+			const mockRouter = { current: { path: "/" } };
+			setRouterInstance(mockRouter);
+			const ctx = createContext({});
+			expect(ctx.$route).toEqual({ path: "/" });
+		});
+	});
 
-  describe('_log', () => {
-    test('logs when debug is true', () => {
-      const spy = jest.spyOn(console, 'log').mockImplementation();
-      _config.debug = true;
-      _log('test message');
-      expect(spy).toHaveBeenCalledWith('[No.JS]', 'test message');
-      _config.debug = false;
-      spy.mockRestore();
-    });
+	describe("_log", () => {
+		test("logs when debug is true", () => {
+			const spy = jest.spyOn(console, "log").mockImplementation();
+			_config.debug = true;
+			_log("test message");
+			expect(spy).toHaveBeenCalledWith("[No.JS]", "test message");
+			_config.debug = false;
+			spy.mockRestore();
+		});
 
-    test('does not log when debug is false', () => {
-      const spy = jest.spyOn(console, 'log').mockImplementation();
-      _config.debug = false;
-      _log('test message');
-      expect(spy).not.toHaveBeenCalled();
-      spy.mockRestore();
-    });
-  });
+		test("does not log when debug is false", () => {
+			const spy = jest.spyOn(console, "log").mockImplementation();
+			_config.debug = false;
+			_log("test message");
+			expect(spy).not.toHaveBeenCalled();
+			spy.mockRestore();
+		});
+	});
 
-  describe('_warn', () => {
-    test('always warns', () => {
-      const spy = jest.spyOn(console, 'warn').mockImplementation();
-      _warn('warning msg');
-      expect(spy).toHaveBeenCalledWith('[No.JS]', 'warning msg');
-      spy.mockRestore();
-    });
-  });
+	describe("_warn", () => {
+		test("always warns", () => {
+			const spy = jest.spyOn(console, "warn").mockImplementation();
+			_warn("warning msg");
+			expect(spy).toHaveBeenCalledWith("[No.JS]", "warning msg");
+			spy.mockRestore();
+		});
+	});
 
-  describe('_notifyStoreWatchers', () => {
-    test('calls all store watchers', () => {
-      const fn1 = jest.fn();
-      const fn2 = jest.fn();
-      _storeWatchers.add(fn1);
-      _storeWatchers.add(fn2);
-      _notifyStoreWatchers();
-      expect(fn1).toHaveBeenCalled();
-      expect(fn2).toHaveBeenCalled();
-      _storeWatchers.delete(fn1);
-      _storeWatchers.delete(fn2);
-    });
-  });
+	describe("_notifyStoreWatchers", () => {
+		test("calls all store watchers", () => {
+			const fn1 = jest.fn();
+			const fn2 = jest.fn();
+			_storeWatchers.add(fn1);
+			_storeWatchers.add(fn2);
+			_notifyStoreWatchers();
+			expect(fn1).toHaveBeenCalled();
+			expect(fn2).toHaveBeenCalled();
+			_storeWatchers.delete(fn1);
+			_storeWatchers.delete(fn2);
+		});
+	});
 
-  describe('_emitEvent', () => {
-    test('calls registered event handlers', () => {
-      const fn = jest.fn();
-      _eventBus['test-event'] = [fn];
-      _emitEvent('test-event', { key: 'value' });
-      expect(fn).toHaveBeenCalledWith({ key: 'value' });
-      delete _eventBus['test-event'];
-    });
+	describe("_emitEvent", () => {
+		test("calls registered event handlers", () => {
+			const fn = jest.fn();
+			_eventBus["test-event"] = [fn];
+			_emitEvent("test-event", { key: "value" });
+			expect(fn).toHaveBeenCalledWith({ key: "value" });
+			delete _eventBus["test-event"];
+		});
 
-    test('handles missing event gracefully', () => {
-      expect(() => _emitEvent('nonexistent', {})).not.toThrow();
-    });
-  });
+		test("handles missing event gracefully", () => {
+			expect(() => _emitEvent("nonexistent", {})).not.toThrow();
+		});
+	});
 
-  describe('_watchExpr', () => {
-    test('watches context with $watch', () => {
-      const ctx = createContext({ x: 1 });
-      const fn = jest.fn();
-      _watchExpr('x', ctx, fn);
-      ctx.x = 2;
-      expect(fn).toHaveBeenCalled();
-    });
+	describe("_watchExpr", () => {
+		test("watches context with $watch", () => {
+			const ctx = createContext({ x: 1 });
+			const fn = jest.fn();
+			_watchExpr("x", ctx, fn);
+			ctx.x = 2;
+			expect(fn).toHaveBeenCalled();
+		});
 
-    test('adds to _storeWatchers when expr includes $store', () => {
-      const ctx = createContext({});
-      const fn = jest.fn();
-      const sizeBefore = _storeWatchers.size;
-      _watchExpr('$store.cart.items', ctx, fn);
-      expect(_storeWatchers.size).toBe(sizeBefore + 1);
-      _storeWatchers.delete(fn);
-    });
+		test("adds to _storeWatchers when expr includes $store", () => {
+			const ctx = createContext({});
+			const fn = jest.fn();
+			const sizeBefore = _storeWatchers.size;
+			_watchExpr("$store.cart.items", ctx, fn);
+			expect(_storeWatchers.size).toBe(sizeBefore + 1);
+			_storeWatchers.delete(fn);
+		});
 
-    test('registers _onDispose that calls unwatch on disposal', () => {
-      const ctx = createContext({ x: 1 });
-      const fn = jest.fn();
-      const el = document.createElement('div');
-      document.body.appendChild(el);
+		test("registers _onDispose that calls unwatch on disposal", () => {
+			const ctx = createContext({ x: 1 });
+			const fn = jest.fn();
+			const el = document.createElement("div");
+			document.body.appendChild(el);
 
-      _setCurrentEl(el);
-      _watchExpr('x', ctx, fn);
-      _setCurrentEl(null);
+			_setCurrentEl(el);
+			_watchExpr("x", ctx, fn);
+			_setCurrentEl(null);
 
-      // Watcher fires before disposal
-      ctx.x = 2;
-      expect(fn).toHaveBeenCalledTimes(1);
+			// Watcher fires before disposal
+			ctx.x = 2;
+			expect(fn).toHaveBeenCalledTimes(1);
 
-      // Dispose the element
-      _disposeTree(el);
+			// Dispose the element
+			_disposeTree(el);
 
-      // Watcher should no longer fire after disposal
-      fn.mockClear();
-      ctx.x = 3;
-      expect(fn).not.toHaveBeenCalled();
-    });
+			// Watcher should no longer fire after disposal
+			fn.mockClear();
+			ctx.x = 3;
+			expect(fn).not.toHaveBeenCalled();
+		});
 
-    test('removes from _storeWatchers on disposal', () => {
-      const ctx = createContext({});
-      const fn = jest.fn();
-      const el = document.createElement('div');
+		test("removes from _storeWatchers on disposal", () => {
+			const ctx = createContext({});
+			const fn = jest.fn();
+			const el = document.createElement("div");
 
-      _setCurrentEl(el);
-      _watchExpr('$store.cart.items', ctx, fn);
-      _setCurrentEl(null);
+			_setCurrentEl(el);
+			_watchExpr("$store.cart.items", ctx, fn);
+			_setCurrentEl(null);
 
-      expect(_storeWatchers.has(fn)).toBe(true);
+			expect(_storeWatchers.has(fn)).toBe(true);
 
-      _disposeTree(el);
+			_disposeTree(el);
 
-      expect(_storeWatchers.has(fn)).toBe(false);
-    });
-  });
+			expect(_storeWatchers.has(fn)).toBe(false);
+		});
+	});
 });
 
-describe('Reactive Context', () => {
-  describe('createContext', () => {
-    test('creates a proxy with initial data', () => {
-      const ctx = createContext({ name: 'Alice', age: 30 });
-      expect(ctx.name).toBe('Alice');
-      expect(ctx.age).toBe(30);
-    });
+describe("Reactive Context", () => {
+	describe("createContext", () => {
+		test("creates a proxy with initial data", () => {
+			const ctx = createContext({ name: "Alice", age: 30 });
+			expect(ctx.name).toBe("Alice");
+			expect(ctx.age).toBe(30);
+		});
 
-    test('is detected as proxy via __isProxy', () => {
-      const ctx = createContext({});
-      expect(ctx.__isProxy).toBe(true);
-    });
+		test("is detected as proxy via __isProxy", () => {
+			const ctx = createContext({});
+			expect(ctx.__isProxy).toBe(true);
+		});
 
-    test('exposes raw data via __raw', () => {
-      const ctx = createContext({ x: 42 });
-      expect(ctx.__raw.x).toBe(42);
-    });
+		test("exposes raw data via __raw", () => {
+			const ctx = createContext({ x: 42 });
+			expect(ctx.__raw.x).toBe(42);
+		});
 
-    test('sets values reactively', () => {
-      const ctx = createContext({ count: 0 });
-      const watcher = jest.fn();
-      ctx.$watch(watcher);
-      ctx.count = 5;
-      expect(watcher).toHaveBeenCalled();
-      expect(ctx.count).toBe(5);
-    });
+		test("sets values reactively", () => {
+			const ctx = createContext({ count: 0 });
+			const watcher = jest.fn();
+			ctx.$watch(watcher);
+			ctx.count = 5;
+			expect(watcher).toHaveBeenCalled();
+			expect(ctx.count).toBe(5);
+		});
 
-    test('does not notify if value unchanged', () => {
-      const ctx = createContext({ x: 10 });
-      const watcher = jest.fn();
-      ctx.$watch(watcher);
-      ctx.x = 10;
-      expect(watcher).not.toHaveBeenCalled();
-    });
+		test("does not notify if value unchanged", () => {
+			const ctx = createContext({ x: 10 });
+			const watcher = jest.fn();
+			ctx.$watch(watcher);
+			ctx.x = 10;
+			expect(watcher).not.toHaveBeenCalled();
+		});
 
-    test('$set sets a value', () => {
-      const ctx = createContext({ a: 1 });
-      ctx.$set('a', 99);
-      expect(ctx.a).toBe(99);
-    });
+		test("$set sets a value", () => {
+			const ctx = createContext({ a: 1 });
+			ctx.$set("a", 99);
+			expect(ctx.a).toBe(99);
+		});
 
-    test('$watch returns unsubscriber', () => {
-      const ctx = createContext({ x: 0 });
-      const watcher = jest.fn();
-      const unsub = ctx.$watch(watcher);
-      ctx.x = 1;
-      expect(watcher).toHaveBeenCalledTimes(1);
-      unsub();
-      ctx.x = 2;
-      expect(watcher).toHaveBeenCalledTimes(1);
-    });
+		test("$watch returns unsubscriber", () => {
+			const ctx = createContext({ x: 0 });
+			const watcher = jest.fn();
+			const unsub = ctx.$watch(watcher);
+			ctx.x = 1;
+			expect(watcher).toHaveBeenCalledTimes(1);
+			unsub();
+			ctx.x = 2;
+			expect(watcher).toHaveBeenCalledTimes(1);
+		});
 
-    test('accesses $refs', () => {
-      const ctx = createContext({});
-      expect(ctx.$refs).toBe(_refs);
-    });
+		test("accesses $refs", () => {
+			const ctx = createContext({});
+			expect(ctx.$refs).toBe(_refs);
+		});
 
-    test('accesses $store', () => {
-      const ctx = createContext({});
-      expect(ctx.$store).toBe(_stores);
-    });
+		test("accesses $store", () => {
+			const ctx = createContext({});
+			expect(ctx.$store).toBe(_stores);
+		});
 
-    test('accesses $route (null router)', () => {
-      setRouterInstance(null);
-      const ctx = createContext({});
-      expect(ctx.$route).toEqual({});
-    });
+		test("accesses $route (null router)", () => {
+			setRouterInstance(null);
+			const ctx = createContext({});
+			expect(ctx.$route).toEqual({});
+		});
 
-    test('accesses $route (with router)', () => {
-      setRouterInstance({ current: { path: '/home' } });
-      const ctx = createContext({});
-      expect(ctx.$route).toEqual({ path: '/home' });
-      setRouterInstance(null);
-    });
+		test("accesses $route (with router)", () => {
+			setRouterInstance({ current: { path: "/home" } });
+			const ctx = createContext({});
+			expect(ctx.$route).toEqual({ path: "/home" });
+			setRouterInstance(null);
+		});
 
-    test('returns undefined for missing keys', () => {
-      const ctx = createContext({ a: 1 });
-      expect(ctx.nonExistent).toBeUndefined();
-    });
+		test("returns undefined for missing keys", () => {
+			const ctx = createContext({ a: 1 });
+			expect(ctx.nonExistent).toBeUndefined();
+		});
 
-    test('$notify triggers watchers manually', () => {
-      const ctx = createContext({});
-      const watcher = jest.fn();
-      ctx.$watch(watcher);
-      ctx.$notify();
-      expect(watcher).toHaveBeenCalled();
-    });
-  });
+		test("$notify triggers watchers manually", () => {
+			const ctx = createContext({});
+			const watcher = jest.fn();
+			ctx.$watch(watcher);
+			ctx.$notify();
+			expect(watcher).toHaveBeenCalled();
+		});
+	});
 
-  describe('parent context chain', () => {
-    test('inherits from parent', () => {
-      const parent = createContext({ x: 10 });
-      const child = createContext({ y: 20 }, parent);
-      expect(child.y).toBe(20);
-      expect(child.x).toBe(10);
-    });
+	describe("parent context chain", () => {
+		test("inherits from parent", () => {
+			const parent = createContext({ x: 10 });
+			const child = createContext({ y: 20 }, parent);
+			expect(child.y).toBe(20);
+			expect(child.x).toBe(10);
+		});
 
-    test('child overrides parent', () => {
-      const parent = createContext({ x: 10 });
-      const child = createContext({ x: 50 }, parent);
-      expect(child.x).toBe(50);
-    });
+		test("child overrides parent", () => {
+			const parent = createContext({ x: 10 });
+			const child = createContext({ x: 50 }, parent);
+			expect(child.x).toBe(50);
+		});
 
-    test('$parent returns parent context', () => {
-      const parent = createContext({ a: 1 });
-      const child = createContext({}, parent);
-      expect(child.$parent).toBe(parent);
-    });
+		test("$parent returns parent context", () => {
+			const parent = createContext({ a: 1 });
+			const child = createContext({}, parent);
+			expect(child.$parent).toBe(parent);
+		});
 
-    test('has operator checks current and parent', () => {
-      const parent = createContext({ parentKey: true });
-      const child = createContext({ childKey: true }, parent);
-      expect('childKey' in child).toBe(true);
-      expect('parentKey' in child).toBe(true);
-      expect('unknown' in child).toBe(false);
-    });
-  });
+		test("has operator checks current and parent", () => {
+			const parent = createContext({ parentKey: true });
+			const child = createContext({ childKey: true }, parent);
+			expect("childKey" in child).toBe(true);
+			expect("parentKey" in child).toBe(true);
+			expect("unknown" in child).toBe(false);
+		});
+	});
 
-  describe('batching', () => {
-    test('batches notifications', () => {
-      const ctx = createContext({ a: 0, b: 0 });
-      const watcher = jest.fn();
-      ctx.$watch(watcher);
+	describe("batching", () => {
+		test("batches notifications", () => {
+			const ctx = createContext({ a: 0, b: 0 });
+			const watcher = jest.fn();
+			ctx.$watch(watcher);
 
-      _startBatch();
-      ctx.a = 1;
-      ctx.b = 2;
-      expect(watcher).not.toHaveBeenCalled();
-      _endBatch();
-      expect(watcher).toHaveBeenCalledTimes(1);
-    });
+			_startBatch();
+			ctx.a = 1;
+			ctx.b = 2;
+			expect(watcher).not.toHaveBeenCalled();
+			_endBatch();
+			expect(watcher).toHaveBeenCalledTimes(1);
+		});
 
-    test('nested batches work correctly', () => {
-      const ctx = createContext({ x: 0 });
-      const watcher = jest.fn();
-      ctx.$watch(watcher);
+		test("nested batches work correctly", () => {
+			const ctx = createContext({ x: 0 });
+			const watcher = jest.fn();
+			ctx.$watch(watcher);
 
-      _startBatch();
-      _startBatch();
-      ctx.x = 1;
-      _endBatch();
-      expect(watcher).not.toHaveBeenCalled();
-      _endBatch();
-      expect(watcher).toHaveBeenCalledTimes(1);
-    });
-  });
+			_startBatch();
+			_startBatch();
+			ctx.x = 1;
+			_endBatch();
+			expect(watcher).not.toHaveBeenCalled();
+			_endBatch();
+			expect(watcher).toHaveBeenCalledTimes(1);
+		});
+	});
 
-  describe('_collectKeys', () => {
-    test('collects keys from single context', () => {
-      const ctx = createContext({ a: 1, b: 2 });
-      const { keys, vals } = _collectKeys(ctx);
-      expect(keys).toContain('a');
-      expect(keys).toContain('b');
-      expect(vals.a).toBe(1);
-      expect(vals.b).toBe(2);
-    });
+	describe("_collectKeys", () => {
+		test("collects keys from single context", () => {
+			const ctx = createContext({ a: 1, b: 2 });
+			const { keys, vals } = _collectKeys(ctx);
+			expect(keys).toContain("a");
+			expect(keys).toContain("b");
+			expect(vals.a).toBe(1);
+			expect(vals.b).toBe(2);
+		});
 
-    test('collects keys from parent chain', () => {
-      const parent = createContext({ x: 10 });
-      const child = createContext({ y: 20 }, parent);
-      const { keys, vals } = _collectKeys(child);
-      expect(keys).toContain('x');
-      expect(keys).toContain('y');
-      expect(vals.x).toBe(10);
-      expect(vals.y).toBe(20);
-    });
+		test("collects keys from parent chain", () => {
+			const parent = createContext({ x: 10 });
+			const child = createContext({ y: 20 }, parent);
+			const { keys, vals } = _collectKeys(child);
+			expect(keys).toContain("x");
+			expect(keys).toContain("y");
+			expect(vals.x).toBe(10);
+			expect(vals.y).toBe(20);
+		});
 
-    test('child keys take precedence over parent', () => {
-      const parent = createContext({ x: 'parent' });
-      const child = createContext({ x: 'child' }, parent);
-      const { vals } = _collectKeys(child);
-      expect(vals.x).toBe('child');
-    });
-  });
+		test("child keys take precedence over parent", () => {
+			const parent = createContext({ x: "parent" });
+			const child = createContext({ x: "child" }, parent);
+			const { vals } = _collectKeys(child);
+			expect(vals.x).toBe("child");
+		});
+	});
 });
 
-describe('Expression Evaluator', () => {
-  describe('evaluate', () => {
-    test('evaluates simple expressions', () => {
-      const ctx = createContext({ x: 5 });
-      expect(evaluate('x', ctx)).toBe(5);
-    });
+describe("Expression Evaluator", () => {
+	describe("evaluate", () => {
+		test("evaluates simple expressions", () => {
+			const ctx = createContext({ x: 5 });
+			expect(evaluate("x", ctx)).toBe(5);
+		});
 
-    test('evaluates arithmetic expressions', () => {
-      const ctx = createContext({ a: 10, b: 3 });
-      expect(evaluate('a + b', ctx)).toBe(13);
-      expect(evaluate('a * b', ctx)).toBe(30);
-      expect(evaluate('a - b', ctx)).toBe(7);
-    });
+		test("evaluates arithmetic expressions", () => {
+			const ctx = createContext({ a: 10, b: 3 });
+			expect(evaluate("a + b", ctx)).toBe(13);
+			expect(evaluate("a * b", ctx)).toBe(30);
+			expect(evaluate("a - b", ctx)).toBe(7);
+		});
 
-    test('evaluates boolean expressions', () => {
-      const ctx = createContext({ x: true, y: false });
-      expect(evaluate('x && y', ctx)).toBe(false);
-      expect(evaluate('x || y', ctx)).toBe(true);
-      expect(evaluate('!y', ctx)).toBe(true);
-    });
+		test("evaluates boolean expressions", () => {
+			const ctx = createContext({ x: true, y: false });
+			expect(evaluate("x && y", ctx)).toBe(false);
+			expect(evaluate("x || y", ctx)).toBe(true);
+			expect(evaluate("!y", ctx)).toBe(true);
+		});
 
-    test('evaluates ternary expressions', () => {
-      const ctx = createContext({ active: true });
-      expect(evaluate("active ? 'yes' : 'no'", ctx)).toBe('yes');
-    });
+		test("evaluates ternary expressions", () => {
+			const ctx = createContext({ active: true });
+			expect(evaluate("active ? 'yes' : 'no'", ctx)).toBe("yes");
+		});
 
-    test('evaluates object literals', () => {
-      const ctx = createContext({ x: 1 });
-      const result = evaluate('({ a: x, b: 2 })', ctx);
-      expect(result).toEqual({ a: 1, b: 2 });
-    });
+		test("evaluates object literals", () => {
+			const ctx = createContext({ x: 1 });
+			const result = evaluate("({ a: x, b: 2 })", ctx);
+			expect(result).toEqual({ a: 1, b: 2 });
+		});
 
-    test('evaluates array literals', () => {
-      const ctx = createContext({ x: 1 });
-      expect(evaluate('[x, 2, 3]', ctx)).toEqual([1, 2, 3]);
-    });
+		test("evaluates array literals", () => {
+			const ctx = createContext({ x: 1 });
+			expect(evaluate("[x, 2, 3]", ctx)).toEqual([1, 2, 3]);
+		});
 
-    test('evaluates string methods', () => {
-      const ctx = createContext({ name: 'hello' });
-      expect(evaluate('name.toUpperCase()', ctx)).toBe('HELLO');
-    });
+		test("evaluates string methods", () => {
+			const ctx = createContext({ name: "hello" });
+			expect(evaluate("name.toUpperCase()", ctx)).toBe("HELLO");
+		});
 
-    test('evaluates comparison operators', () => {
-      const ctx = createContext({ a: 5, b: 10 });
-      expect(evaluate('a < b', ctx)).toBe(true);
-      expect(evaluate('a > b', ctx)).toBe(false);
-      expect(evaluate('a === 5', ctx)).toBe(true);
-    });
+		test("evaluates comparison operators", () => {
+			const ctx = createContext({ a: 5, b: 10 });
+			expect(evaluate("a < b", ctx)).toBe(true);
+			expect(evaluate("a > b", ctx)).toBe(false);
+			expect(evaluate("a === 5", ctx)).toBe(true);
+		});
 
-    test('returns undefined for null/empty expressions', () => {
-      const ctx = createContext({});
-      expect(evaluate(null, ctx)).toBeUndefined();
-      expect(evaluate('', ctx)).toBeUndefined();
-    });
+		test("returns undefined for null/empty expressions", () => {
+			const ctx = createContext({});
+			expect(evaluate(null, ctx)).toBeUndefined();
+			expect(evaluate("", ctx)).toBeUndefined();
+		});
 
-    test('returns undefined for invalid expressions', () => {
-      const ctx = createContext({});
-      expect(evaluate('this is not valid @#$', ctx)).toBeUndefined();
-    });
+		test("returns undefined for invalid expressions", () => {
+			const ctx = createContext({});
+			expect(evaluate("this is not valid @#$", ctx)).toBeUndefined();
+		});
 
-    test('accesses nested properties', () => {
-      const ctx = createContext({ user: { name: 'Bob', age: 25 } });
-      expect(evaluate('user.name', ctx)).toBe('Bob');
-      expect(evaluate('user.age', ctx)).toBe(25);
-    });
+		test("accesses nested properties", () => {
+			const ctx = createContext({ user: { name: "Bob", age: 25 } });
+			expect(evaluate("user.name", ctx)).toBe("Bob");
+			expect(evaluate("user.age", ctx)).toBe(25);
+		});
 
-    test('accesses $store', () => {
-      _stores.cart = createContext({ count: 3 });
-      const ctx = createContext({});
-      expect(evaluate('$store.cart.count', ctx)).toBe(3);
-      delete _stores.cart;
-    });
-  });
+		test("accesses $store", () => {
+			_stores.cart = createContext({ count: 3 });
+			const ctx = createContext({});
+			expect(evaluate("$store.cart.count", ctx)).toBe(3);
+			delete _stores.cart;
+		});
+	});
 
-  describe('pipe/filter syntax', () => {
-    test('applies single filter', () => {
-      _filters.double = (v) => v * 2;
-      const ctx = createContext({ x: 5 });
-      expect(evaluate('x | double', ctx)).toBe(10);
-      delete _filters.double;
-    });
+	describe("pipe/filter syntax", () => {
+		test("applies single filter", () => {
+			_filters.double = (v) => v * 2;
+			const ctx = createContext({ x: 5 });
+			expect(evaluate("x | double", ctx)).toBe(10);
+			delete _filters.double;
+		});
 
-    test('applies chained filters', () => {
-      _filters.add1 = (v) => v + 1;
-      _filters.mul2 = (v) => v * 2;
-      const ctx = createContext({ x: 3 });
-      expect(evaluate('x | add1 | mul2', ctx)).toBe(8);
-      delete _filters.add1;
-      delete _filters.mul2;
-    });
+		test("applies chained filters", () => {
+			_filters.add1 = (v) => v + 1;
+			_filters.mul2 = (v) => v * 2;
+			const ctx = createContext({ x: 3 });
+			expect(evaluate("x | add1 | mul2", ctx)).toBe(8);
+			delete _filters.add1;
+			delete _filters.mul2;
+		});
 
-    test('does not confuse || with pipe', () => {
-      const ctx = createContext({ a: 0, b: 5 });
-      expect(evaluate('a || b', ctx)).toBe(5);
-    });
+		test("does not confuse || with pipe", () => {
+			const ctx = createContext({ a: 0, b: 5 });
+			expect(evaluate("a || b", ctx)).toBe(5);
+		});
 
-    test('handles filter with args', () => {
-      _filters.repeat = (v, n) => String(v).repeat(n);
-      const ctx = createContext({ word: 'ha' });
-      expect(evaluate('word | repeat:3', ctx)).toBe('hahaha');
-      delete _filters.repeat;
-    });
-  });
+		test("handles filter with args", () => {
+			_filters.repeat = (v, n) => String(v).repeat(n);
+			const ctx = createContext({ word: "ha" });
+			expect(evaluate("word | repeat:3", ctx)).toBe("hahaha");
+			delete _filters.repeat;
+		});
+	});
 
-  describe('resolve', () => {
-    test('resolves dot-notated paths', () => {
-      const obj = { a: { b: { c: 42 } } };
-      expect(resolve('a.b.c', obj)).toBe(42);
-    });
+	describe("resolve", () => {
+		test("resolves dot-notated paths", () => {
+			const obj = { a: { b: { c: 42 } } };
+			expect(resolve("a.b.c", obj)).toBe(42);
+		});
 
-    test('returns undefined for missing paths', () => {
-      const obj = { a: 1 };
-      expect(resolve('a.b.c', obj)).toBeUndefined();
-    });
-  });
+		test("returns undefined for missing paths", () => {
+			const obj = { a: 1 };
+			expect(resolve("a.b.c", obj)).toBeUndefined();
+		});
+	});
 
-  describe('_interpolate', () => {
-    test('interpolates expressions in curly braces', () => {
-      const ctx = createContext({ id: 42, name: 'test' });
-      expect(_interpolate('/users/{id}', ctx)).toBe('/users/42');
-      expect(_interpolate('/users/{id}/name/{name}', ctx)).toBe('/users/42/name/test');
-    });
+	describe("_interpolate", () => {
+		test("interpolates expressions in curly braces", () => {
+			const ctx = createContext({ id: 42, name: "test" });
+			expect(_interpolate("/users/{id}", ctx)).toBe("/users/42");
+			expect(_interpolate("/users/{id}/name/{name}", ctx)).toBe(
+				"/users/42/name/test",
+			);
+		});
 
-    test('handles missing values', () => {
-      const ctx = createContext({});
-      expect(_interpolate('/users/{id}', ctx)).toBe('/users/');
-    });
-  });
+		test("handles missing values", () => {
+			const ctx = createContext({});
+			expect(_interpolate("/users/{id}", ctx)).toBe("/users/");
+		});
+	});
 
-  describe('_execStatement', () => {
-    test('executes assignment statements', () => {
-      const ctx = createContext({ count: 0 });
-      _execStatement('count = 5', ctx);
-      expect(ctx.count).toBe(5);
-    });
+	describe("_execStatement", () => {
+		test("executes assignment statements", () => {
+			const ctx = createContext({ count: 0 });
+			_execStatement("count = 5", ctx);
+			expect(ctx.count).toBe(5);
+		});
 
-    test('executes increment statements', () => {
-      const ctx = createContext({ count: 0 });
-      _execStatement('count++', ctx);
-      expect(ctx.count).toBe(1);
-    });
+		test("executes increment statements", () => {
+			const ctx = createContext({ count: 0 });
+			_execStatement("count++", ctx);
+			expect(ctx.count).toBe(1);
+		});
 
-    test('has access to extra variables', () => {
-      const ctx = createContext({ msg: '' });
-      _execStatement('msg = $event.type', ctx, { $event: { type: 'click' } });
-      expect(ctx.msg).toBe('click');
-    });
+		test("has access to extra variables", () => {
+			const ctx = createContext({ msg: "" });
+			_execStatement("msg = $event.type", ctx, { $event: { type: "click" } });
+			expect(ctx.msg).toBe("click");
+		});
 
-    test('handles invalid expressions gracefully', () => {
-      const spy = jest.spyOn(console, 'warn').mockImplementation();
-      const ctx = createContext({});
-      expect(() => _execStatement('throw new Error("x")', ctx)).not.toThrow();
-      spy.mockRestore();
-    });
-  });
+		test("handles invalid expressions gracefully", () => {
+			const spy = jest.spyOn(console, "warn").mockImplementation();
+			const ctx = createContext({});
+			expect(() => _execStatement('throw new Error("x")', ctx)).not.toThrow();
+			spy.mockRestore();
+		});
+	});
 });
 
-describe('evaluate.js — unknown filter', () => {
-  test('warns and returns original value for unknown filter', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const ctx = createContext({ name: 'Alice' });
+describe("evaluate.js — unknown filter", () => {
+	test("warns and returns original value for unknown filter", () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+		const ctx = createContext({ name: "Alice" });
 
-    const result = evaluate('name | nonExistentFilter', ctx);
+		const result = evaluate("name | nonExistentFilter", ctx);
 
-    expect(warnSpy).toHaveBeenCalledWith('[No.JS]', expect.stringContaining('Unknown filter: nonExistentFilter'));
-    expect(result).toBe('Alice');
-    warnSpy.mockRestore();
-  });
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining("Unknown filter: nonExistentFilter"),
+		);
+		expect(result).toBe("Alice");
+		warnSpy.mockRestore();
+	});
 });
 
-describe('evaluate.js — filter args with quotes and commas', () => {
-  test('parses comma-separated args correctly', () => {
-    _filters.testMultiArg = (v, a, b) => `${v}-${a}-${b}`;
+describe("evaluate.js — filter args with quotes and commas", () => {
+	test("parses comma-separated args correctly", () => {
+		_filters.testMultiArg = (v, a, b) => `${v}-${a}-${b}`;
 
-    const ctx = createContext({ val: 'X' });
-    const result = evaluate('val | testMultiArg:hello,world', ctx);
+		const ctx = createContext({ val: "X" });
+		const result = evaluate("val | testMultiArg:hello,world", ctx);
 
-    expect(result).toBe('X-hello-world');
-    delete _filters.testMultiArg;
-  });
+		expect(result).toBe("X-hello-world");
+		delete _filters.testMultiArg;
+	});
 
-  test('parses single-quoted args', () => {
-    _filters.testQuoted = (v, a) => `${v}:${a}`;
+	test("parses single-quoted args", () => {
+		_filters.testQuoted = (v, a) => `${v}:${a}`;
 
-    const ctx = createContext({ val: 'Y' });
-    const result = evaluate("val | testQuoted:'with spaces'", ctx);
+		const ctx = createContext({ val: "Y" });
+		const result = evaluate("val | testQuoted:'with spaces'", ctx);
 
-    expect(result).toBe('Y:with spaces');
-    delete _filters.testQuoted;
-  });
+		expect(result).toBe("Y:with spaces");
+		delete _filters.testQuoted;
+	});
 
-  test('parses double-quoted args', () => {
-    _filters.testDQ = (v, a, b) => `${v}|${a}|${b}`;
+	test("parses double-quoted args", () => {
+		_filters.testDQ = (v, a, b) => `${v}|${a}|${b}`;
 
-    const ctx = createContext({ val: 'Z' });
-    const result = evaluate('val | testDQ:"first arg",second', ctx);
+		const ctx = createContext({ val: "Z" });
+		const result = evaluate('val | testDQ:"first arg",second', ctx);
 
-    expect(result).toBe('Z|first arg|second');
-    delete _filters.testDQ;
-  });
+		expect(result).toBe("Z|first arg|second");
+		delete _filters.testDQ;
+	});
 
-  test('parses mixed quoted and unquoted args', () => {
-    _filters.testMix = (v, a, b, c) => [v, a, b, c].join('-');
+	test("parses mixed quoted and unquoted args", () => {
+		_filters.testMix = (v, a, b, c) => [v, a, b, c].join("-");
 
-    const ctx = createContext({ val: 'W' });
-    const result = evaluate("val | testMix:'one',2,\"three\"", ctx);
+		const ctx = createContext({ val: "W" });
+		const result = evaluate("val | testMix:'one',2,\"three\"", ctx);
 
-    expect(result).toBe('W-one-2-three');
-    delete _filters.testMix;
-  });
+		expect(result).toBe("W-one-2-three");
+		delete _filters.testMix;
+	});
 });
 
-describe('context.js — get handler special keys', () => {
-  test('$form returns null when not set', () => {
-    const ctx = createContext({});
-    expect(ctx.$form).toBeNull();
-  });
+describe("context.js — get handler special keys", () => {
+	test("$form returns null when not set", () => {
+		const ctx = createContext({});
+		expect(ctx.$form).toBeNull();
+	});
 
-  test('$form returns form context when set', () => {
-    const ctx = createContext({});
-    ctx.$form = { valid: true, errors: {} };
-    expect(ctx.$form).toEqual({ valid: true, errors: {} });
-  });
+	test("$form returns form context when set", () => {
+		const ctx = createContext({});
+		ctx.$form = { valid: true, errors: {} };
+		expect(ctx.$form).toEqual({ valid: true, errors: {} });
+	});
 
-  test('$i18n returns i18n instance', () => {
-    const ctx = createContext({});
-    expect(ctx.$i18n).toBeDefined();
-    expect(typeof ctx.$i18n.t).toBe('function');
-  });
+	test("$i18n returns i18n instance", () => {
+		const ctx = createContext({});
+		expect(ctx.$i18n).toBeDefined();
+		expect(typeof ctx.$i18n.t).toBe("function");
+	});
 
-  test('$router returns null when no router set', () => {
-    setRouterInstance(null);
-    const ctx = createContext({});
-    expect(ctx.$router).toBeNull();
-  });
+	test("$router returns null when no router set", () => {
+		setRouterInstance(null);
+		const ctx = createContext({});
+		expect(ctx.$router).toBeNull();
+	});
 
-  test('$notify is a function', () => {
-    const ctx = createContext({});
-    expect(typeof ctx.$notify).toBe('function');
-  });
+	test("$notify is a function", () => {
+		const ctx = createContext({});
+		expect(typeof ctx.$notify).toBe("function");
+	});
 
-  test('__listeners returns the listeners set', () => {
-    const ctx = createContext({});
-    expect(ctx.__listeners).toBeInstanceOf(Set);
-  });
+	test("__listeners returns the listeners set", () => {
+		const ctx = createContext({});
+		expect(ctx.__listeners).toBeInstanceOf(Set);
+	});
 });
 
-describe('index.js — config()', () => {
-  test('config with no router option does not override router config', async () => {
-    const { default: No } = await import('../src/index.js');
+describe("index.js — config()", () => {
+	test("config with no router option does not override router config", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    const prevUseHash = _config.router.useHash;
-    No.config({ timeout: 5000 });
-    expect(_config.timeout).toBe(5000);
-    expect(_config.router.useHash).toBe(prevUseHash);
+		const prevUseHash = _config.router.useHash;
+		No.config({ timeout: 5000 });
+		expect(_config.timeout).toBe(5000);
+		expect(_config.router.useHash).toBe(prevUseHash);
 
-    _config.timeout = 10000;
-  });
+		_config.timeout = 10000;
+	});
 
-  test('config with router option merges into existing router config', async () => {
-    const { default: No } = await import('../src/index.js');
+	test("config with router option merges into existing router config", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    No.config({ router: { useHash: true } });
-    expect(_config.router.useHash).toBe(true);
-    expect(_config.router.base).toBe('/');
+		No.config({ router: { useHash: true } });
+		expect(_config.router.useHash).toBe(true);
+		expect(_config.router.base).toBe("/");
 
-    _config.router.useHash = false;
-  });
+		_config.router.useHash = false;
+	});
 
-  test('config with deprecated mode option converts to useHash with warning', async () => {
-    const { default: No } = await import('../src/index.js');
-    const { _log } = await import('../src/globals.js');
+	test("config with deprecated mode option converts to useHash with warning", async () => {
+		const { default: No } = await import("../src/index.js");
+		const { _log } = await import("../src/globals.js");
 
-    const origLog = _log;
-    const logCalls = [];
-    // _log is not easily mockable since it's an export, so just test the conversion
-    No.config({ router: { mode: 'hash' } });
-    expect(_config.router.useHash).toBe(true);
-    expect(_config.router.mode).toBeUndefined();
+		const _origLog = _log;
+		const _logCalls = [];
+		// _log is not easily mockable since it's an export, so just test the conversion
+		No.config({ router: { mode: "hash" } });
+		expect(_config.router.useHash).toBe(true);
+		expect(_config.router.mode).toBeUndefined();
 
-    No.config({ router: { mode: 'history' } });
-    expect(_config.router.useHash).toBe(false);
-    expect(_config.router.mode).toBeUndefined();
+		No.config({ router: { mode: "history" } });
+		expect(_config.router.useHash).toBe(false);
+		expect(_config.router.mode).toBeUndefined();
 
-    _config.router.useHash = false;
-  });
+		_config.router.useHash = false;
+	});
 });
 
-describe('index.js — config() stores', () => {
-  test('creates a single store via config', async () => {
-    const { default: No } = await import('../src/index.js');
+describe("index.js — config() stores", () => {
+	test("creates a single store via config", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    No.config({ stores: { cart: { items: [], total: 0 } } });
-    expect(_stores.cart).toBeDefined();
-    expect(_stores.cart.items).toEqual([]);
-    expect(_stores.cart.total).toBe(0);
+		No.config({ stores: { cart: { items: [], total: 0 } } });
+		expect(_stores.cart).toBeDefined();
+		expect(_stores.cart.items).toEqual([]);
+		expect(_stores.cart.total).toBe(0);
 
-    delete _stores.cart;
-  });
+		delete _stores.cart;
+	});
 
-  test('creates multiple stores via config', async () => {
-    const { default: No } = await import('../src/index.js');
+	test("creates multiple stores via config", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    No.config({
-      stores: {
-        auth: { user: null, token: 'abc' },
-        theme: { mode: 'dark' },
-        cart: { items: [] },
-      },
-    });
-    expect(_stores.auth).toBeDefined();
-    expect(_stores.auth.token).toBe('abc');
-    expect(_stores.theme.mode).toBe('dark');
-    expect(_stores.cart.items).toEqual([]);
+		No.config({
+			stores: {
+				auth: { user: null, token: "abc" },
+				theme: { mode: "dark" },
+				cart: { items: [] },
+			},
+		});
+		expect(_stores.auth).toBeDefined();
+		expect(_stores.auth.token).toBe("abc");
+		expect(_stores.theme.mode).toBe("dark");
+		expect(_stores.cart.items).toEqual([]);
 
-    delete _stores.auth;
-    delete _stores.theme;
-    delete _stores.cart;
-  });
+		delete _stores.auth;
+		delete _stores.theme;
+		delete _stores.cart;
+	});
 
-  test('does not overwrite existing store', async () => {
-    const { default: No } = await import('../src/index.js');
+	test("does not overwrite existing store", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    _stores.existing = createContext({ value: 'original' });
-    No.config({ stores: { existing: { value: 'overwritten' } } });
-    expect(_stores.existing.value).toBe('original');
+		_stores.existing = createContext({ value: "original" });
+		No.config({ stores: { existing: { value: "overwritten" } } });
+		expect(_stores.existing.value).toBe("original");
 
-    delete _stores.existing;
-  });
+		delete _stores.existing;
+	});
 
-  test('config stores are accessible via evaluate $store', async () => {
-    const { default: No } = await import('../src/index.js');
+	test("config stores are accessible via evaluate $store", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    No.config({ stores: { app: { name: 'NoJS' } } });
-    const ctx = createContext({});
-    expect(evaluate('$store.app.name', ctx)).toBe('NoJS');
+		No.config({ stores: { app: { name: "NoJS" } } });
+		const ctx = createContext({});
+		expect(evaluate("$store.app.name", ctx)).toBe("NoJS");
 
-    delete _stores.app;
-  });
+		delete _stores.app;
+	});
 
-  test('does not leak stores into _config', async () => {
-    const { default: No } = await import('../src/index.js');
+	test("does not leak stores into _config", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    No.config({ stores: { test: { a: 1 } } });
-    expect(_config.stores).toBeUndefined();
+		No.config({ stores: { test: { a: 1 } } });
+		expect(_config.stores).toBeUndefined();
 
-    delete _stores.test;
-  });
+		delete _stores.test;
+	});
 });
 
-describe('index.js — init() SSR guard', () => {
-  test('init() returns immediately when document is undefined', async () => {
-    const { default: No } = await import('../src/index.js');
+describe("index.js — init() SSR guard", () => {
+	test("init() returns immediately when document is undefined", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    const origDocument = global.document;
-    delete global.document;
+		const origDocument = global.document;
+		delete global.document;
 
-    const result = await No.init();
-    expect(result).toBeUndefined();
+		const result = await No.init();
+		expect(result).toBeUndefined();
 
-    global.document = origDocument;
-  });
+		global.document = origDocument;
+	});
 });
 
-describe('index.js — interceptor() with invalid type', () => {
-  test('does nothing for invalid interceptor type', async () => {
-    const { default: No } = await import('../src/index.js');
+describe("index.js — interceptor() with invalid type", () => {
+	test("does nothing for invalid interceptor type", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    const prevReqLen = _interceptors.request.length;
-    const prevResLen = _interceptors.response.length;
+		const prevReqLen = _interceptors.request.length;
+		const prevResLen = _interceptors.response.length;
 
-    No.interceptor('invalid', () => {});
+		No.interceptor("invalid", () => {});
 
-    expect(_interceptors.request.length).toBe(prevReqLen);
-    expect(_interceptors.response.length).toBe(prevResLen);
-  });
+		expect(_interceptors.request.length).toBe(prevReqLen);
+		expect(_interceptors.response.length).toBe(prevResLen);
+	});
 
-  test('adds to request interceptors for valid type', async () => {
-    const { default: No } = await import('../src/index.js');
+	test("adds to request interceptors for valid type", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    const fn = () => {};
-    const prevLen = _interceptors.request.length;
-    No.interceptor('request', fn);
-    expect(_interceptors.request.length).toBe(prevLen + 1);
+		const fn = () => {};
+		const prevLen = _interceptors.request.length;
+		No.interceptor("request", fn);
+		expect(_interceptors.request.length).toBe(prevLen + 1);
 
-    _interceptors.request.pop();
-  });
+		_interceptors.request.pop();
+	});
 
-  test('adds to response interceptors for valid type', async () => {
-    const { default: No } = await import('../src/index.js');
+	test("adds to response interceptors for valid type", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    const fn = () => {};
-    const prevLen = _interceptors.response.length;
-    No.interceptor('response', fn);
-    expect(_interceptors.response.length).toBe(prevLen + 1);
+		const fn = () => {};
+		const prevLen = _interceptors.response.length;
+		No.interceptor("response", fn);
+		expect(_interceptors.response.length).toBe(prevLen + 1);
 
-    _interceptors.response.pop();
-  });
+		_interceptors.response.pop();
+	});
 });
 
-describe('NoJS.config — csrf option (L53)', () => {
-  test('config sets csrf when opts.csrf is provided', async () => {
-    const { default: No } = await import('../src/index.js');
-    const prevCsrf = _config.csrf;
+describe("NoJS.config — csrf option (L53)", () => {
+	test("config sets csrf when opts.csrf is provided", async () => {
+		const { default: No } = await import("../src/index.js");
+		const prevCsrf = _config.csrf;
 
-    No.config({ csrf: { header: 'X-CSRF', token: 'abc123' } });
-    expect(_config.csrf).toEqual({ header: 'X-CSRF', token: 'abc123' });
+		No.config({ csrf: { header: "X-CSRF", token: "abc123" } });
+		expect(_config.csrf).toEqual({ header: "X-CSRF", token: "abc123" });
 
-    _config.csrf = prevCsrf;
-  });
+		_config.csrf = prevCsrf;
+	});
 });
 
-describe('NoJS.i18n — detectBrowser branch (L109-114)', () => {
-  let origNavigator;
+describe("NoJS.i18n — detectBrowser branch (L109-114)", () => {
+	let origNavigator;
 
-  beforeEach(() => {
-    origNavigator = global.navigator;
-  });
+	beforeEach(() => {
+		origNavigator = global.navigator;
+	});
 
-  afterEach(() => {
-    Object.defineProperty(global, 'navigator', {
-      value: origNavigator,
-      writable: true,
-      configurable: true,
-    });
-  });
+	afterEach(() => {
+		Object.defineProperty(global, "navigator", {
+			value: origNavigator,
+			writable: true,
+			configurable: true,
+		});
+	});
 
-  test('detectBrowser sets locale when browser lang exists in locales', async () => {
-    const { default: No } = await import('../src/index.js');
-    const { _i18n } = await import('../src/i18n.js');
+	test("detectBrowser sets locale when browser lang exists in locales", async () => {
+		const { default: No } = await import("../src/index.js");
+		const { _i18n } = await import("../src/i18n.js");
 
-    Object.defineProperty(global, 'navigator', {
-      value: { language: 'es' },
-      writable: true,
-      configurable: true,
-    });
+		Object.defineProperty(global, "navigator", {
+			value: { language: "es" },
+			writable: true,
+			configurable: true,
+		});
 
-    No.i18n({
-      locales: { en: { hello: 'Hi' }, es: { hello: 'Hola' } },
-      detectBrowser: true,
-    });
+		No.i18n({
+			locales: { en: { hello: "Hi" }, es: { hello: "Hola" } },
+			detectBrowser: true,
+		});
 
-    expect(_i18n.locale).toBe('es');
-  });
+		expect(_i18n.locale).toBe("es");
+	});
 
-  test('detectBrowser does NOT change locale when browser lang is not in locales', async () => {
-    const { default: No } = await import('../src/index.js');
-    const { _i18n } = await import('../src/i18n.js');
+	test("detectBrowser does NOT change locale when browser lang is not in locales", async () => {
+		const { default: No } = await import("../src/index.js");
+		const { _i18n } = await import("../src/i18n.js");
 
-    _i18n.locale = 'en';
-    Object.defineProperty(global, 'navigator', {
-      value: { language: 'fr' },
-      writable: true,
-      configurable: true,
-    });
+		_i18n.locale = "en";
+		Object.defineProperty(global, "navigator", {
+			value: { language: "fr" },
+			writable: true,
+			configurable: true,
+		});
 
-    No.i18n({
-      locales: { en: { hello: 'Hi' }, es: { hello: 'Hola' } },
-      detectBrowser: true,
-    });
+		No.i18n({
+			locales: { en: { hello: "Hi" }, es: { hello: "Hola" } },
+			detectBrowser: true,
+		});
 
-    expect(_i18n.locale).toBe('en');
-  });
+		expect(_i18n.locale).toBe("en");
+	});
 });
 
-describe('NoJS.on — event bus when event already has listeners (L121)', () => {
-  test('pushes to existing listener array without re-creating it', async () => {
-    const { default: No } = await import('../src/index.js');
+describe("NoJS.on — event bus when event already has listeners (L121)", () => {
+	test("pushes to existing listener array without re-creating it", async () => {
+		const { default: No } = await import("../src/index.js");
 
-    const fn1 = jest.fn();
-    const fn2 = jest.fn();
+		const fn1 = jest.fn();
+		const fn2 = jest.fn();
 
-    const unsub1 = No.on('testEvent', fn1);
-    expect(_eventBus['testEvent'].length).toBe(1);
+		const unsub1 = No.on("testEvent", fn1);
+		expect(_eventBus.testEvent.length).toBe(1);
 
-    const unsub2 = No.on('testEvent', fn2);
-    expect(_eventBus['testEvent'].length).toBe(2);
-    expect(_eventBus['testEvent']).toContain(fn1);
-    expect(_eventBus['testEvent']).toContain(fn2);
+		const unsub2 = No.on("testEvent", fn2);
+		expect(_eventBus.testEvent.length).toBe(2);
+		expect(_eventBus.testEvent).toContain(fn1);
+		expect(_eventBus.testEvent).toContain(fn2);
 
-    unsub1();
-    unsub2();
-    delete _eventBus['testEvent'];
-  });
+		unsub1();
+		unsub2();
+		delete _eventBus.testEvent;
+	});
 });
 
-describe('evaluate — pipe parsing edge cases (L104)', () => {
-  test('handles template literal with pipe character inside backticks', () => {
-    const ctx = createContext({ name: 'world' });
-    const result = evaluate("`hello`", ctx);
-    expect(result).toBe('hello');
-  });
+describe("evaluate — pipe parsing edge cases (L104)", () => {
+	test("handles template literal with pipe character inside backticks", () => {
+		const ctx = createContext({ name: "world" });
+		const result = evaluate("`hello`", ctx);
+		expect(result).toBe("hello");
+	});
 
-  test('handles pipe inside parentheses (not treated as filter)', () => {
-    const ctx = createContext({ a: 0, b: 1 });
-    const result = evaluate('(a | b)', ctx);
-    expect(result).toBe(1);
-  });
+	test("handles pipe inside parentheses (not treated as filter)", () => {
+		const ctx = createContext({ a: 0, b: 1 });
+		const result = evaluate("(a | b)", ctx);
+		expect(result).toBe(1);
+	});
 
-  test('handles pipe inside array literal', () => {
-    const ctx = createContext({ a: 1, b: 2 });
-    const result = evaluate('[a | b]', ctx);
-    expect(result).toEqual([3]);
-  });
+	test("handles pipe inside array literal", () => {
+		const ctx = createContext({ a: 1, b: 2 });
+		const result = evaluate("[a | b]", ctx);
+		expect(result).toEqual([3]);
+	});
 });
 
-describe('Config — devtools', () => {
-  test('devtools defaults to false', () => {
-    expect(_config.devtools).toBe(false);
-  });
+describe("Config — devtools", () => {
+	test("devtools defaults to false", () => {
+		expect(_config.devtools).toBe(false);
+	});
 
-  test('devtools: false should not expose window.__NOJS_DEVTOOLS__', () => {
-    _config.devtools = false;
-    delete window.__NOJS_DEVTOOLS__;
-    if (_config.devtools && typeof window !== 'undefined') {
-      window.__NOJS_DEVTOOLS__ = { stores: _stores, config: _config };
-    }
-    expect(window.__NOJS_DEVTOOLS__).toBeUndefined();
-  });
+	test("devtools: false should not expose window.__NOJS_DEVTOOLS__", () => {
+		_config.devtools = false;
+		delete window.__NOJS_DEVTOOLS__;
+		if (_config.devtools && typeof window !== "undefined") {
+			window.__NOJS_DEVTOOLS__ = { stores: _stores, config: _config };
+		}
+		expect(window.__NOJS_DEVTOOLS__).toBeUndefined();
+	});
 });
 
-describe('$set dot-path traversal', () => {
-  test('sets a deeply nested value via dot-path', () => {
-    const ctx = createContext({ user: { profile: { name: 'Alice' } } });
-    ctx.$set('user.profile.name', 'Bob');
-    expect(ctx.user.profile.name).toBe('Bob');
-  });
+describe("$set dot-path traversal", () => {
+	test("sets a deeply nested value via dot-path", () => {
+		const ctx = createContext({ user: { profile: { name: "Alice" } } });
+		ctx.$set("user.profile.name", "Bob");
+		expect(ctx.user.profile.name).toBe("Bob");
+	});
 
-  test('notifies watchers when dot-path value changes', () => {
-    const ctx = createContext({ a: { b: { c: 1 } } });
-    const watcher = jest.fn();
-    ctx.$watch(watcher);
-    ctx.$set('a.b.c', 2);
-    expect(watcher).toHaveBeenCalledTimes(1);
-  });
+	test("notifies watchers when dot-path value changes", () => {
+		const ctx = createContext({ a: { b: { c: 1 } } });
+		const watcher = jest.fn();
+		ctx.$watch(watcher);
+		ctx.$set("a.b.c", 2);
+		expect(watcher).toHaveBeenCalledTimes(1);
+	});
 
-  test('does NOT notify watchers when dot-path value is unchanged', () => {
-    const ctx = createContext({ a: { b: { c: 1 } } });
-    const watcher = jest.fn();
-    ctx.$watch(watcher);
-    ctx.$set('a.b.c', 1);
-    expect(watcher).not.toHaveBeenCalled();
-  });
+	test("does NOT notify watchers when dot-path value is unchanged", () => {
+		const ctx = createContext({ a: { b: { c: 1 } } });
+		const watcher = jest.fn();
+		ctx.$watch(watcher);
+		ctx.$set("a.b.c", 1);
+		expect(watcher).not.toHaveBeenCalled();
+	});
 
-  test('handles intermediate null gracefully', () => {
-    const ctx = createContext({ a: null });
-    // Should not throw
-    ctx.$set('a.b.c', 42);
-    expect(ctx.a).toBeNull();
-  });
+	test("handles intermediate null gracefully", () => {
+		const ctx = createContext({ a: null });
+		// Should not throw
+		ctx.$set("a.b.c", 42);
+		expect(ctx.a).toBeNull();
+	});
 
-  test('single-key $set still works through proxy', () => {
-    const ctx = createContext({ x: 10 });
-    const watcher = jest.fn();
-    ctx.$watch(watcher);
-    ctx.$set('x', 20);
-    expect(ctx.x).toBe(20);
-    expect(watcher).toHaveBeenCalledTimes(1);
-  });
+	test("single-key $set still works through proxy", () => {
+		const ctx = createContext({ x: 10 });
+		const watcher = jest.fn();
+		ctx.$watch(watcher);
+		ctx.$set("x", 20);
+		expect(ctx.x).toBe(20);
+		expect(watcher).toHaveBeenCalledTimes(1);
+	});
 
-  test('single-key $set does NOT notify when unchanged', () => {
-    const ctx = createContext({ x: 10 });
-    const watcher = jest.fn();
-    ctx.$watch(watcher);
-    ctx.$set('x', 10);
-    expect(watcher).not.toHaveBeenCalled();
-  });
+	test("single-key $set does NOT notify when unchanged", () => {
+		const ctx = createContext({ x: 10 });
+		const watcher = jest.fn();
+		ctx.$watch(watcher);
+		ctx.$set("x", 10);
+		expect(watcher).not.toHaveBeenCalled();
+	});
 });
 
-describe('Expression Parser', () => {
-  let ctx;
-  beforeEach(() => {
-    ctx = createContext({
-      count: 10,
-      a: 5,
-      b: 3,
-      x: true,
-      y: false,
-      name: 'NoJS',
-      price: 29.99,
-      items: [1, 2, 3, 4, 5],
-      users: [
-        { name: 'Alice', age: 30, done: true },
-        { name: 'Bob', age: 25, done: false }
-      ],
-      user: { name: 'Alice', address: { city: 'NYC' } },
-      obj: { key: 'value', nested: { deep: true } },
-      nullVal: null,
-      undefVal: undefined,
-      zero: 0,
-      empty: '',
-      arr: [10, 20, 30],
-      matrix: [[1, 2], [3, 4]],
-      idx: 1,
-      tasks: [
-        { text: 'Task 1', done: true },
-        { text: 'Task 2', done: false },
-        { text: 'Task 3', done: true }
-      ]
-    });
-  });
+describe("Expression Parser", () => {
+	let ctx;
+	beforeEach(() => {
+		ctx = createContext({
+			count: 10,
+			a: 5,
+			b: 3,
+			x: true,
+			y: false,
+			name: "NoJS",
+			price: 29.99,
+			items: [1, 2, 3, 4, 5],
+			users: [
+				{ name: "Alice", age: 30, done: true },
+				{ name: "Bob", age: 25, done: false },
+			],
+			user: { name: "Alice", address: { city: "NYC" } },
+			obj: { key: "value", nested: { deep: true } },
+			nullVal: null,
+			undefVal: undefined,
+			zero: 0,
+			empty: "",
+			arr: [10, 20, 30],
+			matrix: [
+				[1, 2],
+				[3, 4],
+			],
+			idx: 1,
+			tasks: [
+				{ text: "Task 1", done: true },
+				{ text: "Task 2", done: false },
+				{ text: "Task 3", done: true },
+			],
+		});
+	});
 
-  describe('Arithmetic', () => {
-    test('should evaluate addition', () => {
-      expect(evaluate('a + b', ctx)).toBe(8);
-    });
+	describe("Arithmetic", () => {
+		test("should evaluate addition", () => {
+			expect(evaluate("a + b", ctx)).toBe(8);
+		});
 
-    test('should evaluate subtraction', () => {
-      expect(evaluate('a - b', ctx)).toBe(2);
-    });
+		test("should evaluate subtraction", () => {
+			expect(evaluate("a - b", ctx)).toBe(2);
+		});
 
-    test('should evaluate multiplication', () => {
-      expect(evaluate('a * b', ctx)).toBe(15);
-    });
+		test("should evaluate multiplication", () => {
+			expect(evaluate("a * b", ctx)).toBe(15);
+		});
 
-    test('should evaluate division', () => {
-      expect(evaluate('a / b', ctx)).toBeCloseTo(5 / 3);
-    });
+		test("should evaluate division", () => {
+			expect(evaluate("a / b", ctx)).toBeCloseTo(5 / 3);
+		});
 
-    test('should evaluate modulo', () => {
-      expect(evaluate('a % b', ctx)).toBe(2);
-    });
+		test("should evaluate modulo", () => {
+			expect(evaluate("a % b", ctx)).toBe(2);
+		});
 
-    test('should respect operator precedence (multiply before add)', () => {
-      expect(evaluate('a + b * count', ctx)).toBe(35);
-    });
+		test("should respect operator precedence (multiply before add)", () => {
+			expect(evaluate("a + b * count", ctx)).toBe(35);
+		});
 
-    test('should respect grouping with parentheses', () => {
-      expect(evaluate('(a + b) * count', ctx)).toBe(80);
-    });
+		test("should respect grouping with parentheses", () => {
+			expect(evaluate("(a + b) * count", ctx)).toBe(80);
+		});
 
-    test('should evaluate unary minus', () => {
-      expect(evaluate('-count', ctx)).toBe(-10);
-    });
+		test("should evaluate unary minus", () => {
+			expect(evaluate("-count", ctx)).toBe(-10);
+		});
 
-    test('should evaluate unary minus on grouped expression', () => {
-      expect(evaluate('-(a + b)', ctx)).toBe(-8);
-    });
-  });
+		test("should evaluate unary minus on grouped expression", () => {
+			expect(evaluate("-(a + b)", ctx)).toBe(-8);
+		});
+	});
 
-  describe('String operations', () => {
-    test('should concatenate string literals', () => {
-      expect(evaluate("'hello' + ' ' + 'world'", ctx)).toBe('hello world');
-    });
+	describe("String operations", () => {
+		test("should concatenate string literals", () => {
+			expect(evaluate("'hello' + ' ' + 'world'", ctx)).toBe("hello world");
+		});
 
-    test('should concatenate string literal with variable', () => {
-      expect(evaluate("'count: ' + count", ctx)).toBe('count: 10');
-    });
+		test("should concatenate string literal with variable", () => {
+			expect(evaluate("'count: ' + count", ctx)).toBe("count: 10");
+		});
 
-    test('should evaluate template literals', () => {
-      expect(evaluate('`Hello ${name}`', ctx)).toBe('Hello NoJS');
-    });
-  });
+		test("should evaluate template literals", () => {
+			expect(evaluate("`Hello ${name}`", ctx)).toBe("Hello NoJS");
+		});
+	});
 
-  describe('Bracket member access', () => {
-    test('should access array element by numeric index', () => {
-      expect(evaluate('items[0]', ctx)).toBe(1);
-    });
+	describe("Bracket member access", () => {
+		test("should access array element by numeric index", () => {
+			expect(evaluate("items[0]", ctx)).toBe(1);
+		});
 
-    test('should access array element by variable index', () => {
-      expect(evaluate('items[idx]', ctx)).toBe(2);
-    });
+		test("should access array element by variable index", () => {
+			expect(evaluate("items[idx]", ctx)).toBe(2);
+		});
 
-    test('should access object property by string key', () => {
-      expect(evaluate("obj['key']", ctx)).toBe('value');
-    });
+		test("should access object property by string key", () => {
+			expect(evaluate("obj['key']", ctx)).toBe("value");
+		});
 
-    test('should access nested array element (matrix)', () => {
-      expect(evaluate('matrix[0][1]', ctx)).toBe(2);
-    });
+		test("should access nested array element (matrix)", () => {
+			expect(evaluate("matrix[0][1]", ctx)).toBe(2);
+		});
 
-    test('should chain bracket access with dot access', () => {
-      expect(evaluate('users[0].name', ctx)).toBe('Alice');
-    });
-  });
+		test("should chain bracket access with dot access", () => {
+			expect(evaluate("users[0].name", ctx)).toBe("Alice");
+		});
+	});
 
-  describe('Method calls', () => {
-    test('should call toUpperCase()', () => {
-      expect(evaluate('name.toUpperCase()', ctx)).toBe('NOJS');
-    });
+	describe("Method calls", () => {
+		test("should call toUpperCase()", () => {
+			expect(evaluate("name.toUpperCase()", ctx)).toBe("NOJS");
+		});
 
-    test('should call toLowerCase()', () => {
-      expect(evaluate('name.toLowerCase()', ctx)).toBe('nojs');
-    });
+		test("should call toLowerCase()", () => {
+			expect(evaluate("name.toLowerCase()", ctx)).toBe("nojs");
+		});
 
-    test('should call includes() on array', () => {
-      expect(evaluate('items.includes(3)', ctx)).toBe(true);
-    });
+		test("should call includes() on array", () => {
+			expect(evaluate("items.includes(3)", ctx)).toBe(true);
+		});
 
-    test('should chain trim() and toLowerCase()', () => {
-      expect(evaluate('name.trim().toLowerCase()', ctx)).toBe('nojs');
-    });
+		test("should chain trim() and toLowerCase()", () => {
+			expect(evaluate("name.trim().toLowerCase()", ctx)).toBe("nojs");
+		});
 
-    test('should access length property', () => {
-      expect(evaluate('items.length', ctx)).toBe(5);
-    });
+		test("should access length property", () => {
+			expect(evaluate("items.length", ctx)).toBe(5);
+		});
 
-    test('should evaluate filter() with arrow function', () => {
-      const result = evaluate('tasks.filter(t => t.done)', ctx);
-      expect(result).toHaveLength(2);
-      expect(result[0].text).toBe('Task 1');
-      expect(result[1].text).toBe('Task 3');
-    });
+		test("should evaluate filter() with arrow function", () => {
+			const result = evaluate("tasks.filter(t => t.done)", ctx);
+			expect(result).toHaveLength(2);
+			expect(result[0].text).toBe("Task 1");
+			expect(result[1].text).toBe("Task 3");
+		});
 
-    test('should chain filter().length', () => {
-      expect(evaluate('tasks.filter(t => t.done).length', ctx)).toBe(2);
-    });
+		test("should chain filter().length", () => {
+			expect(evaluate("tasks.filter(t => t.done).length", ctx)).toBe(2);
+		});
 
-    test('should evaluate sort() with comparator arrow function', () => {
-      expect(evaluate('users.sort((a, b) => a.age - b.age)[0].name', ctx)).toBe('Bob');
-    });
+		test("should evaluate sort() with comparator arrow function", () => {
+			expect(evaluate("users.sort((a, b) => a.age - b.age)[0].name", ctx)).toBe(
+				"Bob",
+			);
+		});
 
-    test('should evaluate map() with arrow function', () => {
-      expect(evaluate('items.map(x => x * 2)', ctx)).toEqual([2, 4, 6, 8, 10]);
-    });
-  });
+		test("should evaluate map() with arrow function", () => {
+			expect(evaluate("items.map(x => x * 2)", ctx)).toEqual([2, 4, 6, 8, 10]);
+		});
+	});
 
-  describe('Nullish coalescing', () => {
-    test('should return default for null', () => {
-      expect(evaluate('nullVal ?? "default"', ctx)).toBe('default');
-    });
+	describe("Nullish coalescing", () => {
+		test("should return default for null", () => {
+			expect(evaluate('nullVal ?? "default"', ctx)).toBe("default");
+		});
 
-    test('should return fallback for undefined', () => {
-      expect(evaluate('undefVal ?? "fallback"', ctx)).toBe('fallback');
-    });
+		test("should return fallback for undefined", () => {
+			expect(evaluate('undefVal ?? "fallback"', ctx)).toBe("fallback");
+		});
 
-    test('should NOT replace zero with fallback', () => {
-      expect(evaluate('zero ?? "fallback"', ctx)).toBe(0);
-    });
+		test("should NOT replace zero with fallback", () => {
+			expect(evaluate('zero ?? "fallback"', ctx)).toBe(0);
+		});
 
-    test('should NOT replace empty string with fallback', () => {
-      expect(evaluate("empty ?? 'fallback'", ctx)).toBe('');
-    });
+		test("should NOT replace empty string with fallback", () => {
+			expect(evaluate("empty ?? 'fallback'", ctx)).toBe("");
+		});
 
-    test('should chain nullish coalescing', () => {
-      expect(evaluate('nullVal ?? undefVal ?? "last"', ctx)).toBe('last');
-    });
-  });
+		test("should chain nullish coalescing", () => {
+			expect(evaluate('nullVal ?? undefVal ?? "last"', ctx)).toBe("last");
+		});
+	});
 
-  describe('Optional chaining', () => {
-    test('should access existing property', () => {
-      expect(evaluate('user?.name', ctx)).toBe('Alice');
-    });
+	describe("Optional chaining", () => {
+		test("should access existing property", () => {
+			expect(evaluate("user?.name", ctx)).toBe("Alice");
+		});
 
-    test('should return undefined for null base', () => {
-      expect(evaluate('nullVal?.name', ctx)).toBeUndefined();
-    });
+		test("should return undefined for null base", () => {
+			expect(evaluate("nullVal?.name", ctx)).toBeUndefined();
+		});
 
-    test('should chain optional access on nested objects', () => {
-      expect(evaluate('user?.address?.city', ctx)).toBe('NYC');
-    });
+		test("should chain optional access on nested objects", () => {
+			expect(evaluate("user?.address?.city", ctx)).toBe("NYC");
+		});
 
-    test('should return undefined for missing intermediate', () => {
-      expect(evaluate('user?.missing?.deep', ctx)).toBeUndefined();
-    });
+		test("should return undefined for missing intermediate", () => {
+			expect(evaluate("user?.missing?.deep", ctx)).toBeUndefined();
+		});
 
-    test('should return undefined for method call on null', () => {
-      expect(evaluate('nullVal?.toUpperCase()', ctx)).toBeUndefined();
-    });
-  });
+		test("should return undefined for method call on null", () => {
+			expect(evaluate("nullVal?.toUpperCase()", ctx)).toBeUndefined();
+		});
+	});
 
-  describe('typeof operator', () => {
-    test('should check typeof number', () => {
-      expect(evaluate("typeof count === 'number'", ctx)).toBe(true);
-    });
+	describe("typeof operator", () => {
+		test("should check typeof number", () => {
+			expect(evaluate("typeof count === 'number'", ctx)).toBe(true);
+		});
 
-    test('should check typeof string', () => {
-      expect(evaluate("typeof name === 'string'", ctx)).toBe(true);
-    });
+		test("should check typeof string", () => {
+			expect(evaluate("typeof name === 'string'", ctx)).toBe(true);
+		});
 
-    test('should check typeof undefined for missing variable', () => {
-      expect(evaluate("typeof missing === 'undefined'", ctx)).toBe(true);
-    });
-  });
+		test("should check typeof undefined for missing variable", () => {
+			expect(evaluate("typeof missing === 'undefined'", ctx)).toBe(true);
+		});
+	});
 
-  describe('in operator', () => {
-    test('should return true for existing key', () => {
-      expect(evaluate("'key' in obj", ctx)).toBe(true);
-    });
+	describe("in operator", () => {
+		test("should return true for existing key", () => {
+			expect(evaluate("'key' in obj", ctx)).toBe(true);
+		});
 
-    test('should return false for missing key', () => {
-      expect(evaluate("'missing' in obj", ctx)).toBe(false);
-    });
-  });
+		test("should return false for missing key", () => {
+			expect(evaluate("'missing' in obj", ctx)).toBe(false);
+		});
+	});
 
-  describe('instanceof operator', () => {
-    test('should check instanceof Array', () => {
-      expect(evaluate('items instanceof Array', ctx)).toBe(true);
-    });
-  });
+	describe("instanceof operator", () => {
+		test("should check instanceof Array", () => {
+			expect(evaluate("items instanceof Array", ctx)).toBe(true);
+		});
+	});
 
-  describe('Array literals', () => {
-    test('should evaluate numeric array literal', () => {
-      expect(evaluate('[1, 2, 3]', ctx)).toEqual([1, 2, 3]);
-    });
+	describe("Array literals", () => {
+		test("should evaluate numeric array literal", () => {
+			expect(evaluate("[1, 2, 3]", ctx)).toEqual([1, 2, 3]);
+		});
 
-    test('should evaluate array literal with variables', () => {
-      expect(evaluate('[a, b, count]', ctx)).toEqual([5, 3, 10]);
-    });
+		test("should evaluate array literal with variables", () => {
+			expect(evaluate("[a, b, count]", ctx)).toEqual([5, 3, 10]);
+		});
 
-    test('should evaluate spread in array literal', () => {
-      expect(evaluate('[...items, 6]', ctx)).toEqual([1, 2, 3, 4, 5, 6]);
-    });
+		test("should evaluate spread in array literal", () => {
+			expect(evaluate("[...items, 6]", ctx)).toEqual([1, 2, 3, 4, 5, 6]);
+		});
 
-    test('should evaluate empty array literal', () => {
-      expect(evaluate('[]', ctx)).toEqual([]);
-    });
-  });
+		test("should evaluate empty array literal", () => {
+			expect(evaluate("[]", ctx)).toEqual([]);
+		});
+	});
 
-  describe('Object literals', () => {
-    test('should evaluate object literal with variable value', () => {
-      expect(evaluate('({ key: a })', ctx)).toEqual({ key: 5 });
-    });
+	describe("Object literals", () => {
+		test("should evaluate object literal with variable value", () => {
+			expect(evaluate("({ key: a })", ctx)).toEqual({ key: 5 });
+		});
 
-    test('should evaluate object literal with mixed values', () => {
-      expect(evaluate('({ a: 1, b: name })', ctx)).toEqual({ a: 1, b: 'NoJS' });
-    });
+		test("should evaluate object literal with mixed values", () => {
+			expect(evaluate("({ a: 1, b: name })", ctx)).toEqual({ a: 1, b: "NoJS" });
+		});
 
-    test('should evaluate object spread', () => {
-      expect(evaluate('({ ...obj, extra: true })', ctx)).toEqual({
-        key: 'value',
-        nested: { deep: true },
-        extra: true
-      });
-    });
-  });
+		test("should evaluate object spread", () => {
+			expect(evaluate("({ ...obj, extra: true })", ctx)).toEqual({
+				key: "value",
+				nested: { deep: true },
+				extra: true,
+			});
+		});
+	});
 
-  describe('Arrow functions in context (as callbacks)', () => {
-    test('should filter with arrow function (greater than)', () => {
-      expect(evaluate('items.filter(x => x > 3)', ctx)).toEqual([4, 5]);
-    });
+	describe("Arrow functions in context (as callbacks)", () => {
+		test("should filter with arrow function (greater than)", () => {
+			expect(evaluate("items.filter(x => x > 3)", ctx)).toEqual([4, 5]);
+		});
 
-    test('should map with arrow function', () => {
-      expect(evaluate('items.map(x => x * 2)', ctx)).toEqual([2, 4, 6, 8, 10]);
-    });
+		test("should map with arrow function", () => {
+			expect(evaluate("items.map(x => x * 2)", ctx)).toEqual([2, 4, 6, 8, 10]);
+		});
 
-    test('should evaluate some() with arrow function', () => {
-      expect(evaluate('users.some(u => u.age > 28)', ctx)).toBe(true);
-    });
+		test("should evaluate some() with arrow function", () => {
+			expect(evaluate("users.some(u => u.age > 28)", ctx)).toBe(true);
+		});
 
-    test('should filter with multi-param arrow function', () => {
-      const result = evaluate('tasks.filter((t, i) => i !== 0)', ctx);
-      expect(result).toHaveLength(2);
-      expect(result[0].text).toBe('Task 2');
-      expect(result[1].text).toBe('Task 3');
-    });
-  });
+		test("should filter with multi-param arrow function", () => {
+			const result = evaluate("tasks.filter((t, i) => i !== 0)", ctx);
+			expect(result).toHaveLength(2);
+			expect(result[0].text).toBe("Task 2");
+			expect(result[1].text).toBe("Task 3");
+		});
+	});
 
-  describe('Complex real-world expressions', () => {
-    test('should evaluate length comparison', () => {
-      expect(evaluate('items.length > 0', ctx)).toBe(true);
-    });
+	describe("Complex real-world expressions", () => {
+		test("should evaluate length comparison", () => {
+			expect(evaluate("items.length > 0", ctx)).toBe(true);
+		});
 
-    test('should concatenate currency symbol with price', () => {
-      expect(evaluate("'$' + price", ctx)).toBe('$29.99');
-    });
+		test("should concatenate currency symbol with price", () => {
+			expect(evaluate("'$' + price", ctx)).toBe("$29.99");
+		});
 
-    test('should evaluate ternary with comparison', () => {
-      expect(evaluate("count > 0 ? 'has items' : 'empty'", ctx)).toBe('has items');
-    });
-  });
+		test("should evaluate ternary with comparison", () => {
+			expect(evaluate("count > 0 ? 'has items' : 'empty'", ctx)).toBe(
+				"has items",
+			);
+		});
+	});
 
-  describe('Edge cases', () => {
-    test('should return undefined for null expression', () => {
-      expect(evaluate(null, ctx)).toBeUndefined();
-    });
+	describe("Edge cases", () => {
+		test("should return undefined for null expression", () => {
+			expect(evaluate(null, ctx)).toBeUndefined();
+		});
 
-    test('should return undefined for empty string expression', () => {
-      expect(evaluate('', ctx)).toBeUndefined();
-    });
+		test("should return undefined for empty string expression", () => {
+			expect(evaluate("", ctx)).toBeUndefined();
+		});
 
-    test('should return undefined for invalid syntax (no throw)', () => {
-      expect(evaluate('invalidSyntax...', ctx)).toBeUndefined();
-    });
+		test("should return undefined for invalid syntax (no throw)", () => {
+			expect(evaluate("invalidSyntax...", ctx)).toBeUndefined();
+		});
 
-    test('should return undefined for property access on null (no throw)', () => {
-      expect(evaluate('nullVal.prop', ctx)).toBeUndefined();
-    });
-  });
+		test("should return undefined for property access on null (no throw)", () => {
+			expect(evaluate("nullVal.prop", ctx)).toBeUndefined();
+		});
+	});
 
-  describe('Security', () => {
-    test('should not expose constructor', () => {
-      expect(evaluate('constructor', ctx)).toBeUndefined();
-    });
+	describe("Security", () => {
+		test("should not expose constructor", () => {
+			expect(evaluate("constructor", ctx)).toBeUndefined();
+		});
 
-    test('should not expose __proto__', () => {
-      expect(evaluate('obj.__proto__', ctx)).toBeUndefined();
-    });
+		test("should not expose __proto__", () => {
+			expect(evaluate("obj.__proto__", ctx)).toBeUndefined();
+		});
 
-    test('should not expose obj.constructor', () => {
-      expect(evaluate('obj.constructor', ctx)).toBeUndefined();
-    });
-  });
+		test("should not expose obj.constructor", () => {
+			expect(evaluate("obj.constructor", ctx)).toBeUndefined();
+		});
+	});
 });
 
-describe('Statement Interpreter', () => {
-  let ctx;
-  beforeEach(() => {
-    ctx = createContext({
-      count: 0,
-      a: 1,
-      b: 2,
-      c: 3,
-      show: true,
-      name: 'Alice',
-      items: [1, 2, 3],
-      tasks: [
-        { text: 'Task 1', done: true },
-        { text: 'Task 2', done: false },
-        { text: 'Task 3', done: true }
-      ],
-      user: { name: 'Alice', age: 30 },
-      msg: ''
-    });
-  });
+describe("Statement Interpreter", () => {
+	let ctx;
+	beforeEach(() => {
+		ctx = createContext({
+			count: 0,
+			a: 1,
+			b: 2,
+			c: 3,
+			show: true,
+			name: "Alice",
+			items: [1, 2, 3],
+			tasks: [
+				{ text: "Task 1", done: true },
+				{ text: "Task 2", done: false },
+				{ text: "Task 3", done: true },
+			],
+			user: { name: "Alice", age: 30 },
+			msg: "",
+		});
+	});
 
-  describe('Simple Assignment', () => {
-    test('should assign a number', () => {
-      _execStatement('count = 5', ctx);
-      expect(ctx.count).toBe(5);
-    });
+	describe("Simple Assignment", () => {
+		test("should assign a number", () => {
+			_execStatement("count = 5", ctx);
+			expect(ctx.count).toBe(5);
+		});
 
-    test('should assign a string', () => {
-      _execStatement("name = 'Bob'", ctx);
-      expect(ctx.name).toBe('Bob');
-    });
+		test("should assign a string", () => {
+			_execStatement("name = 'Bob'", ctx);
+			expect(ctx.name).toBe("Bob");
+		});
 
-    test('should assign expression result', () => {
-      _execStatement('count = a + b', ctx);
-      expect(ctx.count).toBe(3);
-    });
-  });
+		test("should assign expression result", () => {
+			_execStatement("count = a + b", ctx);
+			expect(ctx.count).toBe(3);
+		});
+	});
 
-  describe('Compound Assignment', () => {
-    test('should handle +=', () => {
-      _execStatement('count += 5', ctx);
-      expect(ctx.count).toBe(5);
-    });
+	describe("Compound Assignment", () => {
+		test("should handle +=", () => {
+			_execStatement("count += 5", ctx);
+			expect(ctx.count).toBe(5);
+		});
 
-    test('should handle -=', () => {
-      ctx.$set('count', 10);
-      _execStatement('count -= 3', ctx);
-      expect(ctx.count).toBe(7);
-    });
+		test("should handle -=", () => {
+			ctx.$set("count", 10);
+			_execStatement("count -= 3", ctx);
+			expect(ctx.count).toBe(7);
+		});
 
-    test('should handle *=', () => {
-      ctx.$set('count', 4);
-      _execStatement('count *= 3', ctx);
-      expect(ctx.count).toBe(12);
-    });
+		test("should handle *=", () => {
+			ctx.$set("count", 4);
+			_execStatement("count *= 3", ctx);
+			expect(ctx.count).toBe(12);
+		});
 
-    test('should handle /=', () => {
-      ctx.$set('count', 10);
-      _execStatement('count /= 2', ctx);
-      expect(ctx.count).toBe(5);
-    });
+		test("should handle /=", () => {
+			ctx.$set("count", 10);
+			_execStatement("count /= 2", ctx);
+			expect(ctx.count).toBe(5);
+		});
 
-    test('should handle %=', () => {
-      ctx.$set('count', 10);
-      _execStatement('count %= 3', ctx);
-      expect(ctx.count).toBe(1);
-    });
-  });
+		test("should handle %=", () => {
+			ctx.$set("count", 10);
+			_execStatement("count %= 3", ctx);
+			expect(ctx.count).toBe(1);
+		});
+	});
 
-  describe('Increment / Decrement', () => {
-    test('should increment with ++', () => {
-      _execStatement('count++', ctx);
-      expect(ctx.count).toBe(1);
-    });
+	describe("Increment / Decrement", () => {
+		test("should increment with ++", () => {
+			_execStatement("count++", ctx);
+			expect(ctx.count).toBe(1);
+		});
 
-    test('should decrement with --', () => {
-      ctx.$set('count', 5);
-      _execStatement('count--', ctx);
-      expect(ctx.count).toBe(4);
-    });
+		test("should decrement with --", () => {
+			ctx.$set("count", 5);
+			_execStatement("count--", ctx);
+			expect(ctx.count).toBe(4);
+		});
 
-    test('should prefix increment with ++count', () => {
-      _execStatement('++count', ctx);
-      expect(ctx.count).toBe(1);
-    });
+		test("should prefix increment with ++count", () => {
+			_execStatement("++count", ctx);
+			expect(ctx.count).toBe(1);
+		});
 
-    test('should prefix decrement with --count', () => {
-      ctx.$set('count', 5);
-      _execStatement('--count', ctx);
-      expect(ctx.count).toBe(4);
-    });
-  });
+		test("should prefix decrement with --count", () => {
+			ctx.$set("count", 5);
+			_execStatement("--count", ctx);
+			expect(ctx.count).toBe(4);
+		});
+	});
 
-  describe('Boolean Toggle', () => {
-    test('should toggle boolean', () => {
-      _execStatement('show = !show', ctx);
-      expect(ctx.show).toBe(false);
-    });
+	describe("Boolean Toggle", () => {
+		test("should toggle boolean", () => {
+			_execStatement("show = !show", ctx);
+			expect(ctx.show).toBe(false);
+		});
 
-    test('should toggle back', () => {
-      _execStatement('show = !show', ctx);
-      _execStatement('show = !show', ctx);
-      expect(ctx.show).toBe(true);
-    });
-  });
+		test("should toggle back", () => {
+			_execStatement("show = !show", ctx);
+			_execStatement("show = !show", ctx);
+			expect(ctx.show).toBe(true);
+		});
+	});
 
-  describe('Multiple Statements', () => {
-    test('should execute multiple statements separated by semicolons', () => {
-      _execStatement('a = 10; b = 20; c = 30', ctx);
-      expect(ctx.a).toBe(10);
-      expect(ctx.b).toBe(20);
-      expect(ctx.c).toBe(30);
-    });
-  });
+	describe("Multiple Statements", () => {
+		test("should execute multiple statements separated by semicolons", () => {
+			_execStatement("a = 10; b = 20; c = 30", ctx);
+			expect(ctx.a).toBe(10);
+			expect(ctx.b).toBe(20);
+			expect(ctx.c).toBe(30);
+		});
+	});
 
-  describe('Array Operations', () => {
-    test('should assign spread array', () => {
-      _execStatement('items = [...items, 4]', ctx);
-      expect(ctx.items).toEqual([1, 2, 3, 4]);
-    });
+	describe("Array Operations", () => {
+		test("should assign spread array", () => {
+			_execStatement("items = [...items, 4]", ctx);
+			expect(ctx.items).toEqual([1, 2, 3, 4]);
+		});
 
-    test('should filter with arrow function', () => {
-      _execStatement('tasks = tasks.filter(t => !t.done)', ctx);
-      expect(ctx.tasks).toHaveLength(1);
-      expect(ctx.tasks[0].text).toBe('Task 2');
-    });
+		test("should filter with arrow function", () => {
+			_execStatement("tasks = tasks.filter(t => !t.done)", ctx);
+			expect(ctx.tasks).toHaveLength(1);
+			expect(ctx.tasks[0].text).toBe("Task 2");
+		});
 
-    test('should map with arrow function and spread', () => {
-      _execStatement('tasks = tasks.map(t => ({...t, active: true}))', ctx);
-      expect(ctx.tasks[0].active).toBe(true);
-      expect(ctx.tasks[1].active).toBe(true);
-    });
-  });
+		test("should map with arrow function and spread", () => {
+			_execStatement("tasks = tasks.map(t => ({...t, active: true}))", ctx);
+			expect(ctx.tasks[0].active).toBe(true);
+			expect(ctx.tasks[1].active).toBe(true);
+		});
+	});
 
-  describe('Dot-path Assignment', () => {
-    test('should assign to nested property', () => {
-      _execStatement("user.name = 'Bob'", ctx);
-      expect(ctx.user.name).toBe('Bob');
-    });
-  });
+	describe("Dot-path Assignment", () => {
+		test("should assign to nested property", () => {
+			_execStatement("user.name = 'Bob'", ctx);
+			expect(ctx.user.name).toBe("Bob");
+		});
+	});
 
-  describe('$store Mutation', () => {
-    test('should mutate store value', () => {
-      _stores.app = createContext({ theme: 'light' });
-      _execStatement("$store.app.theme = 'dark'", ctx);
-      expect(_stores.app.theme).toBe('dark');
-      delete _stores.app;
-    });
-  });
+	describe("$store Mutation", () => {
+		test("should mutate store value", () => {
+			_stores.app = createContext({ theme: "light" });
+			_execStatement("$store.app.theme = 'dark'", ctx);
+			expect(_stores.app.theme).toBe("dark");
+			delete _stores.app;
+		});
+	});
 
-  describe('Extra Variables', () => {
-    test('should access $event from extraVars', () => {
-      _execStatement('msg = $event.type', ctx, { $event: { type: 'click' } });
-      expect(ctx.msg).toBe('click');
-    });
-  });
+	describe("Extra Variables", () => {
+		test("should access $event from extraVars", () => {
+			_execStatement("msg = $event.type", ctx, { $event: { type: "click" } });
+			expect(ctx.msg).toBe("click");
+		});
+	});
 
-  describe('$refs Method Call', () => {
-    test('should call method on $refs', () => {
-      const focus = jest.fn();
-      const refs = { input: { focus } };
-      const ctxWithRefs = createContext({ dummy: 0 });
-      // Manually set $refs on the context's raw
-      ctxWithRefs.__raw.$refs = refs;
-      _execStatement('$refs.input.focus()', ctxWithRefs);
-      expect(focus).toHaveBeenCalled();
-    });
-  });
+	describe("$refs Method Call", () => {
+		test("should call method on $refs", () => {
+			const focus = jest.fn();
+			const refs = { input: { focus } };
+			const ctxWithRefs = createContext({ dummy: 0 });
+			// Manually set $refs on the context's raw
+			ctxWithRefs.__raw.$refs = refs;
+			_execStatement("$refs.input.focus()", ctxWithRefs);
+			expect(focus).toHaveBeenCalled();
+		});
+	});
 
-  describe('Error Handling', () => {
-    test('should not throw on invalid statement', () => {
-      expect(() => _execStatement('???invalid+++', ctx)).not.toThrow();
-    });
-  });
+	describe("Error Handling", () => {
+		test("should not throw on invalid statement", () => {
+			expect(() => _execStatement("???invalid+++", ctx)).not.toThrow();
+		});
+	});
 
-  describe('Context Chain Write-back', () => {
-    test('should write back to parent context through child', () => {
-      const parent = createContext({ count: 0 });
-      const child = createContext({ localVar: 'x' }, parent);
-      _execStatement('count = count + 1', child);
-      expect(parent.count).toBe(1);
-    });
-  });
+	describe("Context Chain Write-back", () => {
+		test("should write back to parent context through child", () => {
+			const parent = createContext({ count: 0 });
+			const child = createContext({ localVar: "x" }, parent);
+			_execStatement("count = count + 1", child);
+			expect(parent.count).toBe(1);
+		});
+	});
 });

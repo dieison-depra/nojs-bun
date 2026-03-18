@@ -1,10 +1,6 @@
-
-
-
-
-import { _config, _stores, setRouterInstance } from '../src/globals.js';
-import { _createRouter } from '../src/router.js';
-import { _templateHtmlCache } from '../src/dom.js';
+import { _templateHtmlCache } from "../src/dom.js";
+import { _config, _stores, setRouterInstance } from "../src/globals.js";
+import { _createRouter } from "../src/router.js";
 
 // Track all event handlers registered during tests for proper cleanup
 const _trackedDocClickHandlers = [];
@@ -15,2643 +11,2596 @@ const _origDocRemove = document.removeEventListener.bind(document);
 const _origWinAdd = window.addEventListener.bind(window);
 const _origWinRemove = window.removeEventListener.bind(window);
 
-document.addEventListener = function (event, handler, ...rest) {
-  if (event === 'click') _trackedDocClickHandlers.push(handler);
-  return _origDocAdd(event, handler, ...rest);
+document.addEventListener = (event, handler, ...rest) => {
+	if (event === "click") _trackedDocClickHandlers.push(handler);
+	return _origDocAdd(event, handler, ...rest);
 };
-document.removeEventListener = function (event, handler, ...rest) {
-  if (event === 'click') {
-    const idx = _trackedDocClickHandlers.indexOf(handler);
-    if (idx !== -1) _trackedDocClickHandlers.splice(idx, 1);
-  }
-  return _origDocRemove(event, handler, ...rest);
+document.removeEventListener = (event, handler, ...rest) => {
+	if (event === "click") {
+		const idx = _trackedDocClickHandlers.indexOf(handler);
+		if (idx !== -1) _trackedDocClickHandlers.splice(idx, 1);
+	}
+	return _origDocRemove(event, handler, ...rest);
 };
-window.addEventListener = function (event, handler, ...rest) {
-  if (event === 'popstate') _trackedWinPopstateHandlers.push(handler);
-  if (event === 'hashchange') _trackedWinHashchangeHandlers.push(handler);
-  return _origWinAdd(event, handler, ...rest);
+window.addEventListener = (event, handler, ...rest) => {
+	if (event === "popstate") _trackedWinPopstateHandlers.push(handler);
+	if (event === "hashchange") _trackedWinHashchangeHandlers.push(handler);
+	return _origWinAdd(event, handler, ...rest);
 };
-window.removeEventListener = function (event, handler, ...rest) {
-  if (event === 'popstate') {
-    const idx = _trackedWinPopstateHandlers.indexOf(handler);
-    if (idx !== -1) _trackedWinPopstateHandlers.splice(idx, 1);
-  }
-  if (event === 'hashchange') {
-    const idx = _trackedWinHashchangeHandlers.indexOf(handler);
-    if (idx !== -1) _trackedWinHashchangeHandlers.splice(idx, 1);
-  }
-  return _origWinRemove(event, handler, ...rest);
+window.removeEventListener = (event, handler, ...rest) => {
+	if (event === "popstate") {
+		const idx = _trackedWinPopstateHandlers.indexOf(handler);
+		if (idx !== -1) _trackedWinPopstateHandlers.splice(idx, 1);
+	}
+	if (event === "hashchange") {
+		const idx = _trackedWinHashchangeHandlers.indexOf(handler);
+		if (idx !== -1) _trackedWinHashchangeHandlers.splice(idx, 1);
+	}
+	return _origWinRemove(event, handler, ...rest);
 };
 
 function _removeAllTrackedHandlers() {
-  _trackedDocClickHandlers.forEach(h => _origDocRemove('click', h));
-  _trackedDocClickHandlers.length = 0;
-  _trackedWinPopstateHandlers.forEach(h => _origWinRemove('popstate', h));
-  _trackedWinPopstateHandlers.length = 0;
-  _trackedWinHashchangeHandlers.forEach(h => _origWinRemove('hashchange', h));
-  _trackedWinHashchangeHandlers.length = 0;
+	_trackedDocClickHandlers.forEach((h) => _origDocRemove("click", h));
+	_trackedDocClickHandlers.length = 0;
+	_trackedWinPopstateHandlers.forEach((h) => _origWinRemove("popstate", h));
+	_trackedWinPopstateHandlers.length = 0;
+	_trackedWinHashchangeHandlers.forEach((h) => _origWinRemove("hashchange", h));
+	_trackedWinHashchangeHandlers.length = 0;
 }
 
 // Global afterEach: ensure all event handlers are cleaned up between tests
 afterEach(() => {
-  _removeAllTrackedHandlers();
+	_removeAllTrackedHandlers();
 });
 
-describe('Router', () => {
-  let router;
+describe("Router", () => {
+	let router;
 
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    document.body.innerHTML = '';
-    window.location.hash = '';
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		document.body.innerHTML = "";
+		window.location.hash = "";
 
+		window.scrollTo = jest.fn();
+	});
 
-    window.scrollTo = jest.fn();
-  });
+	afterEach(() => {
+		setRouterInstance(null);
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
-  afterEach(() => {
-    setRouterInstance(null);
-    Object.keys(_stores).forEach((k) => delete _stores[k]);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+	test("creates router with correct API", () => {
+		router = _createRouter();
+		expect(router.current).toBeDefined();
+		expect(typeof router.push).toBe("function");
+		expect(typeof router.replace).toBe("function");
+		expect(typeof router.back).toBe("function");
+		expect(typeof router.forward).toBe("function");
+		expect(typeof router.on).toBe("function");
+		expect(typeof router.register).toBe("function");
+		expect(typeof router.init).toBe("function");
+	});
 
-  test('creates router with correct API', () => {
-    router = _createRouter();
-    expect(router.current).toBeDefined();
-    expect(typeof router.push).toBe('function');
-    expect(typeof router.replace).toBe('function');
-    expect(typeof router.back).toBe('function');
-    expect(typeof router.forward).toBe('function');
-    expect(typeof router.on).toBe('function');
-    expect(typeof router.register).toBe('function');
-    expect(typeof router.init).toBe('function');
-  });
+	test("current starts with empty path", () => {
+		router = _createRouter();
+		expect(router.current.path).toBe("");
+		expect(router.current.params).toEqual({});
+		expect(router.current.query).toEqual({});
+		expect(router.current.hash).toBe("");
+	});
 
-  test('current starts with empty path', () => {
-    router = _createRouter();
-    expect(router.current.path).toBe('');
-    expect(router.current.params).toEqual({});
-    expect(router.current.query).toEqual({});
-    expect(router.current.hash).toBe('');
-  });
+	test("register adds routes", () => {
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		router.register("/home", tpl);
+		router.register("/about", tpl);
+	});
 
-  test('register adds routes', () => {
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    router.register('/home', tpl);
-    router.register('/about', tpl);
+	test("push navigates to new route (hash mode)", () => {
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<div>Home Page</div>";
+		router.register("/home", tpl);
 
-  });
+		router.push("/home");
+		expect(router.current.path).toBe("/home");
+		expect(window.location.hash).toBe("#/home");
+	});
 
-  test('push navigates to new route (hash mode)', () => {
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<div>Home Page</div>';
-    router.register('/home', tpl);
+	test("replace navigates without history entry", () => {
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<div>About</div>";
+		router.register("/about", tpl);
 
-    router.push('/home');
-    expect(router.current.path).toBe('/home');
-    expect(window.location.hash).toBe('#/home');
-  });
+		router.replace("/about");
+		expect(router.current.path).toBe("/about");
+	});
 
-  test('replace navigates without history entry', () => {
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<div>About</div>';
-    router.register('/about', tpl);
+	test("parses query parameters", () => {
+		router = _createRouter();
+		router.push("/search?q=hello&page=2");
+		expect(router.current.query.q).toBe("hello");
+		expect(router.current.query.page).toBe("2");
+	});
 
-    router.replace('/about');
-    expect(router.current.path).toBe('/about');
-  });
+	test("parses query parameters and hash together", () => {
+		router = _createRouter();
+		router.push("/search?q=hello&page=2#section");
+		expect(router.current.path).toBe("/search");
+		expect(router.current.query.q).toBe("hello");
+		expect(router.current.query.page).toBe("2");
+		expect(router.current.hash).toBe("#section");
+	});
 
-  test('parses query parameters', () => {
-    router = _createRouter();
-    router.push('/search?q=hello&page=2');
-    expect(router.current.query.q).toBe('hello');
-    expect(router.current.query.page).toBe('2');
-  });
+	test("parses hash without query", () => {
+		router = _createRouter();
+		router.push("/about#team");
+		expect(router.current.path).toBe("/about");
+		expect(router.current.query).toEqual({});
+		expect(router.current.hash).toBe("#team");
+	});
 
-  test('parses query parameters and hash together', () => {
-    router = _createRouter();
-    router.push('/search?q=hello&page=2#section');
-    expect(router.current.path).toBe('/search');
-    expect(router.current.query.q).toBe('hello');
-    expect(router.current.query.page).toBe('2');
-    expect(router.current.hash).toBe('#section');
-  });
+	test("matches route params", () => {
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<div>User</div>";
+		router.register("/users/:id", tpl);
 
-  test('parses hash without query', () => {
-    router = _createRouter();
-    router.push('/about#team');
-    expect(router.current.path).toBe('/about');
-    expect(router.current.query).toEqual({});
-    expect(router.current.hash).toBe('#team');
-  });
+		router.push("/users/42");
+		expect(router.current.params.id).toBe("42");
+	});
 
-  test('matches route params', () => {
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<div>User</div>';
-    router.register('/users/:id', tpl);
+	test("matches route with multiple params", () => {
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<div>Post</div>";
+		router.register("/users/:userId/posts/:postId", tpl);
 
-    router.push('/users/42');
-    expect(router.current.params.id).toBe('42');
-  });
+		router.push("/users/1/posts/99");
+		expect(router.current.params.userId).toBe("1");
+		expect(router.current.params.postId).toBe("99");
+	});
 
-  test('matches route with multiple params', () => {
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<div>Post</div>';
-    router.register('/users/:userId/posts/:postId', tpl);
+	test("on() listener receives navigation events", async () => {
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<div>Page</div>";
+		router.register("/page", tpl);
 
-    router.push('/users/1/posts/99');
-    expect(router.current.params.userId).toBe('1');
-    expect(router.current.params.postId).toBe('99');
-  });
+		const listener = jest.fn();
+		router.on(listener);
+		await router.push("/page");
 
-  test('on() listener receives navigation events', async () => {
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<div>Page</div>';
-    router.register('/page', tpl);
+		expect(listener).toHaveBeenCalledWith(
+			expect.objectContaining({ path: "/page" }),
+		);
+	});
 
-    const listener = jest.fn();
-    router.on(listener);
-    await router.push('/page');
+	test("on() returns unsubscriber", async () => {
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<div>Page</div>";
+		router.register("/page", tpl);
+		router.register("/other", tpl);
 
-    expect(listener).toHaveBeenCalledWith(
-      expect.objectContaining({ path: '/page' }),
-    );
-  });
+		const listener = jest.fn();
+		const unsub = router.on(listener);
+		await router.push("/page");
+		expect(listener).toHaveBeenCalledTimes(1);
 
-  test('on() returns unsubscriber', async () => {
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<div>Page</div>';
-    router.register('/page', tpl);
-    router.register('/other', tpl);
+		unsub();
+		await router.push("/other");
+		expect(listener).toHaveBeenCalledTimes(1);
+	});
 
-    const listener = jest.fn();
-    const unsub = router.on(listener);
-    await router.push('/page');
-    expect(listener).toHaveBeenCalledTimes(1);
+	test("renders into route-view outlet", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    unsub();
-    await router.push('/other');
-    expect(listener).toHaveBeenCalledTimes(1);
-  });
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = '<p class="routed">Route Content</p>';
+		router.register("/page", tpl);
 
-  test('renders into route-view outlet', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		await router.push("/page");
+		expect(outlet.querySelector(".routed")).not.toBeNull();
+		expect(outlet.querySelector(".routed").textContent).toBe("Route Content");
+	});
 
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p class="routed">Route Content</p>';
-    router.register('/page', tpl);
+	test("clears outlet when navigating to unmatched route", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    await router.push('/page');
-    expect(outlet.querySelector('.routed')).not.toBeNull();
-    expect(outlet.querySelector('.routed').textContent).toBe('Route Content');
-  });
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Content</p>";
+		router.register("/valid", tpl);
 
-  test('clears outlet when navigating to unmatched route', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		await router.push("/valid");
+		expect(outlet.querySelector("p")).not.toBeNull();
 
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Content</p>';
-    router.register('/valid', tpl);
+		await router.push("/unknown");
+		// Previous route content is cleared; built-in 404 renders instead
+		expect(outlet.querySelector(".routed")).toBeNull();
+		expect(outlet.innerHTML).toContain("404");
+	});
 
-    await router.push('/valid');
-    expect(outlet.querySelector('p')).not.toBeNull();
+	test("init collects route templates from DOM", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    await router.push('/unknown');
-    // Previous route content is cleared; built-in 404 renders instead
-    expect(outlet.querySelector('.routed')).toBeNull();
-    expect(outlet.innerHTML).toContain('404');
-  });
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/dashboard");
+		tpl.innerHTML = '<p class="dash">Dashboard</p>';
+		document.body.appendChild(tpl);
 
-  test('init collects route templates from DOM', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		router = _createRouter();
+		setRouterInstance(router);
+		window.location.hash = "#/dashboard";
+		await router.init();
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/dashboard');
-    tpl.innerHTML = '<p class="dash">Dashboard</p>';
-    document.body.appendChild(tpl);
+		expect(outlet.querySelector(".dash")).not.toBeNull();
+	});
 
-    router = _createRouter();
-    setRouterInstance(router);
-    window.location.hash = '#/dashboard';
-    await router.init();
+	test("scrolls to top on navigation", () => {
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<div>Content</div>";
+		router.register("/scroll-test", tpl);
 
-    expect(outlet.querySelector('.dash')).not.toBeNull();
-  });
+		router.push("/scroll-test");
+		expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
+	});
 
-  test('scrolls to top on navigation', () => {
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<div>Content</div>';
-    router.register('/scroll-test', tpl);
+	test("route guard blocks navigation and redirects", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    router.push('/scroll-test');
-    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
-  });
+		router = _createRouter();
 
-  test('route guard blocks navigation and redirects', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const protectedTpl = document.createElement("template");
+		protectedTpl.setAttribute("guard", "false");
+		protectedTpl.setAttribute("redirect", "/login");
+		protectedTpl.innerHTML = "<p>Protected</p>";
+		router.register("/admin", protectedTpl);
 
-    router = _createRouter();
+		const loginTpl = document.createElement("template");
+		loginTpl.innerHTML = '<p class="login">Login</p>';
+		router.register("/login", loginTpl);
 
-    const protectedTpl = document.createElement('template');
-    protectedTpl.setAttribute('guard', 'false');
-    protectedTpl.setAttribute('redirect', '/login');
-    protectedTpl.innerHTML = '<p>Protected</p>';
-    router.register('/admin', protectedTpl);
+		await router.push("/admin");
 
-    const loginTpl = document.createElement('template');
-    loginTpl.innerHTML = '<p class="login">Login</p>';
-    router.register('/login', loginTpl);
+		expect(router.current.path).toBe("/login");
+		expect(outlet.querySelector(".login")).not.toBeNull();
+	});
 
-    await router.push('/admin');
+	test("active class on route links", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    expect(router.current.path).toBe('/login');
-    expect(outlet.querySelector('.login')).not.toBeNull();
-  });
+		const link = document.createElement("a");
+		link.setAttribute("route", "/page");
+		link.textContent = "Go";
+		document.body.appendChild(link);
 
-  test('active class on route links', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Page</p>";
+		router.register("/page", tpl);
 
-    const link = document.createElement('a');
-    link.setAttribute('route', '/page');
-    link.textContent = 'Go';
-    document.body.appendChild(link);
+		await router.push("/page");
+		expect(link.classList.contains("active")).toBe(true);
+	});
 
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Page</p>';
-    router.register('/page', tpl);
+	test("nested templates in route content are loaded after outlet insertion", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    await router.push('/page');
-    expect(link.classList.contains('active')).toBe(true);
-  });
+		global.fetch = jest.fn((url) => {
+			if (url === "/nested-page.tpl") {
+				return Promise.resolve({
+					ok: true,
+					text: () =>
+						Promise.resolve(
+							'<div id="section-wrap"><template src="./section.tpl"></template></div>',
+						),
+				});
+			}
+			return Promise.resolve({
+				ok: true,
+				text: () => Promise.resolve('<p class="section-loaded">Done</p>'),
+			});
+		});
 
-  test('nested templates in route content are loaded after outlet insertion', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/nested-test");
+		tpl.setAttribute("src", "/nested-page.tpl");
+		document.body.appendChild(tpl);
+		router.register("/nested-test", tpl);
 
-    global.fetch = jest.fn((url) => {
-      if (url === '/nested-page.tpl') {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve('<div id="section-wrap"><template src="./section.tpl"></template></div>'),
-        });
-      }
-      return Promise.resolve({ ok: true, text: () => Promise.resolve('<p class="section-loaded">Done</p>') });
-    });
+		await router.push("/nested-test");
 
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/nested-test');
-    tpl.setAttribute('src', '/nested-page.tpl');
-    document.body.appendChild(tpl);
-    router.register('/nested-test', tpl);
+		expect(outlet.querySelector(".section-loaded")).not.toBeNull();
+		expect(outlet.querySelector(".section-loaded").textContent).toBe("Done");
+	});
 
-    await router.push('/nested-test');
+	test("__srcBase from route template is preserved to wrapper so ./ nested paths resolve correctly", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    expect(outlet.querySelector('.section-loaded')).not.toBeNull();
-    expect(outlet.querySelector('.section-loaded').textContent).toBe('Done');
-  });
+		global.fetch = jest.fn((url) => {
+			if (url === "templates/page.tpl") {
+				return Promise.resolve({
+					ok: true,
+					text: () =>
+						Promise.resolve('<template src="./section.tpl"></template>'),
+				});
+			}
+			return Promise.resolve({
+				ok: true,
+				text: () => Promise.resolve('<p class="ok">ok</p>'),
+			});
+		});
 
-  test('__srcBase from route template is preserved to wrapper so ./ nested paths resolve correctly', async () => {
+		router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/srcbase-test");
+		tpl.setAttribute("src", "templates/page.tpl");
+		document.body.appendChild(tpl);
+		router.register("/srcbase-test", tpl);
 
+		await router.push("/srcbase-test");
 
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    global.fetch = jest.fn((url) => {
-      if (url === 'templates/page.tpl') {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve('<template src="./section.tpl"></template>'),
-        });
-      }
-      return Promise.resolve({ ok: true, text: () => Promise.resolve('<p class="ok">ok</p>') });
-    });
-
-    router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/srcbase-test');
-    tpl.setAttribute('src', 'templates/page.tpl');
-    document.body.appendChild(tpl);
-    router.register('/srcbase-test', tpl);
-
-    await router.push('/srcbase-test');
-
-
-    expect(global.fetch).toHaveBeenCalledWith('templates/section.tpl');
-    expect(outlet.querySelector('.ok')).not.toBeNull();
-  });
+		expect(global.fetch).toHaveBeenCalledWith("templates/section.tpl");
+		expect(outlet.querySelector(".ok")).not.toBeNull();
+	});
 });
 
+describe("router.js — hash mode hashchange", () => {
+	test("navigates on hashchange event in hash mode", () => {
+		_config.router = { useHash: true, base: "" };
 
+		const routeView = document.createElement("div");
+		routeView.setAttribute("route-view", "");
+		document.body.appendChild(routeView);
 
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/about");
+		tpl.innerHTML = "<p>About page</p>";
+		document.body.appendChild(tpl);
 
+		const router = _createRouter();
+		setRouterInstance(router);
+		router.init();
 
-describe('router.js — hash mode hashchange', () => {
-  test('navigates on hashchange event in hash mode', () => {
-    _config.router = { useHash: true, base: '' };
+		window.location.hash = "#/about";
+		window.dispatchEvent(new Event("hashchange"));
 
-    const routeView = document.createElement('div');
-    routeView.setAttribute('route-view', '');
-    document.body.appendChild(routeView);
-
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/about');
-    tpl.innerHTML = '<p>About page</p>';
-    document.body.appendChild(tpl);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-    router.init();
-
-    window.location.hash = '#/about';
-    window.dispatchEvent(new Event('hashchange'));
-
-    expect(router.current.path).toBe('/about');
-  });
+		expect(router.current.path).toBe("/about");
+	});
 });
 
+describe("router.js — history mode popstate", () => {
+	test("navigates on popstate event in history mode", () => {
+		_config.router = { useHash: false, base: "" };
 
+		const routeView = document.createElement("div");
+		routeView.setAttribute("route-view", "");
+		document.body.appendChild(routeView);
 
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/contact");
+		tpl.innerHTML = "<p>Contact page</p>";
+		document.body.appendChild(tpl);
 
+		const router = _createRouter();
+		setRouterInstance(router);
+		router.init();
 
-describe('router.js — history mode popstate', () => {
-  test('navigates on popstate event in history mode', () => {
-    _config.router = { useHash: false, base: '' };
+		window.history.pushState({}, "", "/contact");
+		window.dispatchEvent(new Event("popstate"));
 
-    const routeView = document.createElement('div');
-    routeView.setAttribute('route-view', '');
-    document.body.appendChild(routeView);
-
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/contact');
-    tpl.innerHTML = '<p>Contact page</p>';
-    document.body.appendChild(tpl);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-    router.init();
-
-    window.history.pushState({}, '', '/contact');
-    window.dispatchEvent(new Event('popstate'));
-
-    expect(router.current.path).toBe('/contact');
-  });
+		expect(router.current.path).toBe("/contact");
+	});
 });
 
+describe("Router — history mode", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		setRouterInstance(null);
+	});
 
+	test("push uses history.pushState in history mode", () => {
+		const pushSpy = jest.spyOn(window.history, "pushState");
+		const router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Page</p>";
+		router.register("/page", tpl);
 
+		router.push("/page");
 
+		expect(pushSpy).toHaveBeenCalledWith({}, "", "/page");
+		expect(router.current.path).toBe("/page");
+		pushSpy.mockRestore();
+	});
 
-describe('Router — history mode', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '';
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
-    Object.keys(_stores).forEach((k) => delete _stores[k]);
-    setRouterInstance(null);
-  });
+	test("replace uses history.replaceState in history mode", () => {
+		const replaceSpy = jest.spyOn(window.history, "replaceState");
+		const router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Page</p>";
+		router.register("/page", tpl);
 
-  test('push uses history.pushState in history mode', () => {
-    const pushSpy = jest.spyOn(window.history, 'pushState');
-    const router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Page</p>';
-    router.register('/page', tpl);
+		router.replace("/page");
 
-    router.push('/page');
-
-    expect(pushSpy).toHaveBeenCalledWith({}, '', '/page');
-    expect(router.current.path).toBe('/page');
-    pushSpy.mockRestore();
-  });
-
-  test('replace uses history.replaceState in history mode', () => {
-    const replaceSpy = jest.spyOn(window.history, 'replaceState');
-    const router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Page</p>';
-    router.register('/page', tpl);
-
-    router.replace('/page');
-
-    expect(replaceSpy).toHaveBeenCalledWith({}, '', '/page');
-    replaceSpy.mockRestore();
-  });
+		expect(replaceSpy).toHaveBeenCalledWith({}, "", "/page");
+		replaceSpy.mockRestore();
+	});
 });
 
+describe("Router — back and forward", () => {
+	test("back calls history.back", () => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		const backSpy = jest.spyOn(window.history, "back");
+		const router = _createRouter();
+		router.back();
+		expect(backSpy).toHaveBeenCalled();
+		backSpy.mockRestore();
+	});
 
-
-
-
-describe('Router — back and forward', () => {
-  test('back calls history.back', () => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    const backSpy = jest.spyOn(window.history, 'back');
-    const router = _createRouter();
-    router.back();
-    expect(backSpy).toHaveBeenCalled();
-    backSpy.mockRestore();
-  });
-
-  test('forward calls history.forward', () => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    const forwardSpy = jest.spyOn(window.history, 'forward');
-    const router = _createRouter();
-    router.forward();
-    expect(forwardSpy).toHaveBeenCalled();
-    forwardSpy.mockRestore();
-  });
+	test("forward calls history.forward", () => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		const forwardSpy = jest.spyOn(window.history, "forward");
+		const router = _createRouter();
+		router.forward();
+		expect(forwardSpy).toHaveBeenCalled();
+		forwardSpy.mockRestore();
+	});
 });
 
+describe("Router — route-active-exact", () => {
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+	});
 
+	test("exact active class only on exact match", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
+		const link = document.createElement("a");
+		link.setAttribute("route", "/users");
+		link.setAttribute("route-active-exact", "exact-active");
+		document.body.appendChild(link);
 
+		const router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Users</p>";
+		router.register("/users", tpl);
+		router.register("/users/1", tpl);
 
-describe('Router — route-active-exact', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-  });
+		await router.push("/users");
+		expect(link.classList.contains("exact-active")).toBe(true);
 
-  test('exact active class only on exact match', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const link = document.createElement('a');
-    link.setAttribute('route', '/users');
-    link.setAttribute('route-active-exact', 'exact-active');
-    document.body.appendChild(link);
-
-    const router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Users</p>';
-    router.register('/users', tpl);
-    router.register('/users/1', tpl);
-
-    await router.push('/users');
-    expect(link.classList.contains('exact-active')).toBe(true);
-
-    await router.push('/users/1');
-    expect(link.classList.contains('exact-active')).toBe(false);
-  });
+		await router.push("/users/1");
+		expect(link.classList.contains("exact-active")).toBe(false);
+	});
 });
 
+describe("Router — route link click delegation", () => {
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
+		window.location.hash = "";
+		document.body.innerHTML = "";
+		setRouterInstance(null);
+	});
 
+	test("clicking route link navigates", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
+		const router = _createRouter();
+		setRouterInstance(router);
+		const tpl = document.createElement("template");
+		tpl.innerHTML = '<p class="about-page">About</p>';
+		router.register("/", tpl);
+		router.register("/about", tpl);
 
+		await router.init();
 
-describe('Router — route link click delegation', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
-    window.location.hash = '';
-    document.body.innerHTML = '';
-    setRouterInstance(null);
-  });
+		await router.push("/about");
 
-  test('clicking route link navigates', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p class="about-page">About</p>';
-    router.register('/', tpl);
-    router.register('/about', tpl);
-
-    await router.init();
-
-
-    await router.push('/about');
-
-    expect(router.current.path).toBe('/about');
-    expect(outlet.querySelector('.about-page')).not.toBeNull();
-  });
+		expect(router.current.path).toBe("/about");
+		expect(outlet.querySelector(".about-page")).not.toBeNull();
+	});
 });
 
+describe("Router — transition on outlet", () => {
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+	});
 
+	test("applies transition class from route-view", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("transition", "page");
+		document.body.appendChild(outlet);
 
+		const router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Page</p>";
+		router.register("/animated", tpl);
 
+		await router.push("/animated");
 
-describe('Router — transition on outlet', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-  });
-
-  test('applies transition class from route-view', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('transition', 'page');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Page</p>';
-    router.register('/animated', tpl);
-
-    await router.push('/animated');
-
-    const wrapper = outlet.firstElementChild;
-    expect(wrapper).not.toBeNull();
-  });
+		const wrapper = outlet.firstElementChild;
+		expect(wrapper).not.toBeNull();
+	});
 });
 
+describe("Router — scroll behavior none", () => {
+	test('does not scroll when scrollBehavior is not "top"', () => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "none" };
+		window.scrollTo = jest.fn();
 
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
+		const router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>No scroll</p>";
+		router.register("/no-scroll", tpl);
 
+		router.push("/no-scroll");
 
-describe('Router — scroll behavior none', () => {
-  test('does not scroll when scrollBehavior is not "top"', () => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'none' };
-    window.scrollTo = jest.fn();
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>No scroll</p>';
-    router.register('/no-scroll', tpl);
-
-    router.push('/no-scroll');
-
-    expect(window.scrollTo).not.toHaveBeenCalled();
-  });
+		expect(window.scrollTo).not.toHaveBeenCalled();
+	});
 });
 
+describe("Router — init with history mode", () => {
+	test("init reads pathname in history mode", () => {
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
 
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
+		const router = _createRouter();
+		setRouterInstance(router);
 
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/");
+		tpl.innerHTML = '<p class="home">Home</p>';
+		document.body.appendChild(tpl);
 
-describe('Router — init with history mode', () => {
-  test('init reads pathname in history mode', () => {
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
+		router.init();
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/');
-    tpl.innerHTML = '<p class="home">Home</p>';
-    document.body.appendChild(tpl);
-
-    router.init();
-
-    expect(router.current).toBeDefined();
-  });
+		expect(router.current).toBeDefined();
+	});
 });
 
+describe("Router — guard with null templateEl", () => {
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
+	test("navigates without error when templateEl is null", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
+		const router = _createRouter();
+		router.register("/ghost", null);
 
+		await router.push("/ghost");
 
-describe('Router — guard with null templateEl', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+		expect(router.current.path).toBe("/ghost");
 
-  test('navigates without error when templateEl is null', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    router.register('/ghost', null);
-
-    await router.push('/ghost');
-
-    expect(router.current.path).toBe('/ghost');
-
-    expect(outlet.innerHTML).toBe('');
-  });
+		expect(outlet.innerHTML).toBe("");
+	});
 });
 
+describe("Router — popstate handler with base stripping", () => {
+	beforeEach(() => {
+		_config.router = { useHash: false, base: "/app", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+		document.body.innerHTML = "";
+	});
 
+	test("popstate handler strips base from pathname", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/settings");
+		tpl.innerHTML = '<p class="settings">Settings</p>';
+		document.body.appendChild(tpl);
 
+		window.history.pushState({}, "", "/app/");
 
-describe('Router — popstate handler with base stripping', () => {
-  beforeEach(() => {
-    _config.router = { useHash: false, base: '/app', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-    document.body.innerHTML = '';
-  });
+		let popstateHandler;
+		const origAdd = window.addEventListener;
+		window.addEventListener = function (event, handler, ...rest) {
+			if (event === "popstate") popstateHandler = handler;
+			return origAdd.call(this, event, handler, ...rest);
+		};
 
-  test('popstate handler strips base from pathname', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/settings');
-    tpl.innerHTML = '<p class="settings">Settings</p>';
-    document.body.appendChild(tpl);
+		window.addEventListener = origAdd;
 
+		window.history.pushState({}, "", "/app/settings");
 
-    window.history.pushState({}, '', '/app/');
+		popstateHandler();
 
-
-    let popstateHandler;
-    const origAdd = window.addEventListener;
-    window.addEventListener = function (event, handler, ...rest) {
-      if (event === 'popstate') popstateHandler = handler;
-      return origAdd.call(this, event, handler, ...rest);
-    };
-
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
-
-
-    window.addEventListener = origAdd;
-
-
-    window.history.pushState({}, '', '/app/settings');
-
-
-    popstateHandler();
-
-    expect(router.current.path).toBe('/settings');
-  });
+		expect(router.current.path).toBe("/settings");
+	});
 });
 
+describe("Router — init collects routes and reads initial path", () => {
+	afterEach(() => {
+		setRouterInstance(null);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
+	test("hash mode init reads current hash and renders matching route (L184/L193)", async () => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
 
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/welcome");
+		tpl.innerHTML = '<p class="welcome">Welcome</p>';
+		document.body.appendChild(tpl);
 
-describe('Router — init collects routes and reads initial path', () => {
-  afterEach(() => {
-    setRouterInstance(null);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+		window.location.hash = "#/welcome";
 
-  test('hash mode init reads current hash and renders matching route (L184/L193)', async () => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		expect(router.current.path).toBe("/welcome");
+		expect(outlet.querySelector(".welcome")).not.toBeNull();
+	});
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/welcome');
-    tpl.innerHTML = '<p class="welcome">Welcome</p>';
-    document.body.appendChild(tpl);
+	test("hash mode init defaults to / when hash is empty", async () => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
 
-    window.location.hash = '#/welcome';
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		window.location.hash = "";
 
-    expect(router.current.path).toBe('/welcome');
-    expect(outlet.querySelector('.welcome')).not.toBeNull();
-  });
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-  test('hash mode init defaults to / when hash is empty', async () => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
+		expect(router.current.path).toBe("/");
+	});
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test("history mode init reads pathname and strips base (L197)", async () => {
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
 
-    window.location.hash = '';
+		window.history.pushState({}, "", "/");
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    expect(router.current.path).toBe('/');
-  });
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/");
+		tpl.innerHTML = '<p class="root">Root</p>';
+		document.body.appendChild(tpl);
 
-  test('history mode init reads pathname and strips base (L197)', async () => {
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-
-    window.history.pushState({}, '', '/');
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/');
-    tpl.innerHTML = '<p class="root">Root</p>';
-    document.body.appendChild(tpl);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
-
-    expect(router.current.path).toBe('/');
-    expect(outlet.querySelector('.root')).not.toBeNull();
-  });
+		expect(router.current.path).toBe("/");
+		expect(outlet.querySelector(".root")).not.toBeNull();
+	});
 });
 
-describe('Router — prefetch routes from <a route> links', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    document.body.innerHTML = '';
-    window.location.hash = '';
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-    _templateHtmlCache.clear();
-  });
+describe("Router — prefetch routes from <a route> links", () => {
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		document.body.innerHTML = "";
+		window.location.hash = "";
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+		_templateHtmlCache.clear();
+	});
 
-  afterEach(() => {
-    setRouterInstance(null);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+	afterEach(() => {
+		setRouterInstance(null);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
-  test('prefetches route templates from <a route> links on init', async () => {
-    const fetchedUrls = [];
-    global.fetch = jest.fn((url) => {
-      fetchedUrls.push(url);
-      return Promise.resolve({ ok: true, text: () => Promise.resolve('<p>Prefetched</p>') });
-    });
+	test("prefetches route templates from <a route> links on init", async () => {
+		const fetchedUrls = [];
+		global.fetch = jest.fn((url) => {
+			fetchedUrls.push(url);
+			return Promise.resolve({
+				ok: true,
+				text: () => Promise.resolve("<p>Prefetched</p>"),
+			});
+		});
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', 'templates/');
-    outlet.setAttribute('route-index', 'landing');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "templates/");
+		outlet.setAttribute("route-index", "landing");
+		document.body.appendChild(outlet);
 
-    // Route links
-    const link1 = document.createElement('a');
-    link1.setAttribute('route', '/features');
-    document.body.appendChild(link1);
+		// Route links
+		const link1 = document.createElement("a");
+		link1.setAttribute("route", "/features");
+		document.body.appendChild(link1);
 
-    const link2 = document.createElement('a');
-    link2.setAttribute('route', '/examples');
-    document.body.appendChild(link2);
+		const link2 = document.createElement("a");
+		link2.setAttribute("route", "/examples");
+		document.body.appendChild(link2);
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    // Wait for background prefetch to complete
-    await new Promise((r) => setTimeout(r, 50));
+		// Wait for background prefetch to complete
+		await new Promise((r) => setTimeout(r, 50));
 
-    expect(fetchedUrls).toContain('templates/features.html');
-    expect(fetchedUrls).toContain('templates/examples.html');
-  });
+		expect(fetchedUrls).toContain("templates/features.html");
+		expect(fetchedUrls).toContain("templates/examples.html");
+	});
 
-  test('lazy="ondemand" links are not prefetched', async () => {
-    const fetchedUrls = [];
-    global.fetch = jest.fn((url) => {
-      fetchedUrls.push(url);
-      return Promise.resolve({ ok: true, text: () => Promise.resolve('<p>Page</p>') });
-    });
+	test('lazy="ondemand" links are not prefetched', async () => {
+		const fetchedUrls = [];
+		global.fetch = jest.fn((url) => {
+			fetchedUrls.push(url);
+			return Promise.resolve({
+				ok: true,
+				text: () => Promise.resolve("<p>Page</p>"),
+			});
+		});
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', 'templates/');
-    outlet.setAttribute('route-index', 'landing');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "templates/");
+		outlet.setAttribute("route-index", "landing");
+		document.body.appendChild(outlet);
 
-    const link = document.createElement('a');
-    link.setAttribute('route', '/playground');
-    link.setAttribute('lazy', 'ondemand');
-    document.body.appendChild(link);
+		const link = document.createElement("a");
+		link.setAttribute("route", "/playground");
+		link.setAttribute("lazy", "ondemand");
+		document.body.appendChild(link);
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    await new Promise((r) => setTimeout(r, 50));
+		await new Promise((r) => setTimeout(r, 50));
 
-    expect(fetchedUrls).not.toContain('templates/playground.html');
-  });
+		expect(fetchedUrls).not.toContain("templates/playground.html");
+	});
 
-  test('lazy="priority" links are prefetched before default links', async () => {
-    const fetchOrder = [];
-    global.fetch = jest.fn((url) => {
-      fetchOrder.push(url);
-      return Promise.resolve({ ok: true, text: () => Promise.resolve('<p>Page</p>') });
-    });
+	test('lazy="priority" links are prefetched before default links', async () => {
+		const fetchOrder = [];
+		global.fetch = jest.fn((url) => {
+			fetchOrder.push(url);
+			return Promise.resolve({
+				ok: true,
+				text: () => Promise.resolve("<p>Page</p>"),
+			});
+		});
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', 'templates/');
-    outlet.setAttribute('route-index', 'landing');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "templates/");
+		outlet.setAttribute("route-index", "landing");
+		document.body.appendChild(outlet);
 
-    // Default link
-    const bgLink = document.createElement('a');
-    bgLink.setAttribute('route', '/features');
-    document.body.appendChild(bgLink);
+		// Default link
+		const bgLink = document.createElement("a");
+		bgLink.setAttribute("route", "/features");
+		document.body.appendChild(bgLink);
 
-    // Priority link
-    const prioLink = document.createElement('a');
-    prioLink.setAttribute('route', '/docs');
-    prioLink.setAttribute('lazy', 'priority');
-    document.body.appendChild(prioLink);
+		// Priority link
+		const prioLink = document.createElement("a");
+		prioLink.setAttribute("route", "/docs");
+		prioLink.setAttribute("lazy", "priority");
+		document.body.appendChild(prioLink);
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    // Wait for all fetches
-    await new Promise((r) => setTimeout(r, 50));
+		// Wait for all fetches
+		await new Promise((r) => setTimeout(r, 50));
 
-    const docsIdx = fetchOrder.indexOf('templates/docs.html');
-    const featIdx = fetchOrder.indexOf('templates/features.html');
-    expect(docsIdx).toBeGreaterThanOrEqual(0);
-    expect(featIdx).toBeGreaterThanOrEqual(0);
-    expect(docsIdx).toBeLessThan(featIdx);
-  });
+		const docsIdx = fetchOrder.indexOf("templates/docs.html");
+		const featIdx = fetchOrder.indexOf("templates/features.html");
+		expect(docsIdx).toBeGreaterThanOrEqual(0);
+		expect(featIdx).toBeGreaterThanOrEqual(0);
+		expect(docsIdx).toBeLessThan(featIdx);
+	});
 
-  test('deduplicates links — priority wins over default', async () => {
-    const fetchedUrls = [];
-    global.fetch = jest.fn((url) => {
-      fetchedUrls.push(url);
-      return Promise.resolve({ ok: true, text: () => Promise.resolve('<p>Page</p>') });
-    });
+	test("deduplicates links — priority wins over default", async () => {
+		const fetchedUrls = [];
+		global.fetch = jest.fn((url) => {
+			fetchedUrls.push(url);
+			return Promise.resolve({
+				ok: true,
+				text: () => Promise.resolve("<p>Page</p>"),
+			});
+		});
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', 'templates/');
-    outlet.setAttribute('route-index', 'landing');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "templates/");
+		outlet.setAttribute("route-index", "landing");
+		document.body.appendChild(outlet);
 
-    // Same path, two links: one default, one priority
-    const link1 = document.createElement('a');
-    link1.setAttribute('route', '/docs');
-    document.body.appendChild(link1);
+		// Same path, two links: one default, one priority
+		const link1 = document.createElement("a");
+		link1.setAttribute("route", "/docs");
+		document.body.appendChild(link1);
 
-    const link2 = document.createElement('a');
-    link2.setAttribute('route', '/docs');
-    link2.setAttribute('lazy', 'priority');
-    document.body.appendChild(link2);
+		const link2 = document.createElement("a");
+		link2.setAttribute("route", "/docs");
+		link2.setAttribute("lazy", "priority");
+		document.body.appendChild(link2);
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    await new Promise((r) => setTimeout(r, 50));
+		await new Promise((r) => setTimeout(r, 50));
 
-    // Should only fetch once
-    const docsFetches = fetchedUrls.filter((u) => u === 'templates/docs.html');
-    expect(docsFetches.length).toBe(1);
-  });
+		// Should only fetch once
+		const docsFetches = fetchedUrls.filter((u) => u === "templates/docs.html");
+		expect(docsFetches.length).toBe(1);
+	});
 
-  test('current route is not prefetched', async () => {
-    const fetchedUrls = [];
-    global.fetch = jest.fn((url) => {
-      fetchedUrls.push(url);
-      return Promise.resolve({ ok: true, text: () => Promise.resolve('<p>Page</p>') });
-    });
+	test("current route is not prefetched", async () => {
+		const fetchedUrls = [];
+		global.fetch = jest.fn((url) => {
+			fetchedUrls.push(url);
+			return Promise.resolve({
+				ok: true,
+				text: () => Promise.resolve("<p>Page</p>"),
+			});
+		});
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', 'templates/');
-    outlet.setAttribute('route-index', 'landing');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "templates/");
+		outlet.setAttribute("route-index", "landing");
+		document.body.appendChild(outlet);
 
-    // Link to current route (/ maps to landing)
-    const link = document.createElement('a');
-    link.setAttribute('route', '/');
-    document.body.appendChild(link);
+		// Link to current route (/ maps to landing)
+		const link = document.createElement("a");
+		link.setAttribute("route", "/");
+		document.body.appendChild(link);
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    await new Promise((r) => setTimeout(r, 50));
+		await new Promise((r) => setTimeout(r, 50));
 
-    // landing.html is fetched for the initial route render, not for prefetch
-    // The prefetch should skip "/" since it's the current path
-    expect(fetchedUrls.filter((u) => u === 'templates/landing.html').length).toBeLessThanOrEqual(1);
-  });
+		// landing.html is fetched for the initial route render, not for prefetch
+		// The prefetch should skip "/" since it's the current path
+		expect(
+			fetchedUrls.filter((u) => u === "templates/landing.html").length,
+		).toBeLessThanOrEqual(1);
+	});
 });
 
+describe("Router — popstate handler in history mode (L173-177)", () => {
+	beforeEach(() => {
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		document.body.innerHTML = "";
+		window.scrollTo = jest.fn();
+	});
 
+	afterEach(() => {
+		setRouterInstance(null);
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		document.body.innerHTML = "";
+	});
 
+	test("popstate event triggers navigate in history mode", async () => {
+		_config.router = { useHash: false, base: "", scrollBehavior: "top" };
 
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-describe('Router — popstate handler in history mode (L173-177)', () => {
-  beforeEach(() => {
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    document.body.innerHTML = '';
-    window.scrollTo = jest.fn();
-  });
+		const tplHome = document.createElement("template");
+		tplHome.setAttribute("route", "/");
+		tplHome.innerHTML = '<p class="home">Home</p>';
+		document.body.appendChild(tplHome);
 
-  afterEach(() => {
-    setRouterInstance(null);
-    Object.keys(_stores).forEach((k) => delete _stores[k]);
-    document.body.innerHTML = '';
-  });
+		const tplAbout = document.createElement("template");
+		tplAbout.setAttribute("route", "/about");
+		tplAbout.innerHTML = '<p class="about">About</p>';
+		document.body.appendChild(tplAbout);
 
-  test('popstate event triggers navigate in history mode', async () => {
-    _config.router = { useHash: false, base: '', scrollBehavior: 'top' };
+		const router = _createRouter();
+		setRouterInstance(router);
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		router.init();
 
-    const tplHome = document.createElement('template');
-    tplHome.setAttribute('route', '/');
-    tplHome.innerHTML = '<p class="home">Home</p>';
-    document.body.appendChild(tplHome);
+		window.history.pushState({}, "", "/about");
+		window.dispatchEvent(new Event("popstate"));
 
-    const tplAbout = document.createElement('template');
-    tplAbout.setAttribute('route', '/about');
-    tplAbout.innerHTML = '<p class="about">About</p>';
-    document.body.appendChild(tplAbout);
+		expect(router.current.path).toBe("/about");
+	});
 
-    const router = _createRouter();
-    setRouterInstance(router);
+	test("popstate with non-empty base path strips base correctly", async () => {
+		_config.router = { useHash: false, base: "/myapp", scrollBehavior: "top" };
 
-    router.init();
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
+		const tplRoot = document.createElement("template");
+		tplRoot.setAttribute("route", "/");
+		tplRoot.innerHTML = '<p class="root">Root</p>';
+		document.body.appendChild(tplRoot);
 
-    window.history.pushState({}, '', '/about');
-    window.dispatchEvent(new Event('popstate'));
+		const tplSettings = document.createElement("template");
+		tplSettings.setAttribute("route", "/settings");
+		tplSettings.innerHTML = '<p class="settings">Settings</p>';
+		document.body.appendChild(tplSettings);
 
-    expect(router.current.path).toBe('/about');
-  });
+		let popstateHandler;
+		const origAdd = window.addEventListener;
+		window.addEventListener = function (event, handler, ...rest) {
+			if (event === "popstate") popstateHandler = handler;
+			return origAdd.call(this, event, handler, ...rest);
+		};
 
-  test('popstate with non-empty base path strips base correctly', async () => {
-    _config.router = { useHash: false, base: '/myapp', scrollBehavior: 'top' };
+		const router = _createRouter();
+		setRouterInstance(router);
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		router.init();
 
-    const tplRoot = document.createElement('template');
-    tplRoot.setAttribute('route', '/');
-    tplRoot.innerHTML = '<p class="root">Root</p>';
-    document.body.appendChild(tplRoot);
+		window.addEventListener = origAdd;
 
-    const tplSettings = document.createElement('template');
-    tplSettings.setAttribute('route', '/settings');
-    tplSettings.innerHTML = '<p class="settings">Settings</p>';
-    document.body.appendChild(tplSettings);
+		window.history.pushState({}, "", "/myapp/settings");
+		popstateHandler();
 
-
-    let popstateHandler;
-    const origAdd = window.addEventListener;
-    window.addEventListener = function (event, handler, ...rest) {
-      if (event === 'popstate') popstateHandler = handler;
-      return origAdd.call(this, event, handler, ...rest);
-    };
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    router.init();
-
-    window.addEventListener = origAdd;
-
-
-    window.history.pushState({}, '', '/myapp/settings');
-    popstateHandler();
-
-
-    expect(router.current.path).toBe('/settings');
-  });
+		expect(router.current.path).toBe("/settings");
+	});
 });
 
+describe("Router — scrollBehavior smooth", () => {
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "smooth" };
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
+	afterEach(() => {
+		setRouterInstance(null);
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
+	test("smooth scrollBehavior calls scrollTo with smooth behavior", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
+		const router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Smooth Page</p>";
+		router.register("/smooth", tpl);
 
-describe('Router — scrollBehavior smooth', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'smooth' };
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+		await router.push("/smooth");
 
-  afterEach(() => {
-    setRouterInstance(null);
-    Object.keys(_stores).forEach((k) => delete _stores[k]);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
-
-  test('smooth scrollBehavior calls scrollTo with smooth behavior', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Smooth Page</p>';
-    router.register('/smooth', tpl);
-
-    await router.push('/smooth');
-
-    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
-  });
+		expect(window.scrollTo).toHaveBeenCalledWith({
+			top: 0,
+			behavior: "smooth",
+		});
+	});
 });
 
-describe('Router — scrollBehavior preserve', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'preserve' };
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+describe("Router — scrollBehavior preserve", () => {
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "preserve" };
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
-  afterEach(() => {
-    setRouterInstance(null);
-    Object.keys(_stores).forEach((k) => delete _stores[k]);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+	afterEach(() => {
+		setRouterInstance(null);
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
-  test('preserve scrollBehavior does NOT call scrollTo', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test("preserve scrollBehavior does NOT call scrollTo", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Preserve Page</p>';
-    router.register('/preserve', tpl);
+		const router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Preserve Page</p>";
+		router.register("/preserve", tpl);
 
-    await router.push('/preserve');
+		await router.push("/preserve");
 
-    expect(window.scrollTo).not.toHaveBeenCalled();
-  });
+		expect(window.scrollTo).not.toHaveBeenCalled();
+	});
 });
 
+describe("on-demand template loading", () => {
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		document.body.innerHTML = "";
+		window.location.hash = "";
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve('<p class="about-content">About</p>'),
+		});
+	});
 
+	afterEach(() => {
+		setRouterInstance(null);
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+		delete global.fetch;
+	});
 
+	test("loads route template on-demand when navigating if not yet fetched", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/about");
+		tpl.setAttribute("src", "/about.tpl");
+		document.body.appendChild(tpl);
 
-describe('on-demand template loading', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    document.body.innerHTML = '';
-    window.location.hash = '';
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p class="about-content">About</p>'),
-    });
-  });
+		const router = _createRouter();
+		setRouterInstance(router);
+		router.register("/about", tpl);
 
-  afterEach(() => {
-    setRouterInstance(null);
-    Object.keys(_stores).forEach((k) => delete _stores[k]);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-    delete global.fetch;
-  });
+		await router.push("/about");
 
-  test('loads route template on-demand when navigating if not yet fetched', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		expect(global.fetch).toHaveBeenCalledWith("/about.tpl");
+	});
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/about');
-    tpl.setAttribute('src', '/about.tpl');
-    document.body.appendChild(tpl);
+	test("does not re-fetch already loaded route template", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    router.register('/about', tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/about");
+		tpl.setAttribute("src", "/about.tpl");
+		tpl.__srcLoaded = true;
+		tpl.innerHTML = "<p>About</p>";
+		document.body.appendChild(tpl);
 
-    await router.push('/about');
+		const router = _createRouter();
+		setRouterInstance(router);
+		router.register("/about", tpl);
 
-    expect(global.fetch).toHaveBeenCalledWith('/about.tpl');
-  });
+		await router.push("/about");
 
-  test('does not re-fetch already loaded route template', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/about');
-    tpl.setAttribute('src', '/about.tpl');
-    tpl.__srcLoaded = true;
-    tpl.innerHTML = '<p>About</p>';
-    document.body.appendChild(tpl);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-    router.register('/about', tpl);
-
-    await router.push('/about');
-
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
 });
-
 
 // ═══════════════════════════════════════════════════════════════════════
 //  FILE-BASED ROUTING
 // ═══════════════════════════════════════════════════════════════════════
 
-describe('File-based routing', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top', templates: 'pages', ext: '.tpl' };
-    document.body.innerHTML = '';
-    window.location.hash = '';
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p class="auto-content">Auto Loaded</p>'),
-    });
-  });
-
-  afterEach(() => {
-    setRouterInstance(null);
-    Object.keys(_stores).forEach((k) => delete _stores[k]);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-    delete global.fetch;
-  });
-
-  test('auto-resolves route from route-view[src] folder', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './pages/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/analytics');
-
-    expect(global.fetch).toHaveBeenCalledWith('pages/analytics.tpl');
-    expect(outlet.querySelector('.auto-content')).not.toBeNull();
-  });
-
-  test('uses route-index for root path /', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './pages/');
-    outlet.setAttribute('route-index', 'overview');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/');
-
-    expect(global.fetch).toHaveBeenCalledWith('pages/overview.tpl');
-  });
-
-  test('defaults route-index to "index" when not specified', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './pages/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/');
-
-    expect(global.fetch).toHaveBeenCalledWith('pages/index.tpl');
-  });
-
-  test('supports custom extension via ext attribute', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './views/');
-    outlet.setAttribute('ext', '.html');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/about');
-
-    expect(global.fetch).toHaveBeenCalledWith('views/about.html');
-  });
-
-  test('uses config router.ext as default extension', async () => {
-    _config.router.ext = '.jsx';
-    _templateHtmlCache.clear();
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './components/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/header');
-
-    expect(global.fetch).toHaveBeenCalledWith('components/header.jsx');
-    _config.router.ext = '.tpl'; // reset
-  });
-
-  test('outlet ext attribute overrides config router.ext', async () => {
-    _config.router.ext = '.jsx';
-    _templateHtmlCache.clear();
+describe("File-based routing", () => {
+	beforeEach(() => {
+		_config.router = {
+			useHash: true,
+			base: "/",
+			scrollBehavior: "top",
+			templates: "pages",
+			ext: ".tpl",
+		};
+		document.body.innerHTML = "";
+		window.location.hash = "";
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve('<p class="auto-content">Auto Loaded</p>'),
+		});
+	});
+
+	afterEach(() => {
+		setRouterInstance(null);
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+		delete global.fetch;
+	});
+
+	test("auto-resolves route from route-view[src] folder", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./pages/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/analytics");
+
+		expect(global.fetch).toHaveBeenCalledWith("pages/analytics.tpl");
+		expect(outlet.querySelector(".auto-content")).not.toBeNull();
+	});
+
+	test("uses route-index for root path /", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./pages/");
+		outlet.setAttribute("route-index", "overview");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/");
+
+		expect(global.fetch).toHaveBeenCalledWith("pages/overview.tpl");
+	});
+
+	test('defaults route-index to "index" when not specified', async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./pages/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/");
+
+		expect(global.fetch).toHaveBeenCalledWith("pages/index.tpl");
+	});
+
+	test("supports custom extension via ext attribute", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./views/");
+		outlet.setAttribute("ext", ".html");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/about");
+
+		expect(global.fetch).toHaveBeenCalledWith("views/about.html");
+	});
+
+	test("uses config router.ext as default extension", async () => {
+		_config.router.ext = ".jsx";
+		_templateHtmlCache.clear();
+
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./components/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/header");
+
+		expect(global.fetch).toHaveBeenCalledWith("components/header.jsx");
+		_config.router.ext = ".tpl"; // reset
+	});
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './components/');
-    outlet.setAttribute('ext', '.vue');
-    document.body.appendChild(outlet);
+	test("outlet ext attribute overrides config router.ext", async () => {
+		_config.router.ext = ".jsx";
+		_templateHtmlCache.clear();
 
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/sidebar');
-
-    expect(global.fetch).toHaveBeenCalledWith('components/sidebar.vue');
-    expect(global.fetch).not.toHaveBeenCalledWith('components/sidebar.jsx');
-    _config.router.ext = '.tpl'; // reset
-  });
-
-  test('caches auto-resolved templates on re-navigation', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './pages/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/about');
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-
-    // Navigate away and back
-    await router.push('/other');
-    await router.push('/about');
-
-    // Should not re-fetch (template element is cached + HTML cache)
-    expect(global.fetch).toHaveBeenCalledTimes(2); // /other is a new fetch
-  });
-
-  test('explicit routes take priority over file-based routing', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './pages/');
-    document.body.appendChild(outlet);
-
-    // Register an explicit route
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p class="explicit">Explicit Route</p>';
-
-    const router = _createRouter();
-    setRouterInstance(router);
-    router.register('/about', tpl);
-
-    await router.push('/about');
-
-    // Explicit route should render, not file-based
-    expect(outlet.querySelector('.explicit')).not.toBeNull();
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  test('handles nested route paths', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './pages/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/settings/profile');
-
-    expect(global.fetch).toHaveBeenCalledWith('pages/settings/profile.tpl');
-  });
-
-  test('normalizes src path with trailing slash', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './pages');  // no trailing slash
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/features');
-
-    expect(global.fetch).toHaveBeenCalledWith('pages/features.tpl');
-  });
-
-  test('sets i18n-ns on auto-resolved template when outlet has i18n-ns', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', 'templates/');
-    outlet.setAttribute('i18n-ns', '');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/features');
-
-    // The auto-created template should have i18n-ns="features"
-    const autoTpl = document.querySelector('template[route="/features"]');
-    expect(autoTpl).not.toBeNull();
-    expect(autoTpl.getAttribute('i18n-ns')).toBe('features');
-  });
-
-  test('i18n-ns uses route-index name for root path', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', 'templates/');
-    outlet.setAttribute('route-index', 'landing');
-    outlet.setAttribute('i18n-ns', '');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/');
-
-    const autoTpl = document.querySelector('template[route="/"]');
-    expect(autoTpl).not.toBeNull();
-    expect(autoTpl.getAttribute('i18n-ns')).toBe('landing');
-  });
-
-  test('preserves query params and hash with file-based routing', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './pages/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/dashboard?tab=stats#summary');
-
-    expect(global.fetch).toHaveBeenCalledWith('pages/dashboard.tpl');
-    expect(router.current.path).toBe('/dashboard');
-    expect(router.current.query.tab).toBe('stats');
-    expect(router.current.hash).toBe('#summary');
-    expect(outlet.querySelector('.auto-content')).not.toBeNull();
-  });
-
-  test('uses config router.templates default when outlet has no src attribute', async () => {
-    // templates defaults to 'pages' — file-based routing works without src on outlet
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    // No src attribute — uses config default
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/anything');
-
-    expect(global.fetch).toHaveBeenCalledWith('pages/anything.tpl');
-    expect(outlet.querySelector('.auto-content')).not.toBeNull();
-  });
-
-  test('different auto-resolved routes fetch different files', async () => {
-    _templateHtmlCache.clear();
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './sections/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/alpha');
-    expect(global.fetch).toHaveBeenCalledWith('sections/alpha.tpl');
-
-    await router.push('/bravo');
-    expect(global.fetch).toHaveBeenCalledWith('sections/bravo.tpl');
-
-    await router.push('/charlie');
-    expect(global.fetch).toHaveBeenCalledWith('sections/charlie.tpl');
-
-    expect(global.fetch).toHaveBeenCalledTimes(3);
-  });
-
-  test('file-based routing works with history mode', async () => {
-    _config.router.useHash = false;
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './views/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/contact');
-
-    expect(global.fetch).toHaveBeenCalledWith('views/contact.tpl');
-    expect(outlet.querySelector('.auto-content')).not.toBeNull();
-  });
-
-  test('renders content from fetched template in outlet', async () => {
-    _templateHtmlCache.clear();
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<h1 class="page-title">Dashboard</h1><p class="page-body">Stats here</p>'),
-    });
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './render-test/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/my-dashboard');
-
-    expect(outlet.querySelector('.page-title').textContent).toBe('Dashboard');
-    expect(outlet.querySelector('.page-body').textContent).toBe('Stats here');
-  });
-
-  test('clears previous content when navigating to new file-based route', async () => {
-    let callCount = 0;
-    global.fetch = jest.fn().mockImplementation(() => {
-      callCount++;
-      const html = callCount === 1
-        ? '<p class="first-page">First</p>'
-        : '<p class="second-page">Second</p>';
-      return Promise.resolve({ ok: true, text: () => Promise.resolve(html) });
-    });
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './pages/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/first');
-    expect(outlet.querySelector('.first-page')).not.toBeNull();
-
-    await router.push('/second');
-    expect(outlet.querySelector('.second-page')).not.toBeNull();
-    expect(outlet.querySelector('.first-page')).toBeNull(); // previous content cleared
-  });
-
-  test('uses config router.templates as fallback when outlet has no src', async () => {
-    _config.router.templates = './views/';
-    _templateHtmlCache.clear();
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    // No src attribute on outlet — should fall back to config
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/products');
-
-    expect(global.fetch).toHaveBeenCalledWith('views/products.tpl');
-    expect(outlet.querySelector('.auto-content')).not.toBeNull();
-  });
-
-  test('outlet src attribute overrides config router.templates', async () => {
-    _config.router.templates = './default-views/';
-    _templateHtmlCache.clear();
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('src', './custom/');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/orders');
-
-    expect(global.fetch).toHaveBeenCalledWith('custom/orders.tpl');
-    expect(global.fetch).not.toHaveBeenCalledWith('default-views/orders.tpl');
-  });
-
-  test('config router.templates uses route-index for root path', async () => {
-    _config.router.templates = './pages/';
-    _templateHtmlCache.clear();
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    outlet.setAttribute('route-index', 'home');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/');
-
-    expect(global.fetch).toHaveBeenCalledWith('pages/home.tpl');
-  });
-
-  test('no file-based routing when both outlet src and config templates are empty', async () => {
-    _config.router.templates = '';
-    _templateHtmlCache.clear();
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const router = _createRouter();
-    setRouterInstance(router);
-
-    await router.push('/nowhere');
-
-    expect(global.fetch).not.toHaveBeenCalled();
-    // No file-based routing but built-in 404 still renders for unmatched routes
-    expect(outlet.innerHTML).toContain('404');
-  });
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./components/");
+		outlet.setAttribute("ext", ".vue");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/sidebar");
+
+		expect(global.fetch).toHaveBeenCalledWith("components/sidebar.vue");
+		expect(global.fetch).not.toHaveBeenCalledWith("components/sidebar.jsx");
+		_config.router.ext = ".tpl"; // reset
+	});
+
+	test("caches auto-resolved templates on re-navigation", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./pages/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/about");
+		expect(global.fetch).toHaveBeenCalledTimes(1);
+
+		// Navigate away and back
+		await router.push("/other");
+		await router.push("/about");
+
+		// Should not re-fetch (template element is cached + HTML cache)
+		expect(global.fetch).toHaveBeenCalledTimes(2); // /other is a new fetch
+	});
+
+	test("explicit routes take priority over file-based routing", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./pages/");
+		document.body.appendChild(outlet);
+
+		// Register an explicit route
+		const tpl = document.createElement("template");
+		tpl.innerHTML = '<p class="explicit">Explicit Route</p>';
+
+		const router = _createRouter();
+		setRouterInstance(router);
+		router.register("/about", tpl);
+
+		await router.push("/about");
+
+		// Explicit route should render, not file-based
+		expect(outlet.querySelector(".explicit")).not.toBeNull();
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
+
+	test("handles nested route paths", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./pages/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/settings/profile");
+
+		expect(global.fetch).toHaveBeenCalledWith("pages/settings/profile.tpl");
+	});
+
+	test("normalizes src path with trailing slash", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./pages"); // no trailing slash
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/features");
+
+		expect(global.fetch).toHaveBeenCalledWith("pages/features.tpl");
+	});
+
+	test("sets i18n-ns on auto-resolved template when outlet has i18n-ns", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "templates/");
+		outlet.setAttribute("i18n-ns", "");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/features");
+
+		// The auto-created template should have i18n-ns="features"
+		const autoTpl = document.querySelector('template[route="/features"]');
+		expect(autoTpl).not.toBeNull();
+		expect(autoTpl.getAttribute("i18n-ns")).toBe("features");
+	});
+
+	test("i18n-ns uses route-index name for root path", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "templates/");
+		outlet.setAttribute("route-index", "landing");
+		outlet.setAttribute("i18n-ns", "");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/");
+
+		const autoTpl = document.querySelector('template[route="/"]');
+		expect(autoTpl).not.toBeNull();
+		expect(autoTpl.getAttribute("i18n-ns")).toBe("landing");
+	});
+
+	test("preserves query params and hash with file-based routing", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./pages/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/dashboard?tab=stats#summary");
+
+		expect(global.fetch).toHaveBeenCalledWith("pages/dashboard.tpl");
+		expect(router.current.path).toBe("/dashboard");
+		expect(router.current.query.tab).toBe("stats");
+		expect(router.current.hash).toBe("#summary");
+		expect(outlet.querySelector(".auto-content")).not.toBeNull();
+	});
+
+	test("uses config router.templates default when outlet has no src attribute", async () => {
+		// templates defaults to 'pages' — file-based routing works without src on outlet
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		// No src attribute — uses config default
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/anything");
+
+		expect(global.fetch).toHaveBeenCalledWith("pages/anything.tpl");
+		expect(outlet.querySelector(".auto-content")).not.toBeNull();
+	});
+
+	test("different auto-resolved routes fetch different files", async () => {
+		_templateHtmlCache.clear();
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./sections/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/alpha");
+		expect(global.fetch).toHaveBeenCalledWith("sections/alpha.tpl");
+
+		await router.push("/bravo");
+		expect(global.fetch).toHaveBeenCalledWith("sections/bravo.tpl");
+
+		await router.push("/charlie");
+		expect(global.fetch).toHaveBeenCalledWith("sections/charlie.tpl");
+
+		expect(global.fetch).toHaveBeenCalledTimes(3);
+	});
+
+	test("file-based routing works with history mode", async () => {
+		_config.router.useHash = false;
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./views/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/contact");
+
+		expect(global.fetch).toHaveBeenCalledWith("views/contact.tpl");
+		expect(outlet.querySelector(".auto-content")).not.toBeNull();
+	});
+
+	test("renders content from fetched template in outlet", async () => {
+		_templateHtmlCache.clear();
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () =>
+				Promise.resolve(
+					'<h1 class="page-title">Dashboard</h1><p class="page-body">Stats here</p>',
+				),
+		});
+
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./render-test/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/my-dashboard");
+
+		expect(outlet.querySelector(".page-title").textContent).toBe("Dashboard");
+		expect(outlet.querySelector(".page-body").textContent).toBe("Stats here");
+	});
+
+	test("clears previous content when navigating to new file-based route", async () => {
+		let callCount = 0;
+		global.fetch = jest.fn().mockImplementation(() => {
+			callCount++;
+			const html =
+				callCount === 1
+					? '<p class="first-page">First</p>'
+					: '<p class="second-page">Second</p>';
+			return Promise.resolve({ ok: true, text: () => Promise.resolve(html) });
+		});
+
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./pages/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/first");
+		expect(outlet.querySelector(".first-page")).not.toBeNull();
+
+		await router.push("/second");
+		expect(outlet.querySelector(".second-page")).not.toBeNull();
+		expect(outlet.querySelector(".first-page")).toBeNull(); // previous content cleared
+	});
+
+	test("uses config router.templates as fallback when outlet has no src", async () => {
+		_config.router.templates = "./views/";
+		_templateHtmlCache.clear();
+
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		// No src attribute on outlet — should fall back to config
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/products");
+
+		expect(global.fetch).toHaveBeenCalledWith("views/products.tpl");
+		expect(outlet.querySelector(".auto-content")).not.toBeNull();
+	});
+
+	test("outlet src attribute overrides config router.templates", async () => {
+		_config.router.templates = "./default-views/";
+		_templateHtmlCache.clear();
+
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("src", "./custom/");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/orders");
+
+		expect(global.fetch).toHaveBeenCalledWith("custom/orders.tpl");
+		expect(global.fetch).not.toHaveBeenCalledWith("default-views/orders.tpl");
+	});
+
+	test("config router.templates uses route-index for root path", async () => {
+		_config.router.templates = "./pages/";
+		_templateHtmlCache.clear();
+
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		outlet.setAttribute("route-index", "home");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/");
+
+		expect(global.fetch).toHaveBeenCalledWith("pages/home.tpl");
+	});
+
+	test("no file-based routing when both outlet src and config templates are empty", async () => {
+		_config.router.templates = "";
+		_templateHtmlCache.clear();
+
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+
+		await router.push("/nowhere");
+
+		expect(global.fetch).not.toHaveBeenCalled();
+		// No file-based routing but built-in 404 still renders for unmatched routes
+		expect(outlet.innerHTML).toContain("404");
+	});
 });
 
-
-
-
-
-describe('Router — Named Outlets', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    document.body.innerHTML = '';
-    window.location.hash = '';
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-  });
-
-  afterEach(() => {
-    setRouterInstance(null);
-    Object.keys(_stores).forEach((k) => delete _stores[k]);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
-
-
-
-  test('register() with 2 args registers to "default" outlet', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Main content</p>';
-
-    const router = _createRouter();
-    router.register('/page', tpl);
-    await router.push('/page');
-
-    expect(outlet.innerHTML).toContain('Main content');
-  });
-
-  test('register() with 3rd arg targets named outlet', async () => {
-    const mainOutlet = document.createElement('div');
-    mainOutlet.setAttribute('route-view', '');
-    document.body.appendChild(mainOutlet);
-
-    const sidebarOutlet = document.createElement('div');
-    sidebarOutlet.setAttribute('route-view', 'sidebar');
-    document.body.appendChild(sidebarOutlet);
-
-    const mainTpl = document.createElement('template');
-    mainTpl.innerHTML = '<p>Main</p>';
-
-    const sidebarTpl = document.createElement('template');
-    sidebarTpl.innerHTML = '<nav>Sidebar</nav>';
-
-    const router = _createRouter();
-    router.register('/page', mainTpl);
-    router.register('/page', sidebarTpl, 'sidebar');
-    await router.push('/page');
-
-    expect(mainOutlet.innerHTML).toContain('Main');
-    expect(sidebarOutlet.innerHTML).toContain('Sidebar');
-  });
-
-
-
-  test('route-view with empty value treated as default outlet', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Default content</p>';
-
-    const router = _createRouter();
-    router.register('/test', tpl);
-    await router.push('/test');
-
-    expect(outlet.innerHTML).toContain('Default content');
-  });
-
-
-
-  test('template outlet attr registers to named outlet via init()', async () => {
-    const mainOutlet = document.createElement('div');
-    mainOutlet.setAttribute('route-view', '');
-    document.body.appendChild(mainOutlet);
-
-    const sidebarOutlet = document.createElement('div');
-    sidebarOutlet.setAttribute('route-view', 'sidebar');
-    document.body.appendChild(sidebarOutlet);
-
-
-    const mainTpl = document.createElement('template');
-    mainTpl.setAttribute('route', '/dash');
-    mainTpl.innerHTML = '<h1>Dashboard</h1>';
-    document.body.appendChild(mainTpl);
-
-    const sidebarTpl = document.createElement('template');
-    sidebarTpl.setAttribute('route', '/dash');
-    sidebarTpl.setAttribute('outlet', 'sidebar');
-    sidebarTpl.innerHTML = '<nav>Dashboard nav</nav>';
-    document.body.appendChild(sidebarTpl);
-
-    window.location.hash = '#/dash';
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
-
-    expect(mainOutlet.innerHTML).toContain('Dashboard');
-    expect(sidebarOutlet.innerHTML).toContain('Dashboard nav');
-  });
-
-
-
-  test('named outlet is cleared when route has no template for that outlet', async () => {
-    const mainOutlet = document.createElement('div');
-    mainOutlet.setAttribute('route-view', '');
-    document.body.appendChild(mainOutlet);
-
-    const sidebarOutlet = document.createElement('div');
-    sidebarOutlet.setAttribute('route-view', 'sidebar');
-    sidebarOutlet.innerHTML = '<p>stale sidebar</p>';
-    document.body.appendChild(sidebarOutlet);
-
-    const mainTpl = document.createElement('template');
-    mainTpl.innerHTML = '<p>About</p>';
-
-    const router = _createRouter();
-    router.register('/about', mainTpl);
-    await router.push('/about');
-
-    expect(mainOutlet.innerHTML).toContain('About');
-
-    expect(sidebarOutlet.innerHTML).toBe('');
-  });
-
-
-
-  test('renders three different outlets for same route', async () => {
-    const mainOutlet = document.createElement('div');
-    mainOutlet.setAttribute('route-view', '');
-    document.body.appendChild(mainOutlet);
-
-    const sidebarOutlet = document.createElement('div');
-    sidebarOutlet.setAttribute('route-view', 'sidebar');
-    document.body.appendChild(sidebarOutlet);
-
-    const topbarOutlet = document.createElement('div');
-    topbarOutlet.setAttribute('route-view', 'topbar');
-    document.body.appendChild(topbarOutlet);
-
-    const mainTpl = document.createElement('template');
-    mainTpl.innerHTML = '<main>Main body</main>';
-
-    const sidebarTpl = document.createElement('template');
-    sidebarTpl.innerHTML = '<aside>Side panel</aside>';
-
-    const topbarTpl = document.createElement('template');
-    topbarTpl.innerHTML = '<header>Top bar</header>';
-
-    const router = _createRouter();
-    router.register('/app', mainTpl);
-    router.register('/app', sidebarTpl, 'sidebar');
-    router.register('/app', topbarTpl, 'topbar');
-    await router.push('/app');
-
-    expect(mainOutlet.innerHTML).toContain('Main body');
-    expect(sidebarOutlet.innerHTML).toContain('Side panel');
-    expect(topbarOutlet.innerHTML).toContain('Top bar');
-  });
-
-
-
-  test('navigating clears named outlet when new route has no template for it', async () => {
-    const mainOutlet = document.createElement('div');
-    mainOutlet.setAttribute('route-view', '');
-    document.body.appendChild(mainOutlet);
-
-    const sidebarOutlet = document.createElement('div');
-    sidebarOutlet.setAttribute('route-view', 'sidebar');
-    document.body.appendChild(sidebarOutlet);
-
-    const homeTpl = document.createElement('template');
-    homeTpl.innerHTML = '<p>Home</p>';
-
-    const homeSidebarTpl = document.createElement('template');
-    homeSidebarTpl.innerHTML = '<nav>Home sidebar</nav>';
-
-    const aboutTpl = document.createElement('template');
-    aboutTpl.innerHTML = '<p>About</p>';
-
-
-    const router = _createRouter();
-    router.register('/home', homeTpl);
-    router.register('/home', homeSidebarTpl, 'sidebar');
-    router.register('/about', aboutTpl);
-
-
-    await router.push('/home');
-    expect(mainOutlet.innerHTML).toContain('Home');
-    expect(sidebarOutlet.innerHTML).toContain('Home sidebar');
-
-
-    await router.push('/about');
-    expect(mainOutlet.innerHTML).toContain('About');
-    expect(sidebarOutlet.innerHTML).toBe('');
-  });
-
-
-
-  test('guard check still works with named outlets', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const protectedTpl = document.createElement('template');
-    protectedTpl.setAttribute('guard', 'false');
-    protectedTpl.setAttribute('redirect', '/login');
-    protectedTpl.innerHTML = '<p>Protected</p>';
-
-    const loginTpl = document.createElement('template');
-    loginTpl.innerHTML = '<p>Login page</p>';
-
-    const router = _createRouter();
-    router.register('/protected', protectedTpl);
-    router.register('/login', loginTpl);
-    await router.push('/protected');
-
-
-    expect(router.current.path).toBe('/login');
-    expect(outlet.innerHTML).toContain('Login page');
-  });
+describe("Router — Named Outlets", () => {
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		document.body.innerHTML = "";
+		window.location.hash = "";
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+	});
+
+	afterEach(() => {
+		setRouterInstance(null);
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
+
+	test('register() with 2 args registers to "default" outlet', async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
+
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Main content</p>";
+
+		const router = _createRouter();
+		router.register("/page", tpl);
+		await router.push("/page");
+
+		expect(outlet.innerHTML).toContain("Main content");
+	});
+
+	test("register() with 3rd arg targets named outlet", async () => {
+		const mainOutlet = document.createElement("div");
+		mainOutlet.setAttribute("route-view", "");
+		document.body.appendChild(mainOutlet);
+
+		const sidebarOutlet = document.createElement("div");
+		sidebarOutlet.setAttribute("route-view", "sidebar");
+		document.body.appendChild(sidebarOutlet);
+
+		const mainTpl = document.createElement("template");
+		mainTpl.innerHTML = "<p>Main</p>";
+
+		const sidebarTpl = document.createElement("template");
+		sidebarTpl.innerHTML = "<nav>Sidebar</nav>";
+
+		const router = _createRouter();
+		router.register("/page", mainTpl);
+		router.register("/page", sidebarTpl, "sidebar");
+		await router.push("/page");
+
+		expect(mainOutlet.innerHTML).toContain("Main");
+		expect(sidebarOutlet.innerHTML).toContain("Sidebar");
+	});
+
+	test("route-view with empty value treated as default outlet", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
+
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Default content</p>";
+
+		const router = _createRouter();
+		router.register("/test", tpl);
+		await router.push("/test");
+
+		expect(outlet.innerHTML).toContain("Default content");
+	});
+
+	test("template outlet attr registers to named outlet via init()", async () => {
+		const mainOutlet = document.createElement("div");
+		mainOutlet.setAttribute("route-view", "");
+		document.body.appendChild(mainOutlet);
+
+		const sidebarOutlet = document.createElement("div");
+		sidebarOutlet.setAttribute("route-view", "sidebar");
+		document.body.appendChild(sidebarOutlet);
+
+		const mainTpl = document.createElement("template");
+		mainTpl.setAttribute("route", "/dash");
+		mainTpl.innerHTML = "<h1>Dashboard</h1>";
+		document.body.appendChild(mainTpl);
+
+		const sidebarTpl = document.createElement("template");
+		sidebarTpl.setAttribute("route", "/dash");
+		sidebarTpl.setAttribute("outlet", "sidebar");
+		sidebarTpl.innerHTML = "<nav>Dashboard nav</nav>";
+		document.body.appendChild(sidebarTpl);
+
+		window.location.hash = "#/dash";
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
+
+		expect(mainOutlet.innerHTML).toContain("Dashboard");
+		expect(sidebarOutlet.innerHTML).toContain("Dashboard nav");
+	});
+
+	test("named outlet is cleared when route has no template for that outlet", async () => {
+		const mainOutlet = document.createElement("div");
+		mainOutlet.setAttribute("route-view", "");
+		document.body.appendChild(mainOutlet);
+
+		const sidebarOutlet = document.createElement("div");
+		sidebarOutlet.setAttribute("route-view", "sidebar");
+		sidebarOutlet.innerHTML = "<p>stale sidebar</p>";
+		document.body.appendChild(sidebarOutlet);
+
+		const mainTpl = document.createElement("template");
+		mainTpl.innerHTML = "<p>About</p>";
+
+		const router = _createRouter();
+		router.register("/about", mainTpl);
+		await router.push("/about");
+
+		expect(mainOutlet.innerHTML).toContain("About");
+
+		expect(sidebarOutlet.innerHTML).toBe("");
+	});
+
+	test("renders three different outlets for same route", async () => {
+		const mainOutlet = document.createElement("div");
+		mainOutlet.setAttribute("route-view", "");
+		document.body.appendChild(mainOutlet);
+
+		const sidebarOutlet = document.createElement("div");
+		sidebarOutlet.setAttribute("route-view", "sidebar");
+		document.body.appendChild(sidebarOutlet);
+
+		const topbarOutlet = document.createElement("div");
+		topbarOutlet.setAttribute("route-view", "topbar");
+		document.body.appendChild(topbarOutlet);
+
+		const mainTpl = document.createElement("template");
+		mainTpl.innerHTML = "<main>Main body</main>";
+
+		const sidebarTpl = document.createElement("template");
+		sidebarTpl.innerHTML = "<aside>Side panel</aside>";
+
+		const topbarTpl = document.createElement("template");
+		topbarTpl.innerHTML = "<header>Top bar</header>";
+
+		const router = _createRouter();
+		router.register("/app", mainTpl);
+		router.register("/app", sidebarTpl, "sidebar");
+		router.register("/app", topbarTpl, "topbar");
+		await router.push("/app");
+
+		expect(mainOutlet.innerHTML).toContain("Main body");
+		expect(sidebarOutlet.innerHTML).toContain("Side panel");
+		expect(topbarOutlet.innerHTML).toContain("Top bar");
+	});
+
+	test("navigating clears named outlet when new route has no template for it", async () => {
+		const mainOutlet = document.createElement("div");
+		mainOutlet.setAttribute("route-view", "");
+		document.body.appendChild(mainOutlet);
+
+		const sidebarOutlet = document.createElement("div");
+		sidebarOutlet.setAttribute("route-view", "sidebar");
+		document.body.appendChild(sidebarOutlet);
+
+		const homeTpl = document.createElement("template");
+		homeTpl.innerHTML = "<p>Home</p>";
+
+		const homeSidebarTpl = document.createElement("template");
+		homeSidebarTpl.innerHTML = "<nav>Home sidebar</nav>";
+
+		const aboutTpl = document.createElement("template");
+		aboutTpl.innerHTML = "<p>About</p>";
+
+		const router = _createRouter();
+		router.register("/home", homeTpl);
+		router.register("/home", homeSidebarTpl, "sidebar");
+		router.register("/about", aboutTpl);
+
+		await router.push("/home");
+		expect(mainOutlet.innerHTML).toContain("Home");
+		expect(sidebarOutlet.innerHTML).toContain("Home sidebar");
+
+		await router.push("/about");
+		expect(mainOutlet.innerHTML).toContain("About");
+		expect(sidebarOutlet.innerHTML).toBe("");
+	});
+
+	test("guard check still works with named outlets", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
+
+		const protectedTpl = document.createElement("template");
+		protectedTpl.setAttribute("guard", "false");
+		protectedTpl.setAttribute("redirect", "/login");
+		protectedTpl.innerHTML = "<p>Protected</p>";
+
+		const loginTpl = document.createElement("template");
+		loginTpl.innerHTML = "<p>Login page</p>";
+
+		const router = _createRouter();
+		router.register("/protected", protectedTpl);
+		router.register("/login", loginTpl);
+		await router.push("/protected");
+
+		expect(router.current.path).toBe("/login");
+		expect(outlet.innerHTML).toContain("Login page");
+	});
 });
 
-describe('Router — anchor links in hash mode', () => {
-  let router;
+describe("Router — anchor links in hash mode", () => {
+	let router;
 
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top' };
-    document.body.innerHTML = '';
-    window.location.hash = '';
-    window.scrollTo = jest.fn();
-  });
+	beforeEach(() => {
+		_config.router = { useHash: true, base: "/", scrollBehavior: "top" };
+		document.body.innerHTML = "";
+		window.location.hash = "";
+		window.scrollTo = jest.fn();
+	});
 
-  afterEach(() => {
-    setRouterInstance(null);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+	afterEach(() => {
+		setRouterInstance(null);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
-  test('click on href="#id" scrolls to element and prevents route navigation', async () => {
-    const section = document.createElement('div');
-    section.id = 'my-section';
-    section.scrollIntoView = jest.fn();
-    document.body.appendChild(section);
+	test('click on href="#id" scrolls to element and prevents route navigation', async () => {
+		const section = document.createElement("div");
+		section.id = "my-section";
+		section.scrollIntoView = jest.fn();
+		document.body.appendChild(section);
 
-    const link = document.createElement('a');
-    link.setAttribute('href', '#my-section');
-    document.body.appendChild(link);
+		const link = document.createElement("a");
+		link.setAttribute("href", "#my-section");
+		document.body.appendChild(link);
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Home</p>';
-    router = _createRouter();
-    router.register('/', tpl);
-    await router.init();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Home</p>";
+		router = _createRouter();
+		router.register("/", tpl);
+		await router.init();
 
-    expect(router.current.path).toBe('/');
+		expect(router.current.path).toBe("/");
 
-    link.click();
+		link.click();
 
-    expect(section.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' });
-    expect(router.current.path).toBe('/');
-  });
+		expect(section.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth" });
+		expect(router.current.path).toBe("/");
+	});
 
-  test('click on href="#id" adds active class to matching anchor links', async () => {
-    const section1 = document.createElement('div');
-    section1.id = 'section-a';
-    section1.scrollIntoView = jest.fn();
-    document.body.appendChild(section1);
+	test('click on href="#id" adds active class to matching anchor links', async () => {
+		const section1 = document.createElement("div");
+		section1.id = "section-a";
+		section1.scrollIntoView = jest.fn();
+		document.body.appendChild(section1);
 
-    const section2 = document.createElement('div');
-    section2.id = 'section-b';
-    section2.scrollIntoView = jest.fn();
-    document.body.appendChild(section2);
+		const section2 = document.createElement("div");
+		section2.id = "section-b";
+		section2.scrollIntoView = jest.fn();
+		document.body.appendChild(section2);
 
-    const linkA = document.createElement('a');
-    linkA.setAttribute('href', '#section-a');
-    linkA.className = 'sidebar-link';
-    document.body.appendChild(linkA);
+		const linkA = document.createElement("a");
+		linkA.setAttribute("href", "#section-a");
+		linkA.className = "sidebar-link";
+		document.body.appendChild(linkA);
 
-    const linkB = document.createElement('a');
-    linkB.setAttribute('href', '#section-b');
-    linkB.className = 'sidebar-link';
-    document.body.appendChild(linkB);
+		const linkB = document.createElement("a");
+		linkB.setAttribute("href", "#section-b");
+		linkB.className = "sidebar-link";
+		document.body.appendChild(linkB);
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Home</p>';
-    router = _createRouter();
-    router.register('/', tpl);
-    await router.init();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Home</p>";
+		router = _createRouter();
+		router.register("/", tpl);
+		await router.init();
 
-    linkA.click();
-    expect(linkA.classList.contains('active')).toBe(true);
-    expect(linkB.classList.contains('active')).toBe(false);
+		linkA.click();
+		expect(linkA.classList.contains("active")).toBe(true);
+		expect(linkB.classList.contains("active")).toBe(false);
 
-    linkB.click();
-    expect(linkA.classList.contains('active')).toBe(false);
-    expect(linkB.classList.contains('active')).toBe(true);
-  });
+		linkB.click();
+		expect(linkA.classList.contains("active")).toBe(false);
+		expect(linkB.classList.contains("active")).toBe(true);
+	});
 
-  test('click on href="#id" is ignored when target element does not exist', async () => {
-    const link = document.createElement('a');
-    link.setAttribute('href', '#nonexistent');
-    document.body.appendChild(link);
+	test('click on href="#id" is ignored when target element does not exist', async () => {
+		const link = document.createElement("a");
+		link.setAttribute("href", "#nonexistent");
+		document.body.appendChild(link);
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Home</p>';
-    router = _createRouter();
-    router.register('/', tpl);
-    await router.init();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Home</p>";
+		router = _createRouter();
+		router.register("/", tpl);
+		await router.init();
 
-    link.click();
-    expect(router.current.path).toBe('/');
-  });
+		link.click();
+		expect(router.current.path).toBe("/");
+	});
 
-  test('anchor links with route attribute are handled as route navigation, not anchors', async () => {
-    const link = document.createElement('a');
-    link.setAttribute('route', '/about');
-    link.setAttribute('href', '#about');
-    document.body.appendChild(link);
+	test("anchor links with route attribute are handled as route navigation, not anchors", async () => {
+		const link = document.createElement("a");
+		link.setAttribute("route", "/about");
+		link.setAttribute("href", "#about");
+		document.body.appendChild(link);
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const homeTpl = document.createElement('template');
-    homeTpl.innerHTML = '<p>Home</p>';
-    const aboutTpl = document.createElement('template');
-    aboutTpl.innerHTML = '<p>About</p>';
+		const homeTpl = document.createElement("template");
+		homeTpl.innerHTML = "<p>Home</p>";
+		const aboutTpl = document.createElement("template");
+		aboutTpl.innerHTML = "<p>About</p>";
 
-    router = _createRouter();
-    router.register('/', homeTpl);
-    router.register('/about', aboutTpl);
-    await router.init();
+		router = _createRouter();
+		router.register("/", homeTpl);
+		router.register("/about", aboutTpl);
+		await router.init();
 
-    link.click();
-    expect(router.current.path).toBe('/about');
-  });
+		link.click();
+		expect(router.current.path).toBe("/about");
+	});
 
-  test('href="#/route" starting with slash is not treated as anchor', async () => {
-    const link = document.createElement('a');
-    link.setAttribute('href', '#/docs');
-    document.body.appendChild(link);
+	test('href="#/route" starting with slash is not treated as anchor', async () => {
+		const link = document.createElement("a");
+		link.setAttribute("href", "#/docs");
+		document.body.appendChild(link);
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Home</p>';
-    router = _createRouter();
-    router.register('/', tpl);
-    await router.init();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Home</p>";
+		router = _createRouter();
+		router.register("/", tpl);
+		await router.init();
 
-    link.click();
-    expect(router.current.path).toBe('/');
-  });
+		link.click();
+		expect(router.current.path).toBe("/");
+	});
 });
 
+describe("Router — wildcard 404 catch-all", () => {
+	beforeEach(() => {
+		_config.router = {
+			useHash: true,
+			base: "/",
+			scrollBehavior: "top",
+			templates: "",
+			ext: ".tpl",
+		};
+		document.body.innerHTML = "";
+		window.location.hash = "";
+		window.scrollTo = jest.fn();
+		setRouterInstance(null);
+	});
+
+	afterEach(() => {
+		setRouterInstance(null);
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+		if (global.fetch) delete global.fetch;
+	});
+
+	test('wildcard route registration: route="*" templates do NOT appear in routes array', async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
+
+		const wildcardTpl = document.createElement("template");
+		wildcardTpl.setAttribute("route", "*");
+		wildcardTpl.innerHTML = "<p>404</p>";
+		document.body.appendChild(wildcardTpl);
+
+		const normalTpl = document.createElement("template");
+		normalTpl.setAttribute("route", "/about");
+		normalTpl.innerHTML = "<p>About</p>";
+		document.body.appendChild(normalTpl);
+
+		const router = _createRouter();
+		setRouterInstance(router);
+		window.location.hash = "#/about";
+		await router.init();
+
+		// register() exposes routes internally — wildcard should not be in routes
+		// Verify the wildcard is NOT navigable as an explicit route
+		const _matched = router.push("/about");
+		expect(router.current.path).toBe("/about");
+
+		// If we navigate to "*" literally, it shouldn't match any explicit route
+		await router.push("/*");
+		expect(router.current.matched).toBe(false);
+	});
+
+	test("wildcard rendering — default outlet: navigate to /nonexistent renders wildcard content", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
+
+		const wildcardTpl = document.createElement("template");
+		wildcardTpl.innerHTML = '<p class="custom-404">Custom Not Found</p>';
+
+		const router = _createRouter();
+		router.register("*", wildcardTpl);
+		router.register("/home", document.createElement("template"));
+
+		await router.push("/nonexistent");
+
+		expect(outlet.querySelector(".custom-404")).not.toBeNull();
+		expect(outlet.querySelector(".custom-404").textContent).toBe(
+			"Custom Not Found",
+		);
+	});
+
+	test('wildcard rendering — named outlet: renders in [route-view="sidebar"] when no route matches', async () => {
+		const mainOutlet = document.createElement("div");
+		mainOutlet.setAttribute("route-view", "");
+		document.body.appendChild(mainOutlet);
+
+		const sidebarOutlet = document.createElement("div");
+		sidebarOutlet.setAttribute("route-view", "sidebar");
+		document.body.appendChild(sidebarOutlet);
+
+		const mainWildcard = document.createElement("template");
+		mainWildcard.innerHTML = '<p class="main-404">Main 404</p>';
+
+		const sidebarWildcard = document.createElement("template");
+		sidebarWildcard.innerHTML = '<p class="sidebar-404">Sidebar 404</p>';
+
+		const router = _createRouter();
+		router.register("*", mainWildcard);
+		router.register("*", sidebarWildcard, "sidebar");
+
+		await router.push("/nonexistent");
+
+		expect(sidebarOutlet.querySelector(".sidebar-404")).not.toBeNull();
+		expect(sidebarOutlet.querySelector(".sidebar-404").textContent).toBe(
+			"Sidebar 404",
+		);
+	});
+
+	test("fallback chain — local then global: named outlet with no local wildcard falls back to global", async () => {
+		const mainOutlet = document.createElement("div");
+		mainOutlet.setAttribute("route-view", "");
+		document.body.appendChild(mainOutlet);
 
+		const sidebarOutlet = document.createElement("div");
+		sidebarOutlet.setAttribute("route-view", "sidebar");
+		document.body.appendChild(sidebarOutlet);
 
+		// Only define a global (default outlet) wildcard, no sidebar-specific one
+		const globalWildcard = document.createElement("template");
+		globalWildcard.innerHTML = '<p class="global-404">Global Not Found</p>';
 
+		const router = _createRouter();
+		router.register("*", globalWildcard);
 
-describe('Router — wildcard 404 catch-all', () => {
-  beforeEach(() => {
-    _config.router = { useHash: true, base: '/', scrollBehavior: 'top', templates: '', ext: '.tpl' };
-    document.body.innerHTML = '';
-    window.location.hash = '';
-    window.scrollTo = jest.fn();
-    setRouterInstance(null);
-  });
+		await router.push("/nonexistent");
 
-  afterEach(() => {
-    setRouterInstance(null);
-    Object.keys(_stores).forEach((k) => delete _stores[k]);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-    if (global.fetch) delete global.fetch;
-  });
+		// Main outlet gets the global wildcard
+		expect(mainOutlet.querySelector(".global-404")).not.toBeNull();
 
-  test('wildcard route registration: route="*" templates do NOT appear in routes array', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		// Sidebar should fall back to the global wildcard too
+		expect(sidebarOutlet.querySelector(".global-404")).not.toBeNull();
+	});
 
-    const wildcardTpl = document.createElement('template');
-    wildcardTpl.setAttribute('route', '*');
-    wildcardTpl.innerHTML = '<p>404</p>';
-    document.body.appendChild(wildcardTpl);
+	test("fallback chain — built-in 404: no wildcard defined → outlet contains the built-in 404 HTML", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const normalTpl = document.createElement('template');
-    normalTpl.setAttribute('route', '/about');
-    normalTpl.innerHTML = '<p>About</p>';
-    document.body.appendChild(normalTpl);
+		const router = _createRouter();
+		// No wildcard, no routes — navigate to something
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    window.location.hash = '#/about';
-    await router.init();
+		await router.push("/nonexistent");
 
-    // register() exposes routes internally — wildcard should not be in routes
-    // Verify the wildcard is NOT navigable as an explicit route
-    const matched = router.push('/about');
-    expect(router.current.path).toBe('/about');
+		expect(outlet.innerHTML).toContain("404");
+		expect(outlet.querySelector("h1")).not.toBeNull();
+		expect(outlet.querySelector("h1").textContent).toBe("404");
+		expect(outlet.querySelector("p").textContent).toBe("Page not found");
+	});
 
-    // If we navigate to "*" literally, it shouldn't match any explicit route
-    await router.push('/*');
-    expect(router.current.matched).toBe(false);
-  });
+	test('developer wildcard overrides built-in: route="*" content renders instead of built-in', async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-  test('wildcard rendering — default outlet: navigate to /nonexistent renders wildcard content', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const wildcardTpl = document.createElement("template");
+		wildcardTpl.innerHTML = '<h1 class="dev-404">Custom 404</h1>';
 
-    const wildcardTpl = document.createElement('template');
-    wildcardTpl.innerHTML = '<p class="custom-404">Custom Not Found</p>';
+		const router = _createRouter();
+		router.register("*", wildcardTpl);
 
-    const router = _createRouter();
-    router.register('*', wildcardTpl);
-    router.register('/home', document.createElement('template'));
+		await router.push("/nonexistent");
 
-    await router.push('/nonexistent');
+		expect(outlet.querySelector(".dev-404")).not.toBeNull();
+		expect(outlet.querySelector(".dev-404").textContent).toBe("Custom 404");
+		// Built-in 404 should NOT be present
+		expect(outlet.innerHTML).not.toContain("Page not found");
+	});
 
-    expect(outlet.querySelector('.custom-404')).not.toBeNull();
-    expect(outlet.querySelector('.custom-404').textContent).toBe('Custom Not Found');
-  });
+	test("$route.matched is false when navigating to unmatched path", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-  test('wildcard rendering — named outlet: renders in [route-view="sidebar"] when no route matches', async () => {
-    const mainOutlet = document.createElement('div');
-    mainOutlet.setAttribute('route-view', '');
-    document.body.appendChild(mainOutlet);
+		const router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Home</p>";
+		router.register("/", tpl);
 
-    const sidebarOutlet = document.createElement('div');
-    sidebarOutlet.setAttribute('route-view', 'sidebar');
-    document.body.appendChild(sidebarOutlet);
+		await router.push("/nonexistent");
 
-    const mainWildcard = document.createElement('template');
-    mainWildcard.innerHTML = '<p class="main-404">Main 404</p>';
+		expect(router.current.matched).toBe(false);
+	});
 
-    const sidebarWildcard = document.createElement('template');
-    sidebarWildcard.innerHTML = '<p class="sidebar-404">Sidebar 404</p>';
+	test("$route.matched is true when navigating to a defined route", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const router = _createRouter();
-    router.register('*', mainWildcard);
-    router.register('*', sidebarWildcard, 'sidebar');
+		const router = _createRouter();
+		const tpl = document.createElement("template");
+		tpl.innerHTML = "<p>Home</p>";
+		router.register("/", tpl);
 
-    await router.push('/nonexistent');
+		await router.push("/");
 
-    expect(sidebarOutlet.querySelector('.sidebar-404')).not.toBeNull();
-    expect(sidebarOutlet.querySelector('.sidebar-404').textContent).toBe('Sidebar 404');
-  });
+		expect(router.current.matched).toBe(true);
+	});
 
-  test('fallback chain — local then global: named outlet with no local wildcard falls back to global', async () => {
-    const mainOutlet = document.createElement('div');
-    mainOutlet.setAttribute('route-view', '');
-    document.body.appendChild(mainOutlet);
+	test("$route.path available in wildcard: navigate to /nonexistent shows correct path", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const sidebarOutlet = document.createElement('div');
-    sidebarOutlet.setAttribute('route-view', 'sidebar');
-    document.body.appendChild(sidebarOutlet);
+		const wildcardTpl = document.createElement("template");
+		wildcardTpl.innerHTML = '<p class="path-display">Not Found</p>';
 
-    // Only define a global (default outlet) wildcard, no sidebar-specific one
-    const globalWildcard = document.createElement('template');
-    globalWildcard.innerHTML = '<p class="global-404">Global Not Found</p>';
+		const router = _createRouter();
+		router.register("*", wildcardTpl);
 
-    const router = _createRouter();
-    router.register('*', globalWildcard);
+		await router.push("/nonexistent");
 
-    await router.push('/nonexistent');
+		// The $route context is created with the current path
+		expect(router.current.path).toBe("/nonexistent");
+		expect(outlet.querySelector(".path-display")).not.toBeNull();
+	});
 
-    // Main outlet gets the global wildcard
-    expect(mainOutlet.querySelector('.global-404')).not.toBeNull();
+	test("wildcard with src: remote template loads via fetch", async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve('<p class="remote-404">Remote 404 Page</p>'),
+		});
 
-    // Sidebar should fall back to the global wildcard too
-    expect(sidebarOutlet.querySelector('.global-404')).not.toBeNull();
-  });
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-  test('fallback chain — built-in 404: no wildcard defined → outlet contains the built-in 404 HTML', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const wildcardTpl = document.createElement("template");
+		wildcardTpl.setAttribute("src", "./404.tpl");
 
-    const router = _createRouter();
-    // No wildcard, no routes — navigate to something
+		const router = _createRouter();
+		router.register("*", wildcardTpl);
 
-    await router.push('/nonexistent');
+		await router.push("/nonexistent");
 
-    expect(outlet.innerHTML).toContain('404');
-    expect(outlet.querySelector('h1')).not.toBeNull();
-    expect(outlet.querySelector('h1').textContent).toBe('404');
-    expect(outlet.querySelector('p').textContent).toBe('Page not found');
-  });
+		expect(global.fetch).toHaveBeenCalledWith("404.tpl");
+		expect(outlet.querySelector(".remote-404")).not.toBeNull();
+		expect(outlet.querySelector(".remote-404").textContent).toBe(
+			"Remote 404 Page",
+		);
+	});
 
-  test('developer wildcard overrides built-in: route="*" content renders instead of built-in', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test("wildcard with guard: guarded wildcard that blocks → redirect executes", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const wildcardTpl = document.createElement('template');
-    wildcardTpl.innerHTML = '<h1 class="dev-404">Custom 404</h1>';
+		const wildcardTpl = document.createElement("template");
+		wildcardTpl.setAttribute("guard", "false");
+		wildcardTpl.setAttribute("redirect", "/login");
+		wildcardTpl.innerHTML = "<p>Guarded 404</p>";
 
-    const router = _createRouter();
-    router.register('*', wildcardTpl);
+		const loginTpl = document.createElement("template");
+		loginTpl.innerHTML = '<p class="login">Login</p>';
 
-    await router.push('/nonexistent');
+		const router = _createRouter();
+		router.register("*", wildcardTpl);
+		router.register("/login", loginTpl);
 
-    expect(outlet.querySelector('.dev-404')).not.toBeNull();
-    expect(outlet.querySelector('.dev-404').textContent).toBe('Custom 404');
-    // Built-in 404 should NOT be present
-    expect(outlet.innerHTML).not.toContain('Page not found');
-  });
+		await router.push("/nonexistent");
 
-  test('$route.matched is false when navigating to unmatched path', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		// Guard blocked the wildcard, redirect to /login
+		expect(router.current.path).toBe("/login");
+		expect(outlet.querySelector(".login")).not.toBeNull();
+	});
 
-    const router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Home</p>';
-    router.register('/', tpl);
+	test('wildcard not returned by matchRoute: navigating to "*" literally returns matched=false', async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    await router.push('/nonexistent');
+		const wildcardTpl = document.createElement("template");
+		wildcardTpl.innerHTML = '<p class="catch-all">Catch All</p>';
 
-    expect(router.current.matched).toBe(false);
-  });
+		const router = _createRouter();
+		router.register("*", wildcardTpl);
+		router.register("/home", document.createElement("template"));
 
-  test('$route.matched is true when navigating to a defined route', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		// Navigate to literal "*" — matchRoute should NOT match it
+		await router.push("/*");
 
-    const router = _createRouter();
-    const tpl = document.createElement('template');
-    tpl.innerHTML = '<p>Home</p>';
-    router.register('/', tpl);
+		expect(router.current.matched).toBe(false);
+	});
 
-    await router.push('/');
+	test("explicit routes always win: /about uses explicit route, not wildcard", async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    expect(router.current.matched).toBe(true);
-  });
+		const aboutTpl = document.createElement("template");
+		aboutTpl.innerHTML = '<p class="about-page">About Us</p>';
 
-  test('$route.path available in wildcard: navigate to /nonexistent shows correct path', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const wildcardTpl = document.createElement("template");
+		wildcardTpl.innerHTML = '<p class="wildcard-page">404</p>';
 
-    const wildcardTpl = document.createElement('template');
-    wildcardTpl.innerHTML = '<p class="path-display">Not Found</p>';
+		const router = _createRouter();
+		router.register("/about", aboutTpl);
+		router.register("*", wildcardTpl);
 
-    const router = _createRouter();
-    router.register('*', wildcardTpl);
+		await router.push("/about");
 
-    await router.push('/nonexistent');
+		expect(router.current.matched).toBe(true);
+		expect(outlet.querySelector(".about-page")).not.toBeNull();
+		expect(outlet.querySelector(".wildcard-page")).toBeNull();
+	});
 
-    // The $route context is created with the current path
-    expect(router.current.path).toBe('/nonexistent');
-    expect(outlet.querySelector('.path-display')).not.toBeNull();
-  });
+	test("file-based routing 404: fetch returns { ok: false } → wildcard fallback activates", async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: false,
+			status: 404,
+			text: () => Promise.resolve("Not Found"),
+		});
 
-  test('wildcard with src: remote template loads via fetch', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p class="remote-404">Remote 404 Page</p>'),
-    });
+		_config.router.templates = "pages";
 
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const wildcardTpl = document.createElement('template');
-    wildcardTpl.setAttribute('src', './404.tpl');
+		const wildcardTpl = document.createElement("template");
+		wildcardTpl.innerHTML = '<p class="fallback-404">Wildcard Fallback</p>';
 
-    const router = _createRouter();
-    router.register('*', wildcardTpl);
+		const router = _createRouter();
+		router.register("*", wildcardTpl);
 
-    await router.push('/nonexistent');
+		await router.push("/nonexistent");
 
-    expect(global.fetch).toHaveBeenCalledWith('404.tpl');
-    expect(outlet.querySelector('.remote-404')).not.toBeNull();
-    expect(outlet.querySelector('.remote-404').textContent).toBe('Remote 404 Page');
-  });
+		expect(outlet.querySelector(".fallback-404")).not.toBeNull();
+		expect(outlet.querySelector(".fallback-404").textContent).toBe(
+			"Wildcard Fallback",
+		);
+	});
 
-  test('wildcard with guard: guarded wildcard that blocks → redirect executes', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test("multiple outlets with different wildcards: each renders independently", async () => {
+		const mainOutlet = document.createElement("div");
+		mainOutlet.setAttribute("route-view", "");
+		document.body.appendChild(mainOutlet);
 
-    const wildcardTpl = document.createElement('template');
-    wildcardTpl.setAttribute('guard', 'false');
-    wildcardTpl.setAttribute('redirect', '/login');
-    wildcardTpl.innerHTML = '<p>Guarded 404</p>';
+		const sidebarOutlet = document.createElement("div");
+		sidebarOutlet.setAttribute("route-view", "sidebar");
+		document.body.appendChild(sidebarOutlet);
 
-    const loginTpl = document.createElement('template');
-    loginTpl.innerHTML = '<p class="login">Login</p>';
+		const mainWildcard = document.createElement("template");
+		mainWildcard.innerHTML = '<p class="main-wc">Main Wildcard</p>';
 
-    const router = _createRouter();
-    router.register('*', wildcardTpl);
-    router.register('/login', loginTpl);
+		const sidebarWildcard = document.createElement("template");
+		sidebarWildcard.innerHTML = '<p class="sidebar-wc">Sidebar Wildcard</p>';
 
-    await router.push('/nonexistent');
+		const router = _createRouter();
+		router.register("*", mainWildcard);
+		router.register("*", sidebarWildcard, "sidebar");
 
-    // Guard blocked the wildcard, redirect to /login
-    expect(router.current.path).toBe('/login');
-    expect(outlet.querySelector('.login')).not.toBeNull();
-  });
+		await router.push("/nonexistent");
 
-  test('wildcard not returned by matchRoute: navigating to "*" literally returns matched=false', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		expect(mainOutlet.querySelector(".main-wc")).not.toBeNull();
+		expect(mainOutlet.querySelector(".main-wc").textContent).toBe(
+			"Main Wildcard",
+		);
+		expect(mainOutlet.querySelector(".sidebar-wc")).toBeNull();
 
-    const wildcardTpl = document.createElement('template');
-    wildcardTpl.innerHTML = '<p class="catch-all">Catch All</p>';
+		expect(sidebarOutlet.querySelector(".sidebar-wc")).not.toBeNull();
+		expect(sidebarOutlet.querySelector(".sidebar-wc").textContent).toBe(
+			"Sidebar Wildcard",
+		);
+		expect(sidebarOutlet.querySelector(".main-wc")).toBeNull();
+	});
 
-    const router = _createRouter();
-    router.register('*', wildcardTpl);
-    router.register('/home', document.createElement('template'));
+	test('register("*", tpl) programmatic API: stores in wildcards, not routes', async () => {
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    // Navigate to literal "*" — matchRoute should NOT match it
-    await router.push('/*');
+		const wildcardTpl = document.createElement("template");
+		wildcardTpl.innerHTML = '<p class="api-404">API 404</p>';
 
-    expect(router.current.matched).toBe(false);
-  });
+		const normalTpl = document.createElement("template");
+		normalTpl.innerHTML = "<p>Home</p>";
 
-  test('explicit routes always win: /about uses explicit route, not wildcard', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+		const router = _createRouter();
+		router.register("*", wildcardTpl);
+		router.register("/home", normalTpl);
 
-    const aboutTpl = document.createElement('template');
-    aboutTpl.innerHTML = '<p class="about-page">About Us</p>';
+		// Navigate to /home — should use normal route, not wildcard
+		await router.push("/home");
+		expect(router.current.matched).toBe(true);
+		expect(outlet.querySelector(".api-404")).toBeNull();
 
-    const wildcardTpl = document.createElement('template');
-    wildcardTpl.innerHTML = '<p class="wildcard-page">404</p>';
-
-    const router = _createRouter();
-    router.register('/about', aboutTpl);
-    router.register('*', wildcardTpl);
-
-    await router.push('/about');
-
-    expect(router.current.matched).toBe(true);
-    expect(outlet.querySelector('.about-page')).not.toBeNull();
-    expect(outlet.querySelector('.wildcard-page')).toBeNull();
-  });
-
-  test('file-based routing 404: fetch returns { ok: false } → wildcard fallback activates', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      text: () => Promise.resolve('Not Found'),
-    });
-
-    _config.router.templates = 'pages';
-
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const wildcardTpl = document.createElement('template');
-    wildcardTpl.innerHTML = '<p class="fallback-404">Wildcard Fallback</p>';
-
-    const router = _createRouter();
-    router.register('*', wildcardTpl);
-
-    await router.push('/nonexistent');
-
-    expect(outlet.querySelector('.fallback-404')).not.toBeNull();
-    expect(outlet.querySelector('.fallback-404').textContent).toBe('Wildcard Fallback');
-  });
-
-  test('multiple outlets with different wildcards: each renders independently', async () => {
-    const mainOutlet = document.createElement('div');
-    mainOutlet.setAttribute('route-view', '');
-    document.body.appendChild(mainOutlet);
-
-    const sidebarOutlet = document.createElement('div');
-    sidebarOutlet.setAttribute('route-view', 'sidebar');
-    document.body.appendChild(sidebarOutlet);
-
-    const mainWildcard = document.createElement('template');
-    mainWildcard.innerHTML = '<p class="main-wc">Main Wildcard</p>';
-
-    const sidebarWildcard = document.createElement('template');
-    sidebarWildcard.innerHTML = '<p class="sidebar-wc">Sidebar Wildcard</p>';
-
-    const router = _createRouter();
-    router.register('*', mainWildcard);
-    router.register('*', sidebarWildcard, 'sidebar');
-
-    await router.push('/nonexistent');
-
-    expect(mainOutlet.querySelector('.main-wc')).not.toBeNull();
-    expect(mainOutlet.querySelector('.main-wc').textContent).toBe('Main Wildcard');
-    expect(mainOutlet.querySelector('.sidebar-wc')).toBeNull();
-
-    expect(sidebarOutlet.querySelector('.sidebar-wc')).not.toBeNull();
-    expect(sidebarOutlet.querySelector('.sidebar-wc').textContent).toBe('Sidebar Wildcard');
-    expect(sidebarOutlet.querySelector('.main-wc')).toBeNull();
-  });
-
-  test('register("*", tpl) programmatic API: stores in wildcards, not routes', async () => {
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
-
-    const wildcardTpl = document.createElement('template');
-    wildcardTpl.innerHTML = '<p class="api-404">API 404</p>';
-
-    const normalTpl = document.createElement('template');
-    normalTpl.innerHTML = '<p>Home</p>';
-
-    const router = _createRouter();
-    router.register('*', wildcardTpl);
-    router.register('/home', normalTpl);
-
-    // Navigate to /home — should use normal route, not wildcard
-    await router.push('/home');
-    expect(router.current.matched).toBe(true);
-    expect(outlet.querySelector('.api-404')).toBeNull();
-
-    // Navigate to unmatched — wildcard should render
-    await router.push('/unknown');
-    expect(router.current.matched).toBe(false);
-    expect(outlet.querySelector('.api-404')).not.toBeNull();
-  });
+		// Navigate to unmatched — wildcard should render
+		await router.push("/unknown");
+		expect(router.current.matched).toBe(false);
+		expect(outlet.querySelector(".api-404")).not.toBeNull();
+	});
 });
 
 // ═══════════════════════════════════════════════════════════════════════
 //  NEW TESTS: History mode bug fixes
 // ═══════════════════════════════════════════════════════════════════════
 
-describe('Router — base stripping (_stripBase)', () => {
-  afterEach(() => {
-    setRouterInstance(null);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+describe("Router — base stripping (_stripBase)", () => {
+	afterEach(() => {
+		setRouterInstance(null);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
-  test('base "/" with pathname "/about" returns "/about" (not "about")', async () => {
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test('base "/" with pathname "/about" returns "/about" (not "about")', async () => {
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/about');
-    tpl.innerHTML = '<p>About</p>';
-    document.body.appendChild(tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/about");
+		tpl.innerHTML = "<p>About</p>";
+		document.body.appendChild(tpl);
 
-    // Set pathname via pushState (works in jsdom)
-    window.history.pushState({}, '', '/about');
+		// Set pathname via pushState (works in jsdom)
+		window.history.pushState({}, "", "/about");
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    expect(router.current.path).toBe('/about');
-    expect(router.current.matched).toBe(true);
-  });
+		expect(router.current.path).toBe("/about");
+		expect(router.current.matched).toBe(true);
+	});
 
-  test('base "/" with pathname "/users/42" returns "/users/42"', async () => {
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test('base "/" with pathname "/users/42" returns "/users/42"', async () => {
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/users/:id');
-    tpl.innerHTML = '<p>User</p>';
-    document.body.appendChild(tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/users/:id");
+		tpl.innerHTML = "<p>User</p>";
+		document.body.appendChild(tpl);
 
-    window.history.pushState({}, '', '/users/42');
+		window.history.pushState({}, "", "/users/42");
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    expect(router.current.path).toBe('/users/42');
-    expect(router.current.params.id).toBe('42');
-    expect(router.current.matched).toBe(true);
-  });
+		expect(router.current.path).toBe("/users/42");
+		expect(router.current.params.id).toBe("42");
+		expect(router.current.matched).toBe(true);
+	});
 
-  test('base "/app" with pathname "/app/settings" returns "/settings"', async () => {
-    _config.router = { useHash: false, base: '/app', scrollBehavior: 'top' };
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test('base "/app" with pathname "/app/settings" returns "/settings"', async () => {
+		_config.router = { useHash: false, base: "/app", scrollBehavior: "top" };
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/settings');
-    tpl.innerHTML = '<p>Settings</p>';
-    document.body.appendChild(tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/settings");
+		tpl.innerHTML = "<p>Settings</p>";
+		document.body.appendChild(tpl);
 
-    window.history.pushState({}, '', '/app/settings');
+		window.history.pushState({}, "", "/app/settings");
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    expect(router.current.path).toBe('/settings');
-    expect(router.current.matched).toBe(true);
-  });
+		expect(router.current.path).toBe("/settings");
+		expect(router.current.matched).toBe(true);
+	});
 
-  test('base "/app" with pathname "/application" strips prefix (regex anchored to start)', async () => {
-    _config.router = { useHash: false, base: '/app', scrollBehavior: 'top' };
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test('base "/app" with pathname "/application" strips prefix (regex anchored to start)', async () => {
+		_config.router = { useHash: false, base: "/app", scrollBehavior: "top" };
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    window.history.pushState({}, '', '/application');
+		window.history.pushState({}, "", "/application");
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    // /application starts with /app so regex ^\/app strips it to "lication"
-    // This documents the behavior — base paths should be unique prefixes
-    expect(router.current.path).toBe('lication');
-  });
+		// /application starts with /app so regex ^\/app strips it to "lication"
+		// This documents the behavior — base paths should be unique prefixes
+		expect(router.current.path).toBe("lication");
+	});
 
-  test('base "/" with pathname "/" returns "/"', async () => {
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test('base "/" with pathname "/" returns "/"', async () => {
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    window.history.pushState({}, '', '/');
+		window.history.pushState({}, "", "/");
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    expect(router.current.path).toBe('/');
-  });
+		expect(router.current.path).toBe("/");
+	});
 });
 
-describe('Router — popstate same-path guard (history mode)', () => {
-  afterEach(() => {
-    setRouterInstance(null);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+describe("Router — popstate same-path guard (history mode)", () => {
+	afterEach(() => {
+		setRouterInstance(null);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
-  test('popstate with same path does NOT re-render route', async () => {
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test("popstate with same path does NOT re-render route", async () => {
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/docs');
-    tpl.innerHTML = '<p>Docs</p>';
-    document.body.appendChild(tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/docs");
+		tpl.innerHTML = "<p>Docs</p>";
+		document.body.appendChild(tpl);
 
-    window.history.pushState({}, '', '/docs');
+		window.history.pushState({}, "", "/docs");
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    const popstateHandler = _trackedWinPopstateHandlers[_trackedWinPopstateHandlers.length - 1];
+		const popstateHandler =
+			_trackedWinPopstateHandlers[_trackedWinPopstateHandlers.length - 1];
 
-    expect(router.current.path).toBe('/docs');
-    const listener = jest.fn();
-    router.on(listener);
+		expect(router.current.path).toBe("/docs");
+		const listener = jest.fn();
+		router.on(listener);
 
-    // Simulate popstate with same path (e.g., hash change only)
-    popstateHandler();
+		// Simulate popstate with same path (e.g., hash change only)
+		popstateHandler();
 
-    // Listener should NOT have been called (no re-navigation)
-    expect(listener).not.toHaveBeenCalled();
-  });
+		// Listener should NOT have been called (no re-navigation)
+		expect(listener).not.toHaveBeenCalled();
+	});
 
-  test('popstate with different path DOES navigate', async () => {
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test("popstate with different path DOES navigate", async () => {
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const tpl1 = document.createElement('template');
-    tpl1.setAttribute('route', '/docs');
-    tpl1.innerHTML = '<p>Docs</p>';
-    document.body.appendChild(tpl1);
+		const tpl1 = document.createElement("template");
+		tpl1.setAttribute("route", "/docs");
+		tpl1.innerHTML = "<p>Docs</p>";
+		document.body.appendChild(tpl1);
 
-    const tpl2 = document.createElement('template');
-    tpl2.setAttribute('route', '/about');
-    tpl2.innerHTML = '<p>About</p>';
-    document.body.appendChild(tpl2);
+		const tpl2 = document.createElement("template");
+		tpl2.setAttribute("route", "/about");
+		tpl2.innerHTML = "<p>About</p>";
+		document.body.appendChild(tpl2);
 
-    window.history.pushState({}, '', '/docs');
+		window.history.pushState({}, "", "/docs");
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    const popstateHandler = _trackedWinPopstateHandlers[_trackedWinPopstateHandlers.length - 1];
+		const popstateHandler =
+			_trackedWinPopstateHandlers[_trackedWinPopstateHandlers.length - 1];
 
-    expect(router.current.path).toBe('/docs');
-    const listener = jest.fn();
-    router.on(listener);
+		expect(router.current.path).toBe("/docs");
+		const listener = jest.fn();
+		router.on(listener);
 
-    // Change pathname and fire popstate
-    window.history.pushState({}, '', '/about');
-    popstateHandler();
+		// Change pathname and fire popstate
+		window.history.pushState({}, "", "/about");
+		popstateHandler();
 
-    // Wait for async navigate to complete
-    await new Promise(r => setTimeout(r, 50));
+		// Wait for async navigate to complete
+		await new Promise((r) => setTimeout(r, 50));
 
-    expect(listener).toHaveBeenCalled();
-    expect(router.current.path).toBe('/about');
-  });
+		expect(listener).toHaveBeenCalled();
+		expect(router.current.path).toBe("/about");
+	});
 });
 
-describe('Router — anchor links in history mode', () => {
-  afterEach(() => {
-    setRouterInstance(null);
-    document.body.innerHTML = '';
-    window.location.hash = '';
-  });
+describe("Router — anchor links in history mode", () => {
+	afterEach(() => {
+		setRouterInstance(null);
+		document.body.innerHTML = "";
+		window.location.hash = "";
+	});
 
-  test('click on href="#section" in history mode calls preventDefault', async () => {
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test('click on href="#section" in history mode calls preventDefault', async () => {
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    // Create target element first
-    const section = document.createElement('div');
-    section.id = 'section';
-    section.scrollIntoView = jest.fn();
-    document.body.appendChild(section);
+		// Create target element first
+		const section = document.createElement("div");
+		section.id = "section";
+		section.scrollIntoView = jest.fn();
+		document.body.appendChild(section);
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('route', '/');
-    tpl.innerHTML = '<p>Home</p>';
-    document.body.appendChild(tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("route", "/");
+		tpl.innerHTML = "<p>Home</p>";
+		document.body.appendChild(tpl);
 
-    window.history.pushState({}, '', '/');
+		window.history.pushState({}, "", "/");
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    // Create anchor link targeting #section
-    const anchor = document.createElement('a');
-    anchor.setAttribute('href', '#section');
-    document.body.appendChild(anchor);
+		// Create anchor link targeting #section
+		const anchor = document.createElement("a");
+		anchor.setAttribute("href", "#section");
+		document.body.appendChild(anchor);
 
-    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
-    const prevented = !anchor.dispatchEvent(event);
+		const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+		const prevented = !anchor.dispatchEvent(event);
 
-    expect(prevented).toBe(true);
-  });
+		expect(prevented).toBe(true);
+	});
 
-  test('anchor link with route attr is handled as route nav, not anchor', async () => {
-    _config.router = { useHash: false, base: '/', scrollBehavior: 'top' };
-    window.scrollTo = jest.fn();
-    const outlet = document.createElement('div');
-    outlet.setAttribute('route-view', '');
-    document.body.appendChild(outlet);
+	test("anchor link with route attr is handled as route nav, not anchor", async () => {
+		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
+		window.scrollTo = jest.fn();
+		const outlet = document.createElement("div");
+		outlet.setAttribute("route-view", "");
+		document.body.appendChild(outlet);
 
-    const homeTpl = document.createElement('template');
-    homeTpl.setAttribute('route', '/');
-    homeTpl.innerHTML = '<p>Home</p>';
-    document.body.appendChild(homeTpl);
+		const homeTpl = document.createElement("template");
+		homeTpl.setAttribute("route", "/");
+		homeTpl.innerHTML = "<p>Home</p>";
+		document.body.appendChild(homeTpl);
 
-    const aboutTpl = document.createElement('template');
-    aboutTpl.setAttribute('route', '/about');
-    aboutTpl.innerHTML = '<p>About</p>';
-    document.body.appendChild(aboutTpl);
+		const aboutTpl = document.createElement("template");
+		aboutTpl.setAttribute("route", "/about");
+		aboutTpl.innerHTML = "<p>About</p>";
+		document.body.appendChild(aboutTpl);
 
-    window.history.pushState({}, '', '/');
+		window.history.pushState({}, "", "/");
 
-    const router = _createRouter();
-    setRouterInstance(router);
-    await router.init();
+		const router = _createRouter();
+		setRouterInstance(router);
+		await router.init();
 
-    expect(router.current.path).toBe('/');
+		expect(router.current.path).toBe("/");
 
-    const link = document.createElement('a');
-    link.setAttribute('href', '#about');
-    link.setAttribute('route', '/about');
-    document.body.appendChild(link);
+		const link = document.createElement("a");
+		link.setAttribute("href", "#about");
+		link.setAttribute("route", "/about");
+		document.body.appendChild(link);
 
-    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
-    link.dispatchEvent(event);
+		const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+		link.dispatchEvent(event);
 
-    await new Promise(r => setTimeout(r, 50));
+		await new Promise((r) => setTimeout(r, 50));
 
-    expect(router.current.path).toBe('/about');
-  });
+		expect(router.current.path).toBe("/about");
+	});
 });
 
-describe('Router — mode→useHash backward compat', () => {
-  test('config with mode:"hash" sets useHash:true', async () => {
-    const { default: No } = await import('../src/index.js');
-    No.config({ router: { mode: 'hash' } });
-    expect(_config.router.useHash).toBe(true);
-    expect(_config.router.mode).toBeUndefined();
-    _config.router.useHash = false;
-  });
+describe("Router — mode→useHash backward compat", () => {
+	test('config with mode:"hash" sets useHash:true', async () => {
+		const { default: No } = await import("../src/index.js");
+		No.config({ router: { mode: "hash" } });
+		expect(_config.router.useHash).toBe(true);
+		expect(_config.router.mode).toBeUndefined();
+		_config.router.useHash = false;
+	});
 
-  test('config with mode:"history" sets useHash:false', async () => {
-    const { default: No } = await import('../src/index.js');
-    No.config({ router: { mode: 'history' } });
-    expect(_config.router.useHash).toBe(false);
-    expect(_config.router.mode).toBeUndefined();
-  });
+	test('config with mode:"history" sets useHash:false', async () => {
+		const { default: No } = await import("../src/index.js");
+		No.config({ router: { mode: "history" } });
+		expect(_config.router.useHash).toBe(false);
+		expect(_config.router.mode).toBeUndefined();
+	});
 
-  test('config with useHash:true takes precedence over mode', async () => {
-    const { default: No } = await import('../src/index.js');
-    No.config({ router: { mode: 'history', useHash: true } });
-    expect(_config.router.useHash).toBe(true);
-    _config.router.useHash = false;
-  });
-
+	test("config with useHash:true takes precedence over mode", async () => {
+		const { default: No } = await import("../src/index.js");
+		No.config({ router: { mode: "history", useHash: true } });
+		expect(_config.router.useHash).toBe(true);
+		_config.router.useHash = false;
+	});
 });
-

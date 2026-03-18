@@ -1,1080 +1,1106 @@
-import { _config } from '../src/globals.js';
-import { createContext } from '../src/context.js';
-import { findContext, _clearDeclared, _cloneTemplate, _sanitizeHtml, _loadRemoteTemplates, _loadTemplateElement, _loadRemoteTemplatesPhase1, _loadRemoteTemplatesPhase2, _processTemplateIncludes, _templateHtmlCache } from '../src/dom.js';
+import { createContext } from "../src/context.js";
+import {
+	_clearDeclared,
+	_cloneTemplate,
+	_loadRemoteTemplates,
+	_loadRemoteTemplatesPhase1,
+	_loadRemoteTemplatesPhase2,
+	_loadTemplateElement,
+	_processTemplateIncludes,
+	_sanitizeHtml,
+	_templateHtmlCache,
+	findContext,
+} from "../src/dom.js";
+import { _config } from "../src/globals.js";
 
-describe('DOM Helpers', () => {
-  afterEach(() => {
-    document.body.innerHTML = '';
-  });
+describe("DOM Helpers", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+	});
 
-  describe('findContext', () => {
-    test('returns context from element', () => {
-      const div = document.createElement('div');
-      const ctx = createContext({ x: 1 });
-      div.__ctx = ctx;
-      expect(findContext(div)).toBe(ctx);
-    });
+	describe("findContext", () => {
+		test("returns context from element", () => {
+			const div = document.createElement("div");
+			const ctx = createContext({ x: 1 });
+			div.__ctx = ctx;
+			expect(findContext(div)).toBe(ctx);
+		});
 
-    test('walks up to find parent context', () => {
-      const parent = document.createElement('div');
-      const child = document.createElement('span');
-      parent.appendChild(child);
-      const ctx = createContext({ x: 1 });
-      parent.__ctx = ctx;
-      expect(findContext(child)).toBe(ctx);
-    });
+		test("walks up to find parent context", () => {
+			const parent = document.createElement("div");
+			const child = document.createElement("span");
+			parent.appendChild(child);
+			const ctx = createContext({ x: 1 });
+			parent.__ctx = ctx;
+			expect(findContext(child)).toBe(ctx);
+		});
 
-    test('returns empty context if none found', () => {
-      const div = document.createElement('div');
-      document.body.appendChild(div);
-      const ctx = findContext(div);
-      expect(ctx.__isProxy).toBe(true);
-    });
-  });
+		test("returns empty context if none found", () => {
+			const div = document.createElement("div");
+			document.body.appendChild(div);
+			const ctx = findContext(div);
+			expect(ctx.__isProxy).toBe(true);
+		});
+	});
 
-  describe('_clearDeclared', () => {
-    test('clears __declared on descendant elements', () => {
-      const parent = document.createElement('div');
-      const child1 = document.createElement('span');
-      const child2 = document.createElement('p');
-      child1.__declared = true;
-      child2.__declared = true;
-      parent.appendChild(child1);
-      parent.appendChild(child2);
+	describe("_clearDeclared", () => {
+		test("clears __declared on descendant elements", () => {
+			const parent = document.createElement("div");
+			const child1 = document.createElement("span");
+			const child2 = document.createElement("p");
+			child1.__declared = true;
+			child2.__declared = true;
+			parent.appendChild(child1);
+			parent.appendChild(child2);
 
-      _clearDeclared(parent);
-      expect(child1.__declared).toBe(false);
-      expect(child2.__declared).toBe(false);
-    });
-  });
+			_clearDeclared(parent);
+			expect(child1.__declared).toBe(false);
+			expect(child2.__declared).toBe(false);
+		});
+	});
 
-  describe('_cloneTemplate', () => {
-    test('clones template by ID', () => {
-      const tpl = document.createElement('template');
-      tpl.id = 'my-tpl';
-      tpl.innerHTML = '<p>Hello</p>';
-      document.body.appendChild(tpl);
+	describe("_cloneTemplate", () => {
+		test("clones template by ID", () => {
+			const tpl = document.createElement("template");
+			tpl.id = "my-tpl";
+			tpl.innerHTML = "<p>Hello</p>";
+			document.body.appendChild(tpl);
 
-      const clone = _cloneTemplate('my-tpl');
-      expect(clone).not.toBeNull();
-      expect(clone.querySelector('p').textContent).toBe('Hello');
-    });
+			const clone = _cloneTemplate("my-tpl");
+			expect(clone).not.toBeNull();
+			expect(clone.querySelector("p").textContent).toBe("Hello");
+		});
 
-    test('handles # prefix in ID', () => {
-      const tpl = document.createElement('template');
-      tpl.id = 'my-tpl2';
-      tpl.innerHTML = '<span>World</span>';
-      document.body.appendChild(tpl);
+		test("handles # prefix in ID", () => {
+			const tpl = document.createElement("template");
+			tpl.id = "my-tpl2";
+			tpl.innerHTML = "<span>World</span>";
+			document.body.appendChild(tpl);
 
-      const clone = _cloneTemplate('#my-tpl2');
-      expect(clone).not.toBeNull();
-      expect(clone.querySelector('span').textContent).toBe('World');
-    });
+			const clone = _cloneTemplate("#my-tpl2");
+			expect(clone).not.toBeNull();
+			expect(clone.querySelector("span").textContent).toBe("World");
+		});
 
-    test('returns null for non-existent template', () => {
-      expect(_cloneTemplate('nonexistent')).toBeNull();
-    });
-  });
+		test("returns null for non-existent template", () => {
+			expect(_cloneTemplate("nonexistent")).toBeNull();
+		});
+	});
 
-  describe('_sanitizeHtml', () => {
-    test('removes script tags', () => {
-      const html = '<p>Hello</p><script>alert("xss")</script><p>World</p>';
-      const result = _sanitizeHtml(html);
-      expect(result).not.toContain('<script');
-      expect(result).toContain('Hello');
-      expect(result).toContain('World');
-    });
+	describe("_sanitizeHtml", () => {
+		test("removes script tags", () => {
+			const html = '<p>Hello</p><script>alert("xss")</script><p>World</p>';
+			const result = _sanitizeHtml(html);
+			expect(result).not.toContain("<script");
+			expect(result).toContain("Hello");
+			expect(result).toContain("World");
+		});
 
-    test('removes event handlers', () => {
-      const html = '<div onclick="alert(1)" onmouseover="hack()">content</div>';
-      const result = _sanitizeHtml(html);
-      expect(result).not.toContain('onclick');
-      expect(result).not.toContain('onmouseover');
-    });
+		test("removes event handlers", () => {
+			const html = '<div onclick="alert(1)" onmouseover="hack()">content</div>';
+			const result = _sanitizeHtml(html);
+			expect(result).not.toContain("onclick");
+			expect(result).not.toContain("onmouseover");
+		});
 
-    test('removes javascript: protocol', () => {
-      const html = '<a href="javascript:alert(1)">Link</a>';
-      const result = _sanitizeHtml(html);
-      expect(result).not.toContain('javascript:');
-    });
+		test("removes javascript: protocol", () => {
+			const html = '<a href="javascript:alert(1)">Link</a>';
+			const result = _sanitizeHtml(html);
+			expect(result).not.toContain("javascript:");
+		});
 
-    test('passes through safe HTML', () => {
-      const html = '<p class="safe">Hello <strong>World</strong></p>';
-      expect(_sanitizeHtml(html)).toBe(html);
-    });
+		test("passes through safe HTML", () => {
+			const html = '<p class="safe">Hello <strong>World</strong></p>';
+			expect(_sanitizeHtml(html)).toBe(html);
+		});
 
-    test('skips sanitization when disabled', () => {
-      _config.sanitize = false;
-      const html = '<script>alert(1)</script>';
-      expect(_sanitizeHtml(html)).toBe(html);
-      _config.sanitize = true;
-    });
-  });
+		test("skips sanitization when disabled", () => {
+			_config.sanitize = false;
+			const html = "<script>alert(1)</script>";
+			expect(_sanitizeHtml(html)).toBe(html);
+			_config.sanitize = true;
+		});
+	});
 });
 
-describe('_loadRemoteTemplates', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '';
-    global.fetch = jest.fn();
-  });
+describe("_loadRemoteTemplates", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		global.fetch = jest.fn();
+	});
 
-  afterEach(() => {
-    delete global.fetch;
-    _templateHtmlCache.clear();
-  });
+	afterEach(() => {
+		delete global.fetch;
+		_templateHtmlCache.clear();
+	});
 
-  test('loads HTML into template with src', async () => {
-    global.fetch.mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>Remote Content</p>'),
-    });
+	test("loads HTML into template with src", async () => {
+		global.fetch.mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>Remote Content</p>"),
+		});
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/partials/header.html');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/partials/header.html");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadRemoteTemplates();
+		await _loadRemoteTemplates();
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/partials/header.html'),
-    );
-    expect(wrapper.innerHTML).toBe('<p>Remote Content</p>');
-  });
+		expect(global.fetch).toHaveBeenCalledWith(
+			expect.stringContaining("/partials/header.html"),
+		);
+		expect(wrapper.innerHTML).toBe("<p>Remote Content</p>");
+	});
 
-  test('handles fetch failure gracefully', async () => {
-    global.fetch.mockRejectedValue(new Error('Network error'));
+	test("handles fetch failure gracefully", async () => {
+		global.fetch.mockRejectedValue(new Error("Network error"));
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/partials/fail.html');
-    document.body.appendChild(tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/partials/fail.html");
+		document.body.appendChild(tpl);
 
-    await expect(_loadRemoteTemplates()).resolves.not.toThrow();
-  });
+		await expect(_loadRemoteTemplates()).resolves.not.toThrow();
+	});
 
-  test('loads multiple templates in parallel', async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        text: () => Promise.resolve('<p>A</p>'),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        text: () => Promise.resolve('<p>B</p>'),
-      });
+	test("loads multiple templates in parallel", async () => {
+		global.fetch
+			.mockResolvedValueOnce({
+				ok: true,
+				text: () => Promise.resolve("<p>A</p>"),
+			})
+			.mockResolvedValueOnce({
+				ok: true,
+				text: () => Promise.resolve("<p>B</p>"),
+			});
 
-    const wrapper = document.createElement('div');
-    const tpl1 = document.createElement('template');
-    tpl1.setAttribute('src', '/a.html');
-    const tpl2 = document.createElement('template');
-    tpl2.setAttribute('src', '/b.html');
-    wrapper.appendChild(tpl1);
-    wrapper.appendChild(tpl2);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl1 = document.createElement("template");
+		tpl1.setAttribute("src", "/a.html");
+		const tpl2 = document.createElement("template");
+		tpl2.setAttribute("src", "/b.html");
+		wrapper.appendChild(tpl1);
+		wrapper.appendChild(tpl2);
+		document.body.appendChild(wrapper);
 
-    await _loadRemoteTemplates();
+		await _loadRemoteTemplates();
 
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-    expect(wrapper.innerHTML).toBe('<p>A</p><p>B</p>');
-  });
+		expect(global.fetch).toHaveBeenCalledTimes(2);
+		expect(wrapper.innerHTML).toBe("<p>A</p><p>B</p>");
+	});
 
-  test('resolves ./ paths relative to parent template folder', async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        text: () => Promise.resolve('<template src="./sidebar.tpl"></template>'),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        text: () => Promise.resolve('<nav>Sidebar</nav>'),
-      });
+	test("resolves ./ paths relative to parent template folder", async () => {
+		global.fetch
+			.mockResolvedValueOnce({
+				ok: true,
+				text: () =>
+					Promise.resolve('<template src="./sidebar.tpl"></template>'),
+			})
+			.mockResolvedValueOnce({
+				ok: true,
+				text: () => Promise.resolve("<nav>Sidebar</nav>"),
+			});
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', 'templates/docs.tpl');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "templates/docs.tpl");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadRemoteTemplates();
+		await _loadRemoteTemplates();
 
-    expect(global.fetch).toHaveBeenCalledWith('templates/docs.tpl');
-    expect(global.fetch).toHaveBeenCalledWith('templates/sidebar.tpl');
-    expect(wrapper.innerHTML).toContain('<nav>Sidebar</nav>');
-  });
+		expect(global.fetch).toHaveBeenCalledWith("templates/docs.tpl");
+		expect(global.fetch).toHaveBeenCalledWith("templates/sidebar.tpl");
+		expect(wrapper.innerHTML).toContain("<nav>Sidebar</nav>");
+	});
 
-  test('./ resolution works with nested levels', async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        text: () => Promise.resolve('<template src="./child.tpl"></template>'),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        text: () => Promise.resolve('<p>child</p>'),
-      });
+	test("./ resolution works with nested levels", async () => {
+		global.fetch
+			.mockResolvedValueOnce({
+				ok: true,
+				text: () => Promise.resolve('<template src="./child.tpl"></template>'),
+			})
+			.mockResolvedValueOnce({
+				ok: true,
+				text: () => Promise.resolve("<p>child</p>"),
+			});
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', 'a/b/parent.tpl');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "a/b/parent.tpl");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadRemoteTemplates();
+		await _loadRemoteTemplates();
 
-    expect(global.fetch).toHaveBeenCalledWith('a/b/parent.tpl');
-    expect(global.fetch).toHaveBeenCalledWith('a/b/child.tpl');
-    expect(wrapper.innerHTML).toContain('<p>child</p>');
-  });
+		expect(global.fetch).toHaveBeenCalledWith("a/b/parent.tpl");
+		expect(global.fetch).toHaveBeenCalledWith("a/b/child.tpl");
+		expect(wrapper.innerHTML).toContain("<p>child</p>");
+	});
 });
 
-describe('_loadRemoteTemplates — uncovered branches', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '';
-    global.fetch = jest.fn();
-  });
+describe("_loadRemoteTemplates — uncovered branches", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		global.fetch = jest.fn();
+	});
 
-  afterEach(() => {
-    delete global.fetch;
-  });
+	afterEach(() => {
+		delete global.fetch;
+	});
 
-  test('./ path with no ancestor __srcBase strips prefix (L56)', async () => {
-    global.fetch.mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>Orphan</p>'),
-    });
+	test("./ path with no ancestor __srcBase strips prefix (L56)", async () => {
+		global.fetch.mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>Orphan</p>"),
+		});
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', './orphan.tpl');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "./orphan.tpl");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadRemoteTemplates();
+		await _loadRemoteTemplates();
 
-    expect(global.fetch).toHaveBeenCalledWith('orphan.tpl');
-    expect(wrapper.innerHTML).toContain('Orphan');
-  });
+		expect(global.fetch).toHaveBeenCalledWith("orphan.tpl");
+		expect(wrapper.innerHTML).toContain("Orphan");
+	});
 
-  test('route template is NOT inlined into parent (route branch)', async () => {
-    global.fetch.mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>Route content</p>'),
-    });
+	test("route template is NOT inlined into parent (route branch)", async () => {
+		global.fetch.mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>Route content</p>"),
+		});
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/pages/home.html');
-    tpl.setAttribute('route', '/home');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/pages/home.html");
+		tpl.setAttribute("route", "/home");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadRemoteTemplates();
+		await _loadRemoteTemplates();
 
-    expect(wrapper.querySelector('template[route]')).not.toBeNull();
-    expect(wrapper.querySelector('p')).toBeNull();
-  });
+		expect(wrapper.querySelector("template[route]")).not.toBeNull();
+		expect(wrapper.querySelector("p")).toBeNull();
+	});
 });
 
-describe('dom.js — _loadRemoteTemplates with scoped root parameter (L67)', () => {
-  let origFetch;
+describe("dom.js — _loadRemoteTemplates with scoped root parameter (L67)", () => {
+	let origFetch;
 
-  beforeEach(() => {
-    origFetch = global.fetch;
-  });
+	beforeEach(() => {
+		origFetch = global.fetch;
+	});
 
-  afterEach(() => {
-    global.fetch = origFetch;
-    document.body.innerHTML = '';
-  });
+	afterEach(() => {
+		global.fetch = origFetch;
+		document.body.innerHTML = "";
+	});
 
-  test('loads templates scoped to a specific root element (not document)', async () => {
-    global.fetch = jest.fn(() => ({
-      ok: true,
-      text: () => Promise.resolve('<p>scoped content</p>'),
-    }));
+	test("loads templates scoped to a specific root element (not document)", async () => {
+		global.fetch = jest.fn(() => ({
+			ok: true,
+			text: () => Promise.resolve("<p>scoped content</p>"),
+		}));
 
-    const root = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/scoped.html');
-    root.appendChild(tpl);
-    document.body.appendChild(root);
+		const root = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/scoped.html");
+		root.appendChild(tpl);
+		document.body.appendChild(root);
 
-    await _loadRemoteTemplates(root);
+		await _loadRemoteTemplates(root);
 
-    expect(global.fetch).toHaveBeenCalledWith('/scoped.html');
-  });
+		expect(global.fetch).toHaveBeenCalledWith("/scoped.html");
+	});
 
-  test('returns early when scoped root has no template[src] elements', async () => {
-    global.fetch = jest.fn();
+	test("returns early when scoped root has no template[src] elements", async () => {
+		global.fetch = jest.fn();
 
-    const root = document.createElement('div');
-    root.innerHTML = '<p>no templates here</p>';
-    document.body.appendChild(root);
+		const root = document.createElement("div");
+		root.innerHTML = "<p>no templates here</p>";
+		document.body.appendChild(root);
 
-    await _loadRemoteTemplates(root);
+		await _loadRemoteTemplates(root);
 
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
 });
 
-describe('dom.js — non-route template inline expansion (L95)', () => {
-  let origFetch;
+describe("dom.js — non-route template inline expansion (L95)", () => {
+	let origFetch;
 
-  beforeEach(() => {
-    origFetch = global.fetch;
-  });
+	beforeEach(() => {
+		origFetch = global.fetch;
+	});
 
-  afterEach(() => {
-    global.fetch = origFetch;
-    document.body.innerHTML = '';
-  });
+	afterEach(() => {
+		global.fetch = origFetch;
+		document.body.innerHTML = "";
+	});
 
-  test('non-route template is replaced with its content inline', async () => {
-    global.fetch = jest.fn(() => ({
-      ok: true,
-      text: () => Promise.resolve('<span class="included">hello</span>'),
-    }));
+	test("non-route template is replaced with its content inline", async () => {
+		global.fetch = jest.fn(() => ({
+			ok: true,
+			text: () => Promise.resolve('<span class="included">hello</span>'),
+		}));
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/include.html');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/include.html");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadRemoteTemplates();
+		await _loadRemoteTemplates();
 
-    expect(wrapper.querySelector('template[src]')).toBeNull();
-    expect(wrapper.querySelector('.included')).not.toBeNull();
-  });
+		expect(wrapper.querySelector("template[src]")).toBeNull();
+		expect(wrapper.querySelector(".included")).not.toBeNull();
+	});
 
-  test('route template is NOT replaced inline', async () => {
-    global.fetch = jest.fn(() => ({
-      ok: true,
-      text: () => Promise.resolve('<span class="route-content">page</span>'),
-    }));
+	test("route template is NOT replaced inline", async () => {
+		global.fetch = jest.fn(() => ({
+			ok: true,
+			text: () => Promise.resolve('<span class="route-content">page</span>'),
+		}));
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/page.html');
-    tpl.setAttribute('route', '/page');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/page.html");
+		tpl.setAttribute("route", "/page");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadRemoteTemplates();
+		await _loadRemoteTemplates();
 
-    expect(wrapper.querySelector('template[route]')).not.toBeNull();
-  });
+		expect(wrapper.querySelector("template[route]")).not.toBeNull();
+	});
 });
 
-describe('_loadTemplateElement', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '';
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>content</p>'),
-    });
-  });
+describe("_loadTemplateElement", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>content</p>"),
+		});
+	});
 
-  afterEach(() => {
-    delete global.fetch;
-    document.body.innerHTML = '';
-    _templateHtmlCache.clear();
-  });
+	afterEach(() => {
+		delete global.fetch;
+		document.body.innerHTML = "";
+		_templateHtmlCache.clear();
+	});
 
-  test('skips already-loaded templates', async () => {
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/test.html');
-    tpl.__srcLoaded = true;
-    document.body.appendChild(tpl);
+	test("skips already-loaded templates", async () => {
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/test.html");
+		tpl.__srcLoaded = true;
+		document.body.appendChild(tpl);
 
-    await _loadTemplateElement(tpl);
+		await _loadTemplateElement(tpl);
 
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
 
-  test('marks tpl.__srcLoaded before fetching', async () => {
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/test.html');
-    tpl.setAttribute('route', '/test'); 
-    document.body.appendChild(tpl);
+	test("marks tpl.__srcLoaded before fetching", async () => {
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/test.html");
+		tpl.setAttribute("route", "/test");
+		document.body.appendChild(tpl);
 
-    let flagDuringFetch = false;
-    global.fetch = jest.fn().mockImplementation(() => {
-      flagDuringFetch = tpl.__srcLoaded;
-      return Promise.resolve({ ok: true, text: () => Promise.resolve('<p>content</p>') });
-    });
+		let flagDuringFetch = false;
+		global.fetch = jest.fn().mockImplementation(() => {
+			flagDuringFetch = tpl.__srcLoaded;
+			return Promise.resolve({
+				ok: true,
+				text: () => Promise.resolve("<p>content</p>"),
+			});
+		});
 
-    await _loadTemplateElement(tpl);
+		await _loadTemplateElement(tpl);
 
-    expect(flagDuringFetch).toBe(true);
-    expect(tpl.__srcLoaded).toBe(true);
-  });
+		expect(flagDuringFetch).toBe(true);
+		expect(tpl.__srcLoaded).toBe(true);
+	});
 
-  test('loads a template and populates content', async () => {
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/test.html');
-    tpl.setAttribute('route', '/test'); 
-    document.body.appendChild(tpl);
+	test("loads a template and populates content", async () => {
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/test.html");
+		tpl.setAttribute("route", "/test");
+		document.body.appendChild(tpl);
 
-    await _loadTemplateElement(tpl);
+		await _loadTemplateElement(tpl);
 
-    expect(global.fetch).toHaveBeenCalledWith('/test.html');
-    expect(tpl.innerHTML).toBe('<p>content</p>');
-  });
+		expect(global.fetch).toHaveBeenCalledWith("/test.html");
+		expect(tpl.innerHTML).toBe("<p>content</p>");
+	});
 
-  test('injects non-route template content into DOM', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>Injected</p>'),
-    });
+	test("injects non-route template content into DOM", async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>Injected</p>"),
+		});
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/include.html');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/include.html");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadTemplateElement(tpl);
+		await _loadTemplateElement(tpl);
 
-    expect(wrapper.querySelector('template')).toBeNull();
-    expect(wrapper.querySelector('p')).not.toBeNull();
-    expect(wrapper.querySelector('p').textContent).toBe('Injected');
-  });
+		expect(wrapper.querySelector("template")).toBeNull();
+		expect(wrapper.querySelector("p")).not.toBeNull();
+		expect(wrapper.querySelector("p").textContent).toBe("Injected");
+	});
 
-  test('does not inject route templates', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>About</p>'),
-    });
+	test("does not inject route templates", async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>About</p>"),
+		});
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/about.html');
-    tpl.setAttribute('route', '/about');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/about.html");
+		tpl.setAttribute("route", "/about");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadTemplateElement(tpl);
+		await _loadTemplateElement(tpl);
 
-    expect(wrapper.querySelector('template[route]')).not.toBeNull();
-    expect(wrapper.querySelector('p')).toBeNull();
-  });
+		expect(wrapper.querySelector("template[route]")).not.toBeNull();
+		expect(wrapper.querySelector("p")).toBeNull();
+	});
 
-  test('loading: inserts placeholder synchronously before fetch and removes it after', async () => {
-    let resolveText;
-    global.fetch = jest.fn().mockReturnValue(
-      new Promise(resolve => { resolveText = () => resolve({ ok: true, text: () => Promise.resolve('<p>Real</p>') }); })
-    );
+	test("loading: inserts placeholder synchronously before fetch and removes it after", async () => {
+		let resolveText;
+		global.fetch = jest.fn().mockReturnValue(
+			new Promise((resolve) => {
+				resolveText = () =>
+					resolve({ ok: true, text: () => Promise.resolve("<p>Real</p>") });
+			}),
+		);
 
-    const skeleton = document.createElement('template');
-    skeleton.id = 'skl';
-    skeleton.innerHTML = '<div class="skeleton">Loading...</div>';
-    document.body.appendChild(skeleton);
+		const skeleton = document.createElement("template");
+		skeleton.id = "skl";
+		skeleton.innerHTML = '<div class="skeleton">Loading...</div>';
+		document.body.appendChild(skeleton);
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/heavy.html');
-    tpl.setAttribute('loading', '#skl');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/heavy.html");
+		tpl.setAttribute("loading", "#skl");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    const loadPromise = _loadTemplateElement(tpl);
+		const loadPromise = _loadTemplateElement(tpl);
 
-    expect(wrapper.querySelector('.skeleton')).not.toBeNull();
+		expect(wrapper.querySelector(".skeleton")).not.toBeNull();
 
-    resolveText();
-    await loadPromise;
+		resolveText();
+		await loadPromise;
 
-    expect(wrapper.querySelector('.skeleton')).toBeNull();
-    expect(wrapper.querySelector('p').textContent).toBe('Real');
-  });
+		expect(wrapper.querySelector(".skeleton")).toBeNull();
+		expect(wrapper.querySelector("p").textContent).toBe("Real");
+	});
 
-  test('loading: removes placeholder even when fetch fails', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+	test("loading: removes placeholder even when fetch fails", async () => {
+		global.fetch = jest.fn().mockRejectedValue(new Error("Network error"));
 
-    const skeleton = document.createElement('template');
-    skeleton.id = 'err-skl';
-    skeleton.innerHTML = '<div class="err-skeleton">Loading...</div>';
-    document.body.appendChild(skeleton);
+		const skeleton = document.createElement("template");
+		skeleton.id = "err-skl";
+		skeleton.innerHTML = '<div class="err-skeleton">Loading...</div>';
+		document.body.appendChild(skeleton);
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/fail.html');
-    tpl.setAttribute('loading', 'err-skl');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/fail.html");
+		tpl.setAttribute("loading", "err-skl");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadTemplateElement(tpl);
+		await _loadTemplateElement(tpl);
 
-    expect(wrapper.querySelector('.err-skeleton')).toBeNull();
-  });
+		expect(wrapper.querySelector(".err-skeleton")).toBeNull();
+	});
 
-  test('loading: no-op when referenced template does not exist', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>ok</p>'),
-    });
+	test("loading: no-op when referenced template does not exist", async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>ok</p>"),
+		});
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/ok.html');
-    tpl.setAttribute('loading', '#ghost');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/ok.html");
+		tpl.setAttribute("loading", "#ghost");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await expect(_loadTemplateElement(tpl)).resolves.not.toThrow();
-    expect(wrapper.querySelector('p').textContent).toBe('ok');
-  });
+		await expect(_loadTemplateElement(tpl)).resolves.not.toThrow();
+		expect(wrapper.querySelector("p").textContent).toBe("ok");
+	});
 
-  test('route template does NOT recursively load nested <template src> in content', async () => {
-    
-    
-    global.fetch = jest.fn()
-      .mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve('<template src="./section.tpl"></template>'),
-      });
+	test("route template does NOT recursively load nested <template src> in content", async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve('<template src="./section.tpl"></template>'),
+		});
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/page.tpl');
-    tpl.setAttribute('route', '/page');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/page.tpl");
+		tpl.setAttribute("route", "/page");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadTemplateElement(tpl);
-    // Wait for background cache warming
-    await new Promise((r) => setTimeout(r, 50));
+		await _loadTemplateElement(tpl);
+		// Wait for background cache warming
+		await new Promise((r) => setTimeout(r, 50));
 
-    // Route template fetched + subtemplate cache-warmed (but not processed)
-    expect(global.fetch).toHaveBeenCalledWith('/page.tpl');
-    
-    expect(tpl.content.querySelector('template[src="./section.tpl"]')).not.toBeNull();
-  });
+		// Route template fetched + subtemplate cache-warmed (but not processed)
+		expect(global.fetch).toHaveBeenCalledWith("/page.tpl");
 
-  test('caches fetched HTML and skips re-fetch on second call (same URL, new element)', async () => {
-    
-    
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>Cached</p>'),
-    });
+		expect(
+			tpl.content.querySelector('template[src="./section.tpl"]'),
+		).not.toBeNull();
+	});
 
-    
-    const wrapper1 = document.createElement('div');
-    const tpl1 = document.createElement('template');
-    tpl1.setAttribute('src', '/cached-page.tpl');
-    tpl1.setAttribute('route', '/cached-page');
-    wrapper1.appendChild(tpl1);
-    document.body.appendChild(wrapper1);
-    await _loadTemplateElement(tpl1);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+	test("caches fetched HTML and skips re-fetch on second call (same URL, new element)", async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>Cached</p>"),
+		});
 
-    
-    const wrapper2 = document.createElement('div');
-    const tpl2 = document.createElement('template');
-    tpl2.setAttribute('src', '/cached-page.tpl');
-    tpl2.setAttribute('route', '/cached-page');
-    wrapper2.appendChild(tpl2);
-    document.body.appendChild(wrapper2);
-    await _loadTemplateElement(tpl2);
+		const wrapper1 = document.createElement("div");
+		const tpl1 = document.createElement("template");
+		tpl1.setAttribute("src", "/cached-page.tpl");
+		tpl1.setAttribute("route", "/cached-page");
+		wrapper1.appendChild(tpl1);
+		document.body.appendChild(wrapper1);
+		await _loadTemplateElement(tpl1);
+		expect(global.fetch).toHaveBeenCalledTimes(1);
 
-    
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(tpl2.innerHTML).toBe('<p>Cached</p>');
-  });
+		const wrapper2 = document.createElement("div");
+		const tpl2 = document.createElement("template");
+		tpl2.setAttribute("src", "/cached-page.tpl");
+		tpl2.setAttribute("route", "/cached-page");
+		wrapper2.appendChild(tpl2);
+		document.body.appendChild(wrapper2);
+		await _loadTemplateElement(tpl2);
 
-  test('re-fetches when _config.templates.cache is false', async () => {
-    _config.templates.cache = false;
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>Fresh</p>'),
-    });
+		expect(global.fetch).toHaveBeenCalledTimes(1);
+		expect(tpl2.innerHTML).toBe("<p>Cached</p>");
+	});
 
-    
-    const wrapper1 = document.createElement('div');
-    const tpl1 = document.createElement('template');
-    tpl1.setAttribute('src', '/uncached.tpl');
-    tpl1.setAttribute('route', '/uncached');
-    wrapper1.appendChild(tpl1);
-    document.body.appendChild(wrapper1);
-    await _loadTemplateElement(tpl1);
+	test("re-fetches when _config.templates.cache is false", async () => {
+		_config.templates.cache = false;
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>Fresh</p>"),
+		});
 
-    
-    const wrapper2 = document.createElement('div');
-    const tpl2 = document.createElement('template');
-    tpl2.setAttribute('src', '/uncached.tpl');
-    tpl2.setAttribute('route', '/uncached');
-    wrapper2.appendChild(tpl2);
-    document.body.appendChild(wrapper2);
-    await _loadTemplateElement(tpl2);
+		const wrapper1 = document.createElement("div");
+		const tpl1 = document.createElement("template");
+		tpl1.setAttribute("src", "/uncached.tpl");
+		tpl1.setAttribute("route", "/uncached");
+		wrapper1.appendChild(tpl1);
+		document.body.appendChild(wrapper1);
+		await _loadTemplateElement(tpl1);
 
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-    _config.templates.cache = true;
-  });
+		const wrapper2 = document.createElement("div");
+		const tpl2 = document.createElement("template");
+		tpl2.setAttribute("src", "/uncached.tpl");
+		tpl2.setAttribute("route", "/uncached");
+		wrapper2.appendChild(tpl2);
+		document.body.appendChild(wrapper2);
+		await _loadTemplateElement(tpl2);
+
+		expect(global.fetch).toHaveBeenCalledTimes(2);
+		_config.templates.cache = true;
+	});
 });
 
+describe("_processTemplateIncludes", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+	});
 
+	test("replaces template[include] with a clone of the referenced template", () => {
+		const source = document.createElement("template");
+		source.id = "my-skeleton";
+		source.innerHTML = '<div class="skeleton">Loading...</div>';
+		document.body.appendChild(source);
 
+		const wrapper = document.createElement("div");
+		const inc = document.createElement("template");
+		inc.setAttribute("include", "my-skeleton");
+		wrapper.appendChild(inc);
+		document.body.appendChild(wrapper);
 
-describe('_processTemplateIncludes', () => {
-  afterEach(() => { document.body.innerHTML = ''; });
+		_processTemplateIncludes();
 
-  test('replaces template[include] with a clone of the referenced template', () => {
-    const source = document.createElement('template');
-    source.id = 'my-skeleton';
-    source.innerHTML = '<div class="skeleton">Loading...</div>';
-    document.body.appendChild(source);
+		expect(wrapper.querySelector("template[include]")).toBeNull();
+		expect(wrapper.querySelector(".skeleton")).not.toBeNull();
+		expect(wrapper.querySelector(".skeleton").textContent).toBe("Loading...");
+	});
 
-    const wrapper = document.createElement('div');
-    const inc = document.createElement('template');
-    inc.setAttribute('include', 'my-skeleton');
-    wrapper.appendChild(inc);
-    document.body.appendChild(wrapper);
+	test("supports # prefix on include id", () => {
+		const source = document.createElement("template");
+		source.id = "hash-tpl";
+		source.innerHTML = '<span class="hash-content">ok</span>';
+		document.body.appendChild(source);
 
-    _processTemplateIncludes();
+		const wrapper = document.createElement("div");
+		const inc = document.createElement("template");
+		inc.setAttribute("include", "#hash-tpl");
+		wrapper.appendChild(inc);
+		document.body.appendChild(wrapper);
 
-    expect(wrapper.querySelector('template[include]')).toBeNull();
-    expect(wrapper.querySelector('.skeleton')).not.toBeNull();
-    expect(wrapper.querySelector('.skeleton').textContent).toBe('Loading...');
-  });
+		_processTemplateIncludes();
 
-  test('supports # prefix on include id', () => {
-    const source = document.createElement('template');
-    source.id = 'hash-tpl';
-    source.innerHTML = '<span class="hash-content">ok</span>';
-    document.body.appendChild(source);
+		expect(wrapper.querySelector(".hash-content")).not.toBeNull();
+	});
 
-    const wrapper = document.createElement('div');
-    const inc = document.createElement('template');
-    inc.setAttribute('include', '#hash-tpl');
-    wrapper.appendChild(inc);
-    document.body.appendChild(wrapper);
+	test("silently skips unknown include ids", () => {
+		const wrapper = document.createElement("div");
+		const inc = document.createElement("template");
+		inc.setAttribute("include", "nonexistent");
+		wrapper.appendChild(inc);
+		document.body.appendChild(wrapper);
 
-    _processTemplateIncludes();
+		expect(() => _processTemplateIncludes()).not.toThrow();
 
-    expect(wrapper.querySelector('.hash-content')).not.toBeNull();
-  });
+		expect(wrapper.querySelector("template[include]")).not.toBeNull();
+	});
 
-  test('silently skips unknown include ids', () => {
-    const wrapper = document.createElement('div');
-    const inc = document.createElement('template');
-    inc.setAttribute('include', 'nonexistent');
-    wrapper.appendChild(inc);
-    document.body.appendChild(wrapper);
+	test("clones independently — multiple includes of same template are separate nodes", () => {
+		const source = document.createElement("template");
+		source.id = "multi-tpl";
+		source.innerHTML = '<p class="item">A</p>';
+		document.body.appendChild(source);
 
-    expect(() => _processTemplateIncludes()).not.toThrow();
-    
-    expect(wrapper.querySelector('template[include]')).not.toBeNull();
-  });
+		const wrapper = document.createElement("div");
+		for (let i = 0; i < 3; i++) {
+			const inc = document.createElement("template");
+			inc.setAttribute("include", "multi-tpl");
+			wrapper.appendChild(inc);
+		}
+		document.body.appendChild(wrapper);
 
-  test('clones independently — multiple includes of same template are separate nodes', () => {
-    const source = document.createElement('template');
-    source.id = 'multi-tpl';
-    source.innerHTML = '<p class="item">A</p>';
-    document.body.appendChild(source);
+		_processTemplateIncludes();
 
-    const wrapper = document.createElement('div');
-    for (let i = 0; i < 3; i++) {
-      const inc = document.createElement('template');
-      inc.setAttribute('include', 'multi-tpl');
-      wrapper.appendChild(inc);
-    }
-    document.body.appendChild(wrapper);
+		const items = wrapper.querySelectorAll(".item");
+		expect(items).toHaveLength(3);
+		items[0].textContent = "modified";
+		expect(items[1].textContent).toBe("A");
+	});
 
-    _processTemplateIncludes();
+	test("scoped to a root element when provided", () => {
+		const source = document.createElement("template");
+		source.id = "scoped-tpl";
+		source.innerHTML = "<b>scoped</b>";
+		document.body.appendChild(source);
 
-    const items = wrapper.querySelectorAll('.item');
-    expect(items).toHaveLength(3);
-    items[0].textContent = 'modified';
-    expect(items[1].textContent).toBe('A'); 
-  });
+		const inside = document.createElement("div");
+		const inc = document.createElement("template");
+		inc.setAttribute("include", "scoped-tpl");
+		inside.appendChild(inc);
 
-  test('scoped to a root element when provided', () => {
-    const source = document.createElement('template');
-    source.id = 'scoped-tpl';
-    source.innerHTML = '<b>scoped</b>';
-    document.body.appendChild(source);
+		const outside = document.createElement("div");
+		const inc2 = document.createElement("template");
+		inc2.setAttribute("include", "scoped-tpl");
+		outside.appendChild(inc2);
 
-    const inside = document.createElement('div');
-    const inc = document.createElement('template');
-    inc.setAttribute('include', 'scoped-tpl');
-    inside.appendChild(inc);
+		document.body.appendChild(inside);
+		document.body.appendChild(outside);
 
-    const outside = document.createElement('div');
-    const inc2 = document.createElement('template');
-    inc2.setAttribute('include', 'scoped-tpl');
-    outside.appendChild(inc2);
+		_processTemplateIncludes(inside);
 
-    document.body.appendChild(inside);
-    document.body.appendChild(outside);
-
-    _processTemplateIncludes(inside);
-
-    expect(inside.querySelector('b')).not.toBeNull();
-    expect(outside.querySelector('template[include]')).not.toBeNull(); 
-  });
+		expect(inside.querySelector("b")).not.toBeNull();
+		expect(outside.querySelector("template[include]")).not.toBeNull();
+	});
 });
 
+describe("_loadRemoteTemplatesPhase1", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>content</p>"),
+		});
+	});
 
+	afterEach(() => {
+		delete global.fetch;
+		document.body.innerHTML = "";
+	});
 
+	test("loads priority templates first", async () => {
+		const tplPriority = document.createElement("template");
+		tplPriority.setAttribute("src", "/priority.html");
+		tplPriority.setAttribute("lazy", "priority");
+		tplPriority.setAttribute("route", "/priority");
+		document.body.appendChild(tplPriority);
 
+		const wrapper = document.createElement("div");
+		const tplNonRoute = document.createElement("template");
+		tplNonRoute.setAttribute("src", "/header.html");
+		wrapper.appendChild(tplNonRoute);
+		document.body.appendChild(wrapper);
 
-describe('_loadRemoteTemplatesPhase1', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '';
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>content</p>'),
-    });
-  });
+		await _loadRemoteTemplatesPhase1("/home");
 
-  afterEach(() => {
-    delete global.fetch;
-    document.body.innerHTML = '';
-  });
+		expect(global.fetch).toHaveBeenCalledWith("/priority.html");
+		expect(global.fetch).toHaveBeenCalledWith("/header.html");
+	});
 
-  test('loads priority templates first', async () => {
-    
-    const tplPriority = document.createElement('template');
-    tplPriority.setAttribute('src', '/priority.html');
-    tplPriority.setAttribute('lazy', 'priority');
-    tplPriority.setAttribute('route', '/priority');
-    document.body.appendChild(tplPriority);
+	test("skips ondemand templates", async () => {
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/about.html");
+		tpl.setAttribute("route", "/about");
+		tpl.setAttribute("lazy", "ondemand");
+		document.body.appendChild(tpl);
 
-    
-    const wrapper = document.createElement('div');
-    const tplNonRoute = document.createElement('template');
-    tplNonRoute.setAttribute('src', '/header.html');
-    wrapper.appendChild(tplNonRoute);
-    document.body.appendChild(wrapper);
+		await _loadRemoteTemplatesPhase1("/home");
 
-    await _loadRemoteTemplatesPhase1('/home');
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
 
-    expect(global.fetch).toHaveBeenCalledWith('/priority.html');
-    expect(global.fetch).toHaveBeenCalledWith('/header.html');
-  });
+	test("loads default route template in phase 1", async () => {
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/home.html");
+		tpl.setAttribute("route", "/home");
+		document.body.appendChild(tpl);
 
-  test('skips ondemand templates', async () => {
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/about.html');
-    tpl.setAttribute('route', '/about');
-    tpl.setAttribute('lazy', 'ondemand');
-    document.body.appendChild(tpl);
+		await _loadRemoteTemplatesPhase1("/home");
 
-    await _loadRemoteTemplatesPhase1('/home');
+		expect(global.fetch).toHaveBeenCalledWith("/home.html");
+	});
 
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
+	test("skips non-default route templates in phase 1", async () => {
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/about.html");
+		tpl.setAttribute("route", "/about");
+		document.body.appendChild(tpl);
 
-  test('loads default route template in phase 1', async () => {
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/home.html');
-    tpl.setAttribute('route', '/home');
-    document.body.appendChild(tpl);
+		await _loadRemoteTemplatesPhase1("/home");
 
-    await _loadRemoteTemplatesPhase1('/home');
-
-    expect(global.fetch).toHaveBeenCalledWith('/home.html');
-  });
-
-  test('skips non-default route templates in phase 1', async () => {
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/about.html');
-    tpl.setAttribute('route', '/about');
-    document.body.appendChild(tpl);
-
-    await _loadRemoteTemplatesPhase1('/home');
-
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
 });
 
+describe("_loadRemoteTemplatesPhase2", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>content</p>"),
+		});
+	});
 
+	afterEach(() => {
+		delete global.fetch;
+		document.body.innerHTML = "";
+	});
 
+	test("loads non-default route templates", async () => {
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/about.html");
+		tpl.setAttribute("route", "/about");
+		document.body.appendChild(tpl);
 
+		await _loadRemoteTemplatesPhase2();
 
-describe('_loadRemoteTemplatesPhase2', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '';
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>content</p>'),
-    });
-  });
+		expect(global.fetch).toHaveBeenCalledWith("/about.html");
+	});
 
-  afterEach(() => {
-    delete global.fetch;
-    document.body.innerHTML = '';
-  });
+	test("skips ondemand templates", async () => {
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/about.html");
+		tpl.setAttribute("route", "/about");
+		tpl.setAttribute("lazy", "ondemand");
+		document.body.appendChild(tpl);
 
-  test('loads non-default route templates', async () => {
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/about.html');
-    tpl.setAttribute('route', '/about');
-    document.body.appendChild(tpl);
+		await _loadRemoteTemplatesPhase2();
 
-    await _loadRemoteTemplatesPhase2();
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
 
-    expect(global.fetch).toHaveBeenCalledWith('/about.html');
-  });
+	test("skips already-loaded templates", async () => {
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/about.html");
+		tpl.setAttribute("route", "/about");
+		tpl.__srcLoaded = true;
+		document.body.appendChild(tpl);
 
-  test('skips ondemand templates', async () => {
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/about.html');
-    tpl.setAttribute('route', '/about');
-    tpl.setAttribute('lazy', 'ondemand');
-    document.body.appendChild(tpl);
+		await _loadRemoteTemplatesPhase2();
 
-    await _loadRemoteTemplatesPhase2();
-
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  test('skips already-loaded templates', async () => {
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/about.html');
-    tpl.setAttribute('route', '/about');
-    tpl.__srcLoaded = true;
-    document.body.appendChild(tpl);
-
-    await _loadRemoteTemplatesPhase2();
-
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
 });
 
+describe("_loadTemplateElement — subtemplate cache warming", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		_templateHtmlCache.clear();
+	});
 
+	afterEach(() => {
+		delete global.fetch;
+		document.body.innerHTML = "";
+		_templateHtmlCache.clear();
+	});
 
+	test("route template pre-warms HTML cache for nested subtemplates", async () => {
+		global.fetch = jest.fn((url) => {
+			if (url === "templates/docs.html") {
+				return Promise.resolve({
+					ok: true,
+					text: () =>
+						Promise.resolve(
+							'<template src="./docs/sidebar.tpl"></template><template src="./docs/getting-started.tpl"></template>',
+						),
+				});
+			}
+			if (url === "templates/docs/sidebar.tpl") {
+				return Promise.resolve({
+					ok: true,
+					text: () => Promise.resolve("<nav>Sidebar</nav>"),
+				});
+			}
+			if (url === "templates/docs/getting-started.tpl") {
+				return Promise.resolve({
+					ok: true,
+					text: () => Promise.resolve("<section>Getting Started</section>"),
+				});
+			}
+			return Promise.resolve({ ok: true, text: () => Promise.resolve("") });
+		});
 
-describe('_loadTemplateElement — subtemplate cache warming', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '';
-    _templateHtmlCache.clear();
-  });
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "templates/docs.html");
+		tpl.setAttribute("route", "/docs");
+		document.body.appendChild(tpl);
 
-  afterEach(() => {
-    delete global.fetch;
-    document.body.innerHTML = '';
-    _templateHtmlCache.clear();
-  });
+		await _loadTemplateElement(tpl);
+		// Wait for background cache warming
+		await new Promise((r) => setTimeout(r, 50));
 
-  test('route template pre-warms HTML cache for nested subtemplates', async () => {
-    global.fetch = jest.fn((url) => {
-      if (url === 'templates/docs.html') {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve('<template src="./docs/sidebar.tpl"></template><template src="./docs/getting-started.tpl"></template>'),
-        });
-      }
-      if (url === 'templates/docs/sidebar.tpl') {
-        return Promise.resolve({ ok: true, text: () => Promise.resolve('<nav>Sidebar</nav>') });
-      }
-      if (url === 'templates/docs/getting-started.tpl') {
-        return Promise.resolve({ ok: true, text: () => Promise.resolve('<section>Getting Started</section>') });
-      }
-      return Promise.resolve({ ok: true, text: () => Promise.resolve('') });
-    });
+		expect(_templateHtmlCache.has("templates/docs/sidebar.tpl")).toBe(true);
+		expect(_templateHtmlCache.has("templates/docs/getting-started.tpl")).toBe(
+			true,
+		);
+		expect(_templateHtmlCache.get("templates/docs/sidebar.tpl")).toBe(
+			"<nav>Sidebar</nav>",
+		);
+	});
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', 'templates/docs.html');
-    tpl.setAttribute('route', '/docs');
-    document.body.appendChild(tpl);
+	test("does not re-fetch subtemplates already in cache", async () => {
+		_templateHtmlCache.set("templates/docs/sidebar.tpl", "<nav>Cached</nav>");
 
-    await _loadTemplateElement(tpl);
-    // Wait for background cache warming
-    await new Promise((r) => setTimeout(r, 50));
+		global.fetch = jest.fn((url) => {
+			if (url === "templates/docs.html") {
+				return Promise.resolve({
+					ok: true,
+					text: () =>
+						Promise.resolve('<template src="./docs/sidebar.tpl"></template>'),
+				});
+			}
+			return Promise.resolve({ ok: true, text: () => Promise.resolve("") });
+		});
 
-    expect(_templateHtmlCache.has('templates/docs/sidebar.tpl')).toBe(true);
-    expect(_templateHtmlCache.has('templates/docs/getting-started.tpl')).toBe(true);
-    expect(_templateHtmlCache.get('templates/docs/sidebar.tpl')).toBe('<nav>Sidebar</nav>');
-  });
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "templates/docs.html");
+		tpl.setAttribute("route", "/docs");
+		document.body.appendChild(tpl);
 
-  test('does not re-fetch subtemplates already in cache', async () => {
-    _templateHtmlCache.set('templates/docs/sidebar.tpl', '<nav>Cached</nav>');
+		await _loadTemplateElement(tpl);
+		await new Promise((r) => setTimeout(r, 50));
 
-    global.fetch = jest.fn((url) => {
-      if (url === 'templates/docs.html') {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve('<template src="./docs/sidebar.tpl"></template>'),
-        });
-      }
-      return Promise.resolve({ ok: true, text: () => Promise.resolve('') });
-    });
+		// Only the route template itself should be fetched, not the cached subtemplate
+		expect(global.fetch).toHaveBeenCalledWith("templates/docs.html");
+		expect(global.fetch).not.toHaveBeenCalledWith("templates/docs/sidebar.tpl");
+		expect(_templateHtmlCache.get("templates/docs/sidebar.tpl")).toBe(
+			"<nav>Cached</nav>",
+		);
+	});
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', 'templates/docs.html');
-    tpl.setAttribute('route', '/docs');
-    document.body.appendChild(tpl);
+	test("non-route templates do not trigger cache warming (they use _loadRemoteTemplates)", async () => {
+		global.fetch = jest.fn(() =>
+			Promise.resolve({
+				ok: true,
+				text: () => Promise.resolve("<p>content</p>"),
+			}),
+		);
 
-    await _loadTemplateElement(tpl);
-    await new Promise((r) => setTimeout(r, 50));
+		const parent = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "components/header.html");
+		// No route attribute
+		parent.appendChild(tpl);
+		document.body.appendChild(parent);
 
-    // Only the route template itself should be fetched, not the cached subtemplate
-    expect(global.fetch).toHaveBeenCalledWith('templates/docs.html');
-    expect(global.fetch).not.toHaveBeenCalledWith('templates/docs/sidebar.tpl');
-    expect(_templateHtmlCache.get('templates/docs/sidebar.tpl')).toBe('<nav>Cached</nav>');
-  });
+		await _loadTemplateElement(tpl);
+		await new Promise((r) => setTimeout(r, 50));
 
-  test('non-route templates do not trigger cache warming (they use _loadRemoteTemplates)', async () => {
-    global.fetch = jest.fn(() => Promise.resolve({
-      ok: true,
-      text: () => Promise.resolve('<p>content</p>'),
-    }));
-
-    const parent = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', 'components/header.html');
-    // No route attribute
-    parent.appendChild(tpl);
-    document.body.appendChild(parent);
-
-    await _loadTemplateElement(tpl);
-    await new Promise((r) => setTimeout(r, 50));
-
-    // Should have been fetched and processed via _loadRemoteTemplates, not cache warming
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-  });
+		// Should have been fetched and processed via _loadRemoteTemplates, not cache warming
+		expect(global.fetch).toHaveBeenCalledTimes(1);
+	});
 });
 
-describe('_loadTemplateElement — HTTP error handling', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '';
-    _templateHtmlCache.clear();
-  });
+describe("_loadTemplateElement — HTTP error handling", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		_templateHtmlCache.clear();
+	});
 
-  afterEach(() => {
-    delete global.fetch;
-    document.body.innerHTML = '';
-    _templateHtmlCache.clear();
-  });
+	afterEach(() => {
+		delete global.fetch;
+		document.body.innerHTML = "";
+		_templateHtmlCache.clear();
+	});
 
-  test('should set __loadFailed and leave innerHTML empty on HTTP 404', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      text: () => Promise.resolve('Not Found'),
-    });
+	test("should set __loadFailed and leave innerHTML empty on HTTP 404", async () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation();
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: false,
+			status: 404,
+			text: () => Promise.resolve("Not Found"),
+		});
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/missing.tpl');
-    tpl.setAttribute('route', '/missing');
-    document.body.appendChild(tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/missing.tpl");
+		tpl.setAttribute("route", "/missing");
+		document.body.appendChild(tpl);
 
-    await _loadTemplateElement(tpl);
+		await _loadTemplateElement(tpl);
 
-    expect(tpl.innerHTML).toBe('');
-    expect(tpl.__loadFailed).toBe(true);
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[No.JS]', 'Failed to load template:', '/missing.tpl', 'HTTP', 404
-    );
+		expect(tpl.innerHTML).toBe("");
+		expect(tpl.__loadFailed).toBe(true);
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			"Failed to load template:",
+			"/missing.tpl",
+			"HTTP",
+			404,
+		);
 
-    warnSpy.mockRestore();
-  });
+		warnSpy.mockRestore();
+	});
 
-  test('should set __loadFailed and leave innerHTML empty on HTTP 500', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      text: () => Promise.resolve('Internal Server Error'),
-    });
+	test("should set __loadFailed and leave innerHTML empty on HTTP 500", async () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation();
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: false,
+			status: 500,
+			text: () => Promise.resolve("Internal Server Error"),
+		});
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/error.tpl');
-    tpl.setAttribute('route', '/error');
-    document.body.appendChild(tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/error.tpl");
+		tpl.setAttribute("route", "/error");
+		document.body.appendChild(tpl);
 
-    await _loadTemplateElement(tpl);
+		await _loadTemplateElement(tpl);
 
-    expect(tpl.innerHTML).toBe('');
-    expect(tpl.__loadFailed).toBe(true);
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[No.JS]', 'Failed to load template:', '/error.tpl', 'HTTP', 500
-    );
+		expect(tpl.innerHTML).toBe("");
+		expect(tpl.__loadFailed).toBe(true);
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			"Failed to load template:",
+			"/error.tpl",
+			"HTTP",
+			500,
+		);
 
-    warnSpy.mockRestore();
-  });
+		warnSpy.mockRestore();
+	});
 
-  test('should not cache failed HTTP responses', async () => {
-    jest.spyOn(console, 'warn').mockImplementation();
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      text: () => Promise.resolve('Not Found'),
-    });
+	test("should not cache failed HTTP responses", async () => {
+		jest.spyOn(console, "warn").mockImplementation();
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: false,
+			status: 404,
+			text: () => Promise.resolve("Not Found"),
+		});
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/not-cached.tpl');
-    tpl.setAttribute('route', '/not-cached');
-    document.body.appendChild(tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/not-cached.tpl");
+		tpl.setAttribute("route", "/not-cached");
+		document.body.appendChild(tpl);
 
-    await _loadTemplateElement(tpl);
+		await _loadTemplateElement(tpl);
 
-    expect(_templateHtmlCache.has('/not-cached.tpl')).toBe(false);
+		expect(_templateHtmlCache.has("/not-cached.tpl")).toBe(false);
 
-    console.warn.mockRestore();
-  });
+		console.warn.mockRestore();
+	});
 
-  test('should load and cache content normally on HTTP 200', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('<p>OK</p>'),
-    });
+	test("should load and cache content normally on HTTP 200", async () => {
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve("<p>OK</p>"),
+		});
 
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/success.tpl');
-    tpl.setAttribute('route', '/success');
-    document.body.appendChild(tpl);
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/success.tpl");
+		tpl.setAttribute("route", "/success");
+		document.body.appendChild(tpl);
 
-    await _loadTemplateElement(tpl);
+		await _loadTemplateElement(tpl);
 
-    expect(tpl.innerHTML).toBe('<p>OK</p>');
-    expect(tpl.__loadFailed).toBeUndefined();
-    expect(_templateHtmlCache.has('/success.tpl')).toBe(true);
-    expect(_templateHtmlCache.get('/success.tpl')).toBe('<p>OK</p>');
-  });
+		expect(tpl.innerHTML).toBe("<p>OK</p>");
+		expect(tpl.__loadFailed).toBeUndefined();
+		expect(_templateHtmlCache.has("/success.tpl")).toBe(true);
+		expect(_templateHtmlCache.get("/success.tpl")).toBe("<p>OK</p>");
+	});
 });
 
-describe('_loadRemoteTemplates — HTTP error handling', () => {
-  beforeEach(() => {
-    document.body.innerHTML = '';
-    _templateHtmlCache.clear();
-  });
+describe("_loadRemoteTemplates — HTTP error handling", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		_templateHtmlCache.clear();
+	});
 
-  afterEach(() => {
-    delete global.fetch;
-    document.body.innerHTML = '';
-    _templateHtmlCache.clear();
-  });
+	afterEach(() => {
+		delete global.fetch;
+		document.body.innerHTML = "";
+		_templateHtmlCache.clear();
+	});
 
-  test('should not cache template and should warn on HTTP error', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 403,
-      text: () => Promise.resolve('Forbidden'),
-    });
+	test("should not cache template and should warn on HTTP error", async () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation();
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: false,
+			status: 403,
+			text: () => Promise.resolve("Forbidden"),
+		});
 
-    const wrapper = document.createElement('div');
-    const tpl = document.createElement('template');
-    tpl.setAttribute('src', '/forbidden.tpl');
-    wrapper.appendChild(tpl);
-    document.body.appendChild(wrapper);
+		const wrapper = document.createElement("div");
+		const tpl = document.createElement("template");
+		tpl.setAttribute("src", "/forbidden.tpl");
+		wrapper.appendChild(tpl);
+		document.body.appendChild(wrapper);
 
-    await _loadRemoteTemplates();
+		await _loadRemoteTemplates();
 
-    expect(_templateHtmlCache.has('/forbidden.tpl')).toBe(false);
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[No.JS]', 'Failed to load template:', '/forbidden.tpl', 'HTTP', 403
-    );
-    // Template was not inlined — wrapper should still have the template element
-    // (or be empty since the template content was never set)
-    expect(wrapper.textContent).toBe('');
+		expect(_templateHtmlCache.has("/forbidden.tpl")).toBe(false);
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			"Failed to load template:",
+			"/forbidden.tpl",
+			"HTTP",
+			403,
+		);
+		// Template was not inlined — wrapper should still have the template element
+		// (or be empty since the template content was never set)
+		expect(wrapper.textContent).toBe("");
 
-    warnSpy.mockRestore();
-  });
+		warnSpy.mockRestore();
+	});
 });

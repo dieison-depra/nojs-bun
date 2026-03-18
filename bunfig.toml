@@ -1,0 +1,4 @@
+[test]
+preload = ["./__tests__/setup.js"]
+timeout = 60000
+exclude = ["e2e/**"]

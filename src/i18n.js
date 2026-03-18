@@ -5,126 +5,136 @@
 import { _config, _warn } from "./globals.js";
 
 const _i18nListeners = new Set();
+
 export { _i18nListeners };
 
 export function _watchI18n(fn) {
-  _i18nListeners.add(fn);
-  return () => _i18nListeners.delete(fn);
+	_i18nListeners.add(fn);
+	return () => _i18nListeners.delete(fn);
 }
 
 // ─── Notify all i18n listeners (shared by setter + directive) ────────
 export function _notifyI18n() {
-  for (const fn of _i18nListeners) {
-    if (fn._el && !fn._el.isConnected) { _i18nListeners.delete(fn); continue; }
-    fn();
-  }
+	for (const fn of _i18nListeners) {
+		if (fn._el && !fn._el.isConnected) {
+			_i18nListeners.delete(fn);
+			continue;
+		}
+		fn();
+	}
 }
 
 // ─── Deep merge (recursive, returns new object) ─────────────────────
 export function _deepMerge(target, source) {
-  const out = { ...target };
-  for (const key of Object.keys(source)) {
-    if (
-      source[key] && typeof source[key] === "object" && !Array.isArray(source[key]) &&
-      target[key] && typeof target[key] === "object" && !Array.isArray(target[key])
-    ) {
-      out[key] = _deepMerge(target[key], source[key]);
-    } else {
-      out[key] = source[key];
-    }
-  }
-  return out;
+	const out = { ...target };
+	for (const key of Object.keys(source)) {
+		if (
+			source[key] &&
+			typeof source[key] === "object" &&
+			!Array.isArray(source[key]) &&
+			target[key] &&
+			typeof target[key] === "object" &&
+			!Array.isArray(target[key])
+		) {
+			out[key] = _deepMerge(target[key], source[key]);
+		} else {
+			out[key] = source[key];
+		}
+	}
+	return out;
 }
 
 // ─── Locale file cache: Map<string, object>  key = "en" or "en:dashboard"
 export const _i18nCache = new Map();
-export const _loadedNs = new Set();
+const _loadedNs = new Set();
 
 // ─── Fetch a single JSON file and merge into _i18n.locales[locale] ──
 export async function _loadLocale(locale, ns) {
-  const cacheKey = ns ? `${locale}:${ns}` : locale;
-  if (_config.i18n.cache && _i18nCache.has(cacheKey)) return;
+	const cacheKey = ns ? `${locale}:${ns}` : locale;
+	if (_config.i18n.cache && _i18nCache.has(cacheKey)) return;
 
-  let url = _config.i18n.loadPath.replace("{locale}", locale);
-  if (ns) url = url.replace("{ns}", ns);
-  else if (url.includes("{ns}")) return; // no namespace to substitute
+	let url = _config.i18n.loadPath.replace("{locale}", locale);
+	if (ns) url = url.replace("{ns}", ns);
+	else if (url.includes("{ns}")) return; // no namespace to substitute
 
-
-  try {
-    const res = await fetch(url);
-    if (!res.ok) { _warn(`i18n: failed to load ${url} (${res.status})`); return; }
-    const data = await res.json();
-    _i18n.locales[locale] = _deepMerge(_i18n.locales[locale] || {}, data);
-    if (_config.i18n.cache) _i18nCache.set(cacheKey, data);
-  } catch (e) {
-    _warn(`i18n: error loading ${url}`, e);
-  }
+	try {
+		const res = await fetch(url);
+		if (!res.ok) {
+			_warn(`i18n: failed to load ${url} (${res.status})`);
+			return;
+		}
+		const data = await res.json();
+		_i18n.locales[locale] = _deepMerge(_i18n.locales[locale] || {}, data);
+		if (_config.i18n.cache) _i18nCache.set(cacheKey, data);
+	} catch (e) {
+		_warn(`i18n: error loading ${url}`, e);
+	}
 }
 
 // ─── Load all configured data for a locale (flat or all namespaces) ──
 export async function _loadI18nForLocale(locale) {
-  if (!_config.i18n.loadPath) return;
-  const ns = _config.i18n.ns;
-  if (!ns.length || !_config.i18n.loadPath.includes("{ns}")) {
-    await _loadLocale(locale, null);
-  } else {
-    await Promise.all(ns.map((n) => _loadLocale(locale, n)));
-  }
+	if (!_config.i18n.loadPath) return;
+	const ns = _config.i18n.ns;
+	if (!ns.length || !_config.i18n.loadPath.includes("{ns}")) {
+		await _loadLocale(locale, null);
+	} else {
+		await Promise.all(ns.map((n) => _loadLocale(locale, n)));
+	}
 }
 
 // ─── Load a single namespace for current + fallback locales ──────────
 export async function _loadI18nNamespace(ns) {
-  if (!_config.i18n.loadPath) return;
-  _loadedNs.add(ns);
-  const locales = new Set([_i18n.locale, _config.i18n.fallbackLocale]);
-  await Promise.all([...locales].map((l) => _loadLocale(l, ns)));
+	if (!_config.i18n.loadPath) return;
+	_loadedNs.add(ns);
+	const locales = new Set([_i18n.locale, _config.i18n.fallbackLocale]);
+	await Promise.all([...locales].map((l) => _loadLocale(l, ns)));
 }
 
 export const _i18n = {
-  _locale: "en",
-  locales: {},
-  get locale() {
-    return this._locale;
-  },
-  set locale(v) {
-    if (this._locale !== v) {
-      this._locale = v;
-      if (_config.i18n.persist && typeof localStorage !== "undefined") {
-        try { localStorage.setItem("nojs-locale", v); } catch (_) {}
-      }
-      if (_config.i18n.loadPath) {
-        // Load configured ns + any route-loaded ns for the new locale
-        const allNs = new Set([..._config.i18n.ns, ..._loadedNs]);
-        Promise.all([...allNs].map((n) => _loadLocale(v, n))).then(() => _notifyI18n());
-      } else {
-        _notifyI18n();
-      }
-    }
-  },
-  t(key, params = {}) {
-    const messages =
-      _i18n.locales[_i18n.locale] ||
-      _i18n.locales[_config.i18n.fallbackLocale] ||
-      {};
-    let msg = key.split(".").reduce((o, k) => o?.[k], messages);
-    if (msg == null) return key;
+	_locale: "en",
+	locales: {},
+	get locale() {
+		return this._locale;
+	},
+	set locale(v) {
+		if (this._locale !== v) {
+			this._locale = v;
+			if (_config.i18n.persist && typeof localStorage !== "undefined") {
+				try {
+					localStorage.setItem("nojs-locale", v);
+				} catch (_) {}
+			}
+			if (_config.i18n.loadPath) {
+				// Load configured ns + any route-loaded ns for the new locale
+				const allNs = new Set([..._config.i18n.ns, ..._loadedNs]);
+				Promise.all([...allNs].map((n) => _loadLocale(v, n))).then(() =>
+					_notifyI18n(),
+				);
+			} else {
+				_notifyI18n();
+			}
+		}
+	},
+	t(key, params = {}) {
+		const messages =
+			_i18n.locales[_i18n.locale] ||
+			_i18n.locales[_config.i18n.fallbackLocale] ||
+			{};
+		let msg = key.split(".").reduce((o, k) => o?.[k], messages);
+		if (msg == null) return key;
 
-    // Pluralization: "one item | {count} items"
-    if (
-      typeof msg === "string" &&
-      msg.includes("|") &&
-      params.count != null
-    ) {
-      const forms = msg.split("|").map((s) => s.trim());
-      msg = Number(params.count) === 1 ? forms[0] : forms[1] || forms[0];
-    }
+		// Pluralization: "one item | {count} items"
+		if (typeof msg === "string" && msg.includes("|") && params.count != null) {
+			const forms = msg.split("|").map((s) => s.trim());
+			msg = Number(params.count) === 1 ? forms[0] : forms[1] || forms[0];
+		}
 
-    // Interpolation: {name}
-    if (typeof msg === "string") {
-      msg = msg.replace(/\{(\w+)\}/g, (_, k) =>
-        params[k] != null ? params[k] : "",
-      );
-    }
-    return msg;
-  },
+		// Interpolation: {name}
+		if (typeof msg === "string") {
+			msg = msg.replace(/\{(\w+)\}/g, (_, k) =>
+				params[k] != null ? params[k] : "",
+			);
+		}
+		return msg;
+	},
 };

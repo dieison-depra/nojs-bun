@@ -10,7 +10,7 @@ window.NoJS = NoJS;
 
 // Auto-init on DOM ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => NoJS.init());
+	document.addEventListener("DOMContentLoaded", () => NoJS.init());
 } else {
-  NoJS.init();
+	NoJS.init();
 }

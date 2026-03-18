@@ -220,6 +220,11 @@ registerDirective("foreach", {
 						clone = tpl.content.cloneNode(true);
 					} else {
 						clone = templateContent.cloneNode(true);
+						// Prevent infinite recursion: the clone should not have the foreach directive itself
+						if (clone.nodeType === 1) {
+							clone.removeAttribute("foreach");
+							clone.removeAttribute("from");
+						}
 					}
 
 					const wrapper = document.createElement("div");

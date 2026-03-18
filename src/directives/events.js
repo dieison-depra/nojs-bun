@@ -142,6 +142,7 @@ registerDirective("on:*", {
     if (modifiers.has("once")) opts.once = true;
 
     el.addEventListener(event, handler, opts);
+    _onDispose(() => el.removeEventListener(event, handler, opts));
   },
 });
 

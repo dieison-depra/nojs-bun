@@ -62,9 +62,20 @@ export function _notifyStoreWatchers() {
 }
 
 export function _watchExpr(expr, ctx, fn) {
-  ctx.$watch(fn);
+  const unwatch = ctx.$watch(fn);
   if (typeof expr === "string" && expr.includes("$store")) {
     _storeWatchers.add(fn);
+  }
+  // Ensure cleanup when the owning element is disposed.
+  // _disposeElement only clears el.__ctx.__listeners, so watchers registered
+  // on an ancestor context (via findContext) would otherwise leak — their
+  // closures keep el alive and block GC until the next notify cycle.
+  if (_currentEl) {
+    _currentEl.__disposers = _currentEl.__disposers || [];
+    _currentEl.__disposers.push(() => {
+      if (unwatch) unwatch();        // remove from ctx.__listeners (ancestor or own)
+      _storeWatchers.delete(fn);     // remove from global store watcher set
+    });
   }
 }
 

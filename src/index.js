@@ -15,6 +15,7 @@ import {
   _routerInstance,
   setRouterInstance,
   _log,
+  _notifyStoreWatchers,
 } from "./globals.js";
 import { _i18n, _loadI18nForLocale } from "./i18n.js";
 import { createContext } from "./context.js";
@@ -207,6 +208,11 @@ const NoJS = {
   // Access router
   get router() {
     return _routerInstance;
+  },
+
+  // Notify all store watchers (use after mutating NoJS.store from external JS)
+  notify() {
+    _notifyStoreWatchers();
   },
 
   // Utilities (for custom directives)

@@ -15,7 +15,7 @@ import { createContext } from "../context.js";
 import { evaluate, _execStatement, _interpolate } from "../evaluate.js";
 import { _doFetch, _cacheGet, _cacheSet } from "../fetch.js";
 import { findContext, _clearDeclared, _cloneTemplate } from "../dom.js";
-import { registerDirective, processTree } from "../registry.js";
+import { registerDirective, processTree, _disposeTree } from "../registry.js";
 import { _devtoolsEmit } from "../devtools.js";
 
 const HTTP_METHODS = ["get", "post", "put", "patch", "delete"];
@@ -96,6 +96,7 @@ for (const method of HTTP_METHODS) {
         if (loadingTpl) {
           const clone = _cloneTemplate(loadingTpl);
           if (clone) {
+            for (const child of [...el.children]) _disposeTree(child);
             el.innerHTML = "";
             el.appendChild(clone);
             processTree(el);
@@ -149,6 +150,7 @@ for (const method of HTTP_METHODS) {
           ) {
             const clone = _cloneTemplate(emptyTpl);
             if (clone) {
+              for (const child of [...el.children]) _disposeTree(child);
               el.innerHTML = "";
               el.appendChild(clone);
               processTree(el);
@@ -169,6 +171,7 @@ for (const method of HTTP_METHODS) {
           if (successTpl) {
             const clone = _cloneTemplate(successTpl);
             if (clone) {
+              for (const child of [...el.children]) _disposeTree(child);
               el.innerHTML = "";
               // Inject var
               const tplEl = document.getElementById(
@@ -185,6 +188,7 @@ for (const method of HTTP_METHODS) {
             }
           } else {
             // Restore original children and re-process
+            for (const child of [...el.children]) _disposeTree(child);
             el.innerHTML = "";
             for (const child of originalChildren)
               el.appendChild(child.cloneNode(true));
@@ -216,6 +220,7 @@ for (const method of HTTP_METHODS) {
           if (errorTpl) {
             const clone = _cloneTemplate(errorTpl);
             if (clone) {
+              for (const child of [...el.children]) _disposeTree(child);
               el.innerHTML = "";
               const tplEl = document.getElementById(
                 errorTpl.replace("#", ""),

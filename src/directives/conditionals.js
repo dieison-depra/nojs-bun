@@ -5,7 +5,7 @@
 import { _watchExpr } from "../globals.js";
 import { evaluate } from "../evaluate.js";
 import { findContext, _clearDeclared, _cloneTemplate } from "../dom.js";
-import { registerDirective, processTree } from "../registry.js";
+import { registerDirective, processTree, _disposeTree } from "../registry.js";
 import { _animateIn, _animateOut } from "../animations.js";
 
 registerDirective("if", {
@@ -40,10 +40,12 @@ registerDirective("if", {
         if (thenId) {
           const clone = _cloneTemplate(thenId);
           if (clone) {
+            for (const child of [...el.children]) _disposeTree(child);
             el.innerHTML = "";
             el.appendChild(clone);
           }
         } else {
+          for (const child of [...el.children]) _disposeTree(child);
           el.innerHTML = "";
           for (const child of originalChildren)
             el.appendChild(child.cloneNode(true));
@@ -52,12 +54,15 @@ registerDirective("if", {
         if (elseId) {
           const clone = _cloneTemplate(elseId);
           if (clone) {
+            for (const child of [...el.children]) _disposeTree(child);
             el.innerHTML = "";
             el.appendChild(clone);
           }
         } else if (thenId) {
+          for (const child of [...el.children]) _disposeTree(child);
           el.innerHTML = "";
         } else {
+          for (const child of [...el.children]) _disposeTree(child);
           el.innerHTML = "";
         }
       }

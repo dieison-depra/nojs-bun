@@ -25,4 +25,9 @@ test-results
 .github/specs
 .github/reviews
 .github/agents
-\n# Gemini & Memory Files\nGEMINI.md\nmemory.md\n**/GEMINI.md
+
+# Gemini & Memory Files
+GEMINI.md
+memory.md
+migration.md
+**/GEMINI.md

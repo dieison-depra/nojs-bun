@@ -33,6 +33,7 @@ import {
   _execStatement,
   resolve,
   _interpolate,
+  _exprCache,
 } from '../src/evaluate.js';
 
 describe('Globals', () => {
@@ -446,6 +447,32 @@ describe('Reactive Context', () => {
       const child = createContext({ x: 'child' }, parent);
       const { vals } = _collectKeys(child);
       expect(vals.x).toBe('child');
+    });
+
+    test('returns cached result when context has not changed', () => {
+      const ctx = createContext({ a: 1 });
+      const first = _collectKeys(ctx);
+      const second = _collectKeys(ctx);
+      expect(second).toBe(first); // same object reference — cache hit
+    });
+
+    test('returns fresh result after context mutation', () => {
+      const ctx = createContext({ a: 1 });
+      const before = _collectKeys(ctx);
+      ctx.a = 99;
+      const after = _collectKeys(ctx);
+      expect(after).not.toBe(before); // different object reference — cache invalidated
+      expect(after.vals.a).toBe(99);
+    });
+
+    test('invalidates child cache when parent context changes', () => {
+      const parent = createContext({ x: 1 });
+      const child = createContext({ y: 2 }, parent);
+      const before = _collectKeys(child);
+      parent.x = 42;
+      const after = _collectKeys(child);
+      expect(after).not.toBe(before);
+      expect(after.vals.x).toBe(42);
     });
   });
 });
@@ -1588,6 +1615,13 @@ describe('Statement Interpreter', () => {
       _execStatement('msg = $event.type', ctx, { $event: { type: 'click' } });
       expect(ctx.msg).toBe('click');
     });
+
+    test('extraVars keys are not written back to the context', () => {
+      // __val is used by the model directive; it must not leak into the reactive context
+      _execStatement('count = __val', ctx, { __val: 42 });
+      expect(ctx.count).toBe(42);            // assignment succeeded
+      expect('__val' in ctx.__raw).toBe(false); // __val must not persist
+    });
   });
 
   describe('$refs Method Call', () => {
@@ -1615,5 +1649,38 @@ describe('Statement Interpreter', () => {
       _execStatement('count = count + 1', child);
       expect(parent.count).toBe(1);
     });
+  });
+});
+
+describe('evaluate.js — expression cache (LRU)', () => {
+  test('cache does not grow beyond 500 entries', () => {
+    const ctx = createContext({});
+
+    for (let i = 0; i < 510; i++) {
+      evaluate(`__lru_test_${i}__ || 0`, ctx);
+    }
+
+    expect(_exprCache.size).toBeLessThanOrEqual(500);
+  });
+
+  test('evicts the LRU entry when the cache is full', () => {
+    const ctx = createContext({});
+
+    // Fill to the limit with known keys
+    for (let i = 0; i < 500; i++) {
+      evaluate(`__evict_test_${i}__ || 0`, ctx);
+    }
+
+    const firstKey = `__evict_test_0__ || 0`;
+
+    // Re-access the first key so it becomes the most-recently-used
+    evaluate(firstKey, ctx);
+
+    // Adding one more should evict the LRU entry (entry 1, not entry 0)
+    evaluate(`__evict_overflow__ || 0`, ctx);
+
+    // The recently-accessed entry must be retained
+    expect(_exprCache.has(firstKey)).toBe(true);
+    expect(_exprCache.size).toBeLessThanOrEqual(500);
   });
 });

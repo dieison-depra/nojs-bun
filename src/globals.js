@@ -17,6 +17,7 @@ export const _config = {
   debug: false,
   devtools: false,
   sanitize: true,
+  exprCacheSize: 500,
 };
 
 export const _interceptors = { request: [], response: [] };

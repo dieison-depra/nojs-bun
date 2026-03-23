@@ -31,6 +31,8 @@ export async function _doFetch(
   extraHeaders = {},
   el = null,
   externalSignal = null,
+  retries = undefined,
+  retryDelay = undefined,
 ) {
   const fullUrl = resolveUrl(url, el);
   let opts = {
@@ -68,7 +70,7 @@ export async function _doFetch(
   }
 
   // Retry logic
-  const maxRetries = _config.retries || 0;
+  const maxRetries = retries !== undefined ? retries : (_config.retries || 0);
   let lastError;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -115,7 +117,7 @@ export async function _doFetch(
       if (e.name === "AbortError") throw e; // Don't retry aborted requests
       lastError = e;
       if (attempt < maxRetries) {
-        await new Promise((r) => setTimeout(r, _config.retryDelay || 1000));
+        await new Promise((r) => setTimeout(r, retryDelay !== undefined ? retryDelay : (_config.retryDelay || 1000)));
       }
     }
   }

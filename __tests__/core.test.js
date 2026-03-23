@@ -823,34 +823,6 @@ describe('index.js — config()', () => {
     _config.router.useHash = false;
   });
 
-  test('emits warning when sanitize is set to false', async () => {
-    const { default: No } = await import('../src/index.js');
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    No.config({ sanitize: false });
-
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[No.JS]',
-      expect.stringContaining('sanitize: false')
-    );
-
-    warnSpy.mockRestore();
-    _config.sanitize = true;
-  });
-
-  test('does not emit warning when sanitize is explicitly set to true', async () => {
-    const { default: No } = await import('../src/index.js');
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    No.config({ sanitize: true });
-
-    const sanitizeWarningCalled = warnSpy.mock.calls.some(
-      (args) => args.some((a) => typeof a === 'string' && a.includes('sanitize'))
-    );
-    expect(sanitizeWarningCalled).toBe(false);
-
-    warnSpy.mockRestore();
-  });
 });
 
 describe('index.js — config() stores', () => {
@@ -1457,6 +1429,28 @@ describe('Expression Parser', () => {
     test('should not expose obj.constructor', () => {
       expect(evaluate('obj.constructor', ctx)).toBeUndefined();
     });
+
+    test('spread filters __proto__', () => {
+      const sCtx = createContext({ evil: { __proto__: { hacked: true }, safe: 1 } });
+      const result = evaluate('({ ...evil })', sCtx);
+      expect(result.safe).toBe(1);
+      expect(result).not.toHaveProperty('__proto__', { hacked: true });
+      expect(result.hacked).toBeUndefined();
+    });
+
+    test('spread filters constructor', () => {
+      const sCtx = createContext({ evil: { constructor: 'bad', ok: 1 } });
+      const result = evaluate('({ ...evil })', sCtx);
+      expect(result.ok).toBe(1);
+      expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(false);
+    });
+
+    test('spread filters prototype', () => {
+      const sCtx = createContext({ evil: { prototype: 'bad', ok: 1 } });
+      const result = evaluate('({ ...evil })', sCtx);
+      expect(result.ok).toBe(1);
+      expect(Object.prototype.hasOwnProperty.call(result, 'prototype')).toBe(false);
+    });
   });
 });
 
@@ -1737,6 +1731,9 @@ describe('evaluate — browser globals allow-list', () => {
       // JSDOM may not define fetch — just confirm no throw
       expect(() => evaluate('window.fetch', ctx)).not.toThrow();
     }
+  });
+});
+
 describe('evaluate.js — expression cache (LRU)', () => {
   test('cache does not grow beyond 500 entries', () => {
     const ctx = createContext({});

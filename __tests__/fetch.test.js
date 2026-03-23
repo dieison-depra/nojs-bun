@@ -624,3 +624,46 @@ describe('fetch.js — external abort signal listener fires abort callback (L77)
     expect(internalSignal.aborted).toBe(true);
   });
 });
+
+describe('fetch.js — explicit _doFetch retry params override _config', () => {
+  let originalFetch;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+    _config.retries = 0;
+    _config.retryDelay = 1000;
+    _config.timeout = 10000;
+    _config.headers = {};
+    _config.csrf = null;
+    _config.credentials = 'same-origin';
+    _interceptors.request.length = 0;
+    _interceptors.response.length = 0;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  test('explicit retries param overrides _config.retries = 0', async () => {
+    let callCount = 0;
+    global.fetch = jest.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount <= 2) {
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          json: () => Promise.resolve({ message: 'Server error' }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify({ success: true })),
+      });
+    });
+
+    // _config.retries is 0, but we pass retries=2 and retryDelay=10 as positional args
+    const result = await _doFetch('/api/retry-override', 'GET', null, {}, null, null, 2, 10);
+    expect(result).toEqual({ success: true });
+    expect(callCount).toBe(3);
+  });
+});

@@ -915,7 +915,12 @@ function _evalNode(node, scope) {
         for (let i = 0; i < node.properties.length; i++) {
           const prop = node.properties[i];
           if (prop.spread) {
-            Object.assign(obj, _evalNode(prop.value, scope));
+            const src = _evalNode(prop.value, scope);
+            if (src && typeof src === 'object') {
+              for (const k of Object.keys(src)) {
+                if (!_FORBIDDEN_PROPS[k]) obj[k] = src[k];
+              }
+            }
           } else {
             const key = prop.computed ? _evalNode(prop.key, scope) : prop.key;
             if (_FORBIDDEN_PROPS[key]) continue;

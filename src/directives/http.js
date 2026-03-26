@@ -13,6 +13,7 @@ import {
 	_notifyStoreWatchers,
 	_onDispose,
 	_routerInstance,
+	_SENSITIVE_HEADERS,
 	_stores,
 	_warn,
 } from "../globals.js";
@@ -125,24 +126,29 @@ for (const method of HTTP_METHODS) {
 					}
 
 					const extraHeaders = headersAttr ? JSON.parse(headersAttr) : {};
-					const savedRetries = _config.retries;
-					const savedRetryDelay = _config.retryDelay;
-					_config.retries = retryCount;
-					_config.retryDelay = retryDelay;
-					let data;
-					try {
-						data = await _doFetch(
-							resolvedUrl,
-							method,
-							reqBody,
-							extraHeaders,
-							el,
-							_activeAbort.signal,
-						);
-					} finally {
-						_config.retries = savedRetries;
-						_config.retryDelay = savedRetryDelay;
+					if (headersAttr) {
+						for (const k of Object.keys(extraHeaders)) {
+							const lower = k.toLowerCase();
+							if (
+								_SENSITIVE_HEADERS.has(lower) ||
+								/^x-(auth|api)-/.test(lower)
+							) {
+								_warn(
+									`Sensitive header "${k}" is set inline on a headers attribute. Use NoJS.config({ headers }) or an interceptor to avoid exposing credentials in HTML source.`,
+								);
+							}
+						}
 					}
+					const data = await _doFetch(
+						resolvedUrl,
+						method,
+						reqBody,
+						extraHeaders,
+						el,
+						_activeAbort.signal,
+						retryCount,
+						retryDelay,
+					);
 
 					// Cache response
 					if (method === "get") _cacheSet(cacheKey, data, cacheStrategy);
@@ -259,7 +265,7 @@ for (const method of HTTP_METHODS) {
 				el.addEventListener("submit", submitHandler);
 				_onDispose(() => el.removeEventListener("submit", submitHandler));
 			} else if (method === "get") {
-				doRequest();
+				if (el.isConnected) doRequest();
 			} else {
 				// Non-GET on non-FORM: attach click listener
 				const clickHandler = (e) => {
@@ -311,7 +317,13 @@ for (const method of HTTP_METHODS) {
 
 			// Polling
 			if (refreshInterval > 0) {
-				const id = setInterval(doRequest, refreshInterval);
+				const id = setInterval(() => {
+					if (!el.isConnected) {
+						clearInterval(id);
+						return;
+					}
+					doRequest();
+				}, refreshInterval);
 				_onDispose(() => clearInterval(id));
 			}
 		},

@@ -47,57 +47,116 @@ describe("Animations", () => {
 			_animateIn(el, "fadeIn", null);
 			expect(el.classList.contains("fadeIn")).toBe(true);
 		});
-	});
 
-	describe("_animateOut", () => {
-		test("adds animation class and calls callback after animationend", () => {
+		test("animName: class removed on next tick when animationend never fires", () => {
+			jest.useFakeTimers();
 			const el = document.createElement("div");
 			const child = document.createElement("span");
 			el.appendChild(child);
 			document.body.appendChild(el);
 
-			const callback = jest.fn();
-			_animateOut(el, "fadeOut", null, callback);
-			expect(child.classList.contains("fadeOut")).toBe(true);
+			_animateIn(el, "fadeIn", null);
+			expect(child.classList.contains("fadeIn")).toBe(true);
 
+			// No animationend — fallback setTimeout(done, 0) fires on next tick
+			jest.runAllTimers();
+			expect(child.classList.contains("fadeIn")).toBe(false);
+
+			jest.useRealTimers();
+		});
+
+		test("animName: class removed exactly once when animationend fires before fallback", () => {
+			jest.useFakeTimers();
+			const el = document.createElement("div");
+			const child = document.createElement("span");
+			el.appendChild(child);
+			document.body.appendChild(el);
+
+			_animateIn(el, "fadeIn", null);
+
+			// animationend fires synchronously before the timeout ticks
 			child.dispatchEvent(new Event("animationend"));
-			expect(child.classList.contains("fadeOut")).toBe(false);
-			expect(callback).toHaveBeenCalled();
+			expect(child.classList.contains("fadeIn")).toBe(false);
+
+			// setTimeout(done, 0) fires — classList.remove is idempotent, no error
+			jest.runAllTimers();
+			expect(child.classList.contains("fadeIn")).toBe(false);
+
+			jest.useRealTimers();
 		});
 
-		test("adds transition leave classes", () => {
+		test("animName: explicit durationMs sets both animationDuration and fallback timeout", () => {
+			jest.useFakeTimers();
 			const el = document.createElement("div");
 			const child = document.createElement("span");
 			el.appendChild(child);
 			document.body.appendChild(el);
 
-			const callback = jest.fn();
-			_animateOut(el, null, "slide", callback);
-			expect(child.classList.contains("slide-leave")).toBe(true);
-			expect(child.classList.contains("slide-leave-active")).toBe(true);
-		});
+			_animateIn(el, "fadeIn", null, 400);
+			expect(child.style.animationDuration).toBe("400ms");
+			expect(child.classList.contains("fadeIn")).toBe(true);
 
-		test("calls callback immediately when no animation specified", () => {
-			const el = document.createElement("div");
-			const child = document.createElement("span");
-			el.appendChild(child);
-			document.body.appendChild(el);
+			jest.advanceTimersByTime(399);
+			expect(child.classList.contains("fadeIn")).toBe(true);
 
-			const callback = jest.fn();
-			_animateOut(el, null, null, callback);
-			expect(callback).toHaveBeenCalled();
-		});
+			jest.advanceTimersByTime(1); // 400 ms reached
+			expect(child.classList.contains("fadeIn")).toBe(false);
 
-		test("calls callback immediately when element has no children", () => {
-			const el = document.createElement("div");
-			document.body.appendChild(el);
-
-			const callback = jest.fn();
-			_animateOut(el, "fadeOut", null, callback);
-			expect(callback).toHaveBeenCalled();
+			jest.useRealTimers();
 		});
 	});
-});
+
+	describe("_animateOut", () =>
+{
+	test("adds animation class and calls callback after animationend", () => {
+		const el = document.createElement("div");
+		const child = document.createElement("span");
+		el.appendChild(child);
+		document.body.appendChild(el);
+
+		const callback = jest.fn();
+		_animateOut(el, "fadeOut", null, callback);
+		expect(child.classList.contains("fadeOut")).toBe(true);
+
+		child.dispatchEvent(new Event("animationend"));
+		expect(child.classList.contains("fadeOut")).toBe(false);
+		expect(callback).toHaveBeenCalled();
+	});
+
+	test("adds transition leave classes", () => {
+		const el = document.createElement("div");
+		const child = document.createElement("span");
+		el.appendChild(child);
+		document.body.appendChild(el);
+
+		const callback = jest.fn();
+		_animateOut(el, null, "slide", callback);
+		expect(child.classList.contains("slide-leave")).toBe(true);
+		expect(child.classList.contains("slide-leave-active")).toBe(true);
+	});
+
+	test("calls callback immediately when no animation specified", () => {
+		const el = document.createElement("div");
+		const child = document.createElement("span");
+		el.appendChild(child);
+		document.body.appendChild(el);
+
+		const callback = jest.fn();
+		_animateOut(el, null, null, callback);
+		expect(callback).toHaveBeenCalled();
+	});
+
+	test("calls callback immediately when element has no children", () => {
+		const el = document.createElement("div");
+		document.body.appendChild(el);
+
+		const callback = jest.fn();
+		_animateOut(el, "fadeOut", null, callback);
+		expect(callback).toHaveBeenCalled();
+	});
+}
+)
+})
 
 describe("_animateIn with transition", () => {
 	test("adds transition-enter and transition-enter-active classes", () => {
@@ -185,7 +244,7 @@ describe("_animateOut with transition", () => {
 		expect(callback).toHaveBeenCalled();
 	});
 
-	test("animateOut with animName fallback timeout", () => {
+	test("animateOut with animName fallback fires on next tick when no animationend", () => {
 		jest.useFakeTimers();
 		const el = document.createElement("div");
 		const child = document.createElement("p");
@@ -197,7 +256,8 @@ describe("_animateOut with transition", () => {
 		expect(child.classList.contains("spin-out")).toBe(true);
 		expect(callback).not.toHaveBeenCalled();
 
-		jest.advanceTimersByTime(2000);
+		// setTimeout(done, 0) fires on the next tick — no arbitrary wait needed.
+		jest.runAllTimers();
 		expect(callback).toHaveBeenCalled();
 
 		jest.useRealTimers();
@@ -362,7 +422,7 @@ describe("animate-duration", () => {
 });
 
 describe("_animateOut double-callback guard", () => {
-	test("animation path: callback called exactly once when both animationend and timeout fire", () => {
+	test("animation path: callback called exactly once when animationend fires before timeout", () => {
 		jest.useFakeTimers();
 		const el = document.createElement("div");
 		const child = document.createElement("span");
@@ -372,18 +432,18 @@ describe("_animateOut double-callback guard", () => {
 		const callback = jest.fn();
 		_animateOut(el, "fadeOut", null, callback);
 
-		// Fire animationend
+		// animationend fires synchronously before the setTimeout(done, 0) ticks
 		child.dispatchEvent(new Event("animationend"));
 		expect(callback).toHaveBeenCalledTimes(1);
 
-		// Advance past fallback timeout
-		jest.advanceTimersByTime(3000);
+		// setTimeout(done, 0) fires — the `called` guard prevents a double invocation
+		jest.runAllTimers();
 		expect(callback).toHaveBeenCalledTimes(1);
 
 		jest.useRealTimers();
 	});
 
-	test("animation path: callback called exactly once when only timeout fires", () => {
+	test("animation path: callback called exactly once when only the fallback timeout fires", () => {
 		jest.useFakeTimers();
 		const el = document.createElement("div");
 		const child = document.createElement("span");
@@ -395,14 +455,14 @@ describe("_animateOut double-callback guard", () => {
 
 		expect(callback).not.toHaveBeenCalled();
 
-		// Only timeout fires (no animationend)
-		jest.advanceTimersByTime(3000);
+		// No animationend — setTimeout(done, 0) fires on next tick
+		jest.runAllTimers();
 		expect(callback).toHaveBeenCalledTimes(1);
 
 		jest.useRealTimers();
 	});
 
-	test("transition path: callback called exactly once when both transitionend and timeout fire", async () => {
+	test("transition path: transitionend fires before fallback; callback called exactly once", () => {
 		jest.useFakeTimers();
 		const el = document.createElement("div");
 		const child = document.createElement("span");
@@ -412,16 +472,91 @@ describe("_animateOut double-callback guard", () => {
 		const callback = jest.fn();
 		_animateOut(el, null, "fade", callback);
 
-		// Process rAF (jsdom fake timers need 16ms for rAF)
+		// rAF fires at t=16; registers the transitionend listener and setTimeout(done, 0).
 		jest.advanceTimersByTime(16);
+		expect(callback).not.toHaveBeenCalled();
 
-		// Fire transitionend
+		// transitionend fires before the fallback timeout ticks
 		child.dispatchEvent(new Event("transitionend"));
 		expect(callback).toHaveBeenCalledTimes(1);
 
-		// Advance past fallback timeout
-		jest.advanceTimersByTime(3000);
+		// setTimeout(done, 0) fires — the `called` guard prevents a double invocation
+		jest.runAllTimers();
 		expect(callback).toHaveBeenCalledTimes(1);
+
+		jest.useRealTimers();
+	});
+
+	test("transition path: only fallback fires (no transitionend); callback called exactly once", () => {
+		jest.useFakeTimers();
+		const el = document.createElement("div");
+		const child = document.createElement("span");
+		el.appendChild(child);
+		document.body.appendChild(el);
+
+		const callback = jest.fn();
+		_animateOut(el, null, "fade", callback);
+
+		// rAF fires; registers setTimeout(done, 0)
+		jest.advanceTimersByTime(16);
+		expect(callback).not.toHaveBeenCalled();
+
+		// No transitionend — fallback fires on next tick
+		jest.runAllTimers();
+		expect(callback).toHaveBeenCalledTimes(1);
+
+		jest.useRealTimers();
+	});
+});
+
+describe("M1/M2: safety-net timeout uses 0 when no CSS duration", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+	});
+
+	test("_animateIn transition safety-net uses 0ms when no durationMs provided", () => {
+		jest.useFakeTimers();
+		const el = document.createElement("div");
+		const child = document.createElement("span");
+		el.appendChild(child);
+		document.body.appendChild(el);
+
+		_animateIn(el, null, "fade");
+
+		// Process rAF — this enters the transition flow and schedules setTimeout(done, 0)
+		jest.advanceTimersByTime(16);
+
+		// After rAF, classes are set but the 0ms fallback setTimeout is pending
+		expect(child.classList.contains("fade-enter-active")).toBe(true);
+		expect(child.classList.contains("fade-enter-to")).toBe(true);
+
+		// Flush the pending 0ms safety-net timeout
+		jest.runAllTimers();
+
+		// Now the safety-net has fired and cleaned up the classes
+		expect(child.classList.contains("fade-enter-active")).toBe(false);
+		expect(child.classList.contains("fade-enter-to")).toBe(false);
+
+		jest.useRealTimers();
+	});
+
+	test("_animateOut animation safety-net uses 0ms when no durationMs provided", () => {
+		jest.useFakeTimers();
+		const el = document.createElement("div");
+		const child = document.createElement("span");
+		el.appendChild(child);
+		document.body.appendChild(el);
+
+		const callback = jest.fn();
+		_animateOut(el, "fadeOut", null, callback);
+
+		expect(child.classList.contains("fadeOut")).toBe(true);
+		expect(callback).not.toHaveBeenCalled();
+
+		// Advance by 0ms (next tick) — the fallback timer should fire
+		jest.advanceTimersByTime(0);
+		expect(callback).toHaveBeenCalledTimes(1);
+		expect(child.classList.contains("fadeOut")).toBe(false);
 
 		jest.useRealTimers();
 	});

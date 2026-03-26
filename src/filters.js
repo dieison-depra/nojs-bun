@@ -20,7 +20,12 @@ _filters.slugify = (v) =>
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-|-$/g, "");
-_filters.nl2br = (v) => String(v ?? "").replace(/\n/g, "<br>");
+_filters.nl2br = (v) =>
+	String(v ?? "")
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/\n/g, "<br>");
 _filters.encodeUri = (v) => encodeURIComponent(String(v ?? ""));
 
 // Numbers
@@ -91,7 +96,7 @@ _filters.where = (v, key, val) =>
 // Date
 _filters.date = (v, fmt = "short") => {
 	const d = new Date(v);
-	if (Number.isNaN(d)) return v;
+	if (Number.isNaN(d.getTime())) return v;
 	const opts =
 		fmt === "long"
 			? { dateStyle: "long" }
@@ -102,12 +107,12 @@ _filters.date = (v, fmt = "short") => {
 };
 _filters.datetime = (v) => {
 	const d = new Date(v);
-	if (Number.isNaN(d)) return v;
+	if (Number.isNaN(d.getTime())) return v;
 	return d.toLocaleString();
 };
 _filters.relative = (v) => {
 	const d = new Date(v);
-	if (Number.isNaN(d)) return v;
+	if (Number.isNaN(d.getTime())) return v;
 	const diff = (Date.now() - d.getTime()) / 1000;
 	if (diff < 60) return "just now";
 	if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
@@ -117,7 +122,7 @@ _filters.relative = (v) => {
 };
 _filters.fromNow = (v) => {
 	const d = new Date(v);
-	if (Number.isNaN(d)) return v;
+	if (Number.isNaN(d.getTime())) return v;
 	const diff = (d.getTime() - Date.now()) / 1000;
 	if (diff < 0) return _filters.relative(v);
 	if (diff < 60) return "in a moment";

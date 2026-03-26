@@ -6,6 +6,7 @@ import { _ctxRegistry, _devtoolsEmit } from "./devtools.js";
 import {
 	_config,
 	_currentEl,
+	_globals,
 	_refs,
 	_routerInstance,
 	_stores,
@@ -15,6 +16,7 @@ import { _i18n } from "./i18n.js";
 let _batchDepth = 0;
 const _batchQueue = new Set();
 let _ctxId = 0;
+let _ctxGeneration = 0;
 
 export function _resetCtxId() {
 	_ctxId = 0;
@@ -108,14 +110,19 @@ export function createContext(data = {}, parent = null) {
 			if (key === "$router") return _routerInstance;
 			if (key === "$i18n") return _i18n;
 			if (key === "$form") return target.$form || null;
+			// Plugin globals fallback (after all core $ checks)
+			if (key.startsWith("$") && key.slice(1) in _globals) {
+				return _globals[key.slice(1)];
+			}
 			if (key in target) return target[key];
-			if (parent?.__isProxy) return parent[key];
+			if (parent && parent.__isProxy) return parent[key];
 			return undefined;
 		},
 		set(target, key, value) {
 			const old = target[key];
 			target[key] = value;
 			if (old !== value) {
+				_ctxGeneration++;
 				notify();
 				_devtoolsEmit("ctx:updated", {
 					id: target.__devtoolsId,
@@ -128,7 +135,13 @@ export function createContext(data = {}, parent = null) {
 		},
 		has(target, key) {
 			if (key in target) return true;
-			if (parent?.__isProxy) return key in parent;
+			if (
+				typeof key === "string" &&
+				key.startsWith("$") &&
+				key.slice(1) in _globals
+			)
+				return true;
+			if (parent && parent.__isProxy) return key in parent;
 			return false;
 		},
 	};
@@ -149,11 +162,15 @@ export function createContext(data = {}, parent = null) {
 }
 
 // Collect all keys from a context + its parent chain
+// Result is cached per context and invalidated on any reactive mutation.
 export function _collectKeys(ctx) {
+	const cache = ctx.__raw.__collectKeysCache;
+	if (cache && cache.gen === _ctxGeneration) return cache.result;
+
 	const allKeys = new Set();
 	const allVals = {};
 	let c = ctx;
-	while (c?.__isProxy) {
+	while (c && c.__isProxy) {
 		const raw = c.__raw;
 		for (const k of Object.keys(raw)) {
 			if (!allKeys.has(k)) {
@@ -163,5 +180,7 @@ export function _collectKeys(ctx) {
 		}
 		c = c.$parent;
 	}
-	return { keys: [...allKeys], vals: allVals };
+	const result = { keys: [...allKeys], vals: allVals };
+	ctx.__raw.__collectKeysCache = { gen: _ctxGeneration, result };
+	return result;
 }

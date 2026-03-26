@@ -6,20 +6,26 @@ import { createContext } from "../context.js";
 import { _devtoolsEmit } from "../devtools.js";
 import { findContext } from "../dom.js";
 import { _execStatement, evaluate } from "../evaluate.js";
-import { _log, _stores, _watchExpr } from "../globals.js";
+import { _log, _onDispose, _stores, _warn, _watchExpr } from "../globals.js";
 import { registerDirective } from "../registry.js";
 
 registerDirective("state", {
 	priority: 0,
 	init(el, _name, value) {
-		const data = evaluate(value, createContext()) || {};
+		const initialState = evaluate(value, createContext()) || {};
 		const parent = el.parentElement ? findContext(el.parentElement) : null;
-		const ctx = createContext(data, parent);
+		const ctx = createContext(initialState, parent);
 		el.__ctx = ctx;
 
 		// Persistence
 		const persist = el.getAttribute("persist");
 		const persistKey = el.getAttribute("persist-key");
+		if (persist && !persistKey) {
+			_warn(
+				`persist="${persist}" requires a persist-key attribute. State will not be persisted.`,
+			);
+			return;
+		}
 		if (persist && persistKey) {
 			const store =
 				persist === "localStorage"
@@ -28,29 +34,87 @@ registerDirective("state", {
 						? sessionStorage
 						: null;
 			if (store) {
+				const persistFieldsAttr = el.getAttribute("persist-fields");
+				const persistFields = persistFieldsAttr
+					? new Set(persistFieldsAttr.split(",").map((f) => f.trim()))
+					: null;
 				try {
 					const saved = store.getItem(`nojs_state_${persistKey}`);
 					if (saved) {
 						const parsed = JSON.parse(saved);
-						for (const [k, v] of Object.entries(parsed)) ctx.$set(k, v);
+						const schemaCheck = el.hasAttribute("persist-schema");
+						for (const [k, v] of Object.entries(parsed)) {
+							if (!persistFields || persistFields.has(k)) {
+								if (schemaCheck) {
+									if (!(k in initialState)) {
+										_warn(`persist-schema: ignoring unknown key "${k}"`);
+										continue;
+									}
+									if (
+										initialState[k] !== null &&
+										v !== null &&
+										typeof v !== typeof initialState[k]
+									) {
+										_warn(
+											`persist-schema: type mismatch for "${k}" (expected ${typeof initialState[
+												k
+											]}, got ${typeof v})`,
+										);
+										continue;
+									}
+								}
+								ctx.$set(k, v);
+							}
+						}
 					}
 				} catch {
 					/* ignore */
 				}
-				ctx.$watch(() => {
+
+				// Warn about potentially sensitive field names in persisted state
+				const sensitiveNames = [
+					"token",
+					"password",
+					"secret",
+					"key",
+					"auth",
+					"credential",
+					"session",
+				];
+				const stateKeys = Object.keys(initialState);
+				const riskyKeys = stateKeys.filter((k) =>
+					sensitiveNames.some((s) => k.toLowerCase().includes(s)),
+				);
+				if (riskyKeys.length > 0) {
+					_warn(
+						`State key(s) ${riskyKeys
+							.map((k) => `"${k}"`)
+							.join(
+								", ",
+							)} may contain sensitive data. Consider using persist-fields to exclude them.`,
+					);
+				}
+
+				const unwatch = ctx.$watch(() => {
 					try {
-						store.setItem(
-							`nojs_state_${persistKey}`,
-							JSON.stringify(ctx.__raw),
-						);
+						const raw = ctx.__raw;
+						const data = persistFields
+							? Object.fromEntries(
+									Object.entries(raw).filter(([k]) => persistFields.has(k)),
+								)
+							: raw;
+						store.setItem(`nojs_state_${persistKey}`, JSON.stringify(data));
 					} catch {
 						/* ignore */
 					}
 				});
+				_onDispose(() => {
+					if (unwatch) unwatch();
+				});
 			}
 		}
 
-		_log("state", data);
+		_log("state", initialState);
 	},
 });
 

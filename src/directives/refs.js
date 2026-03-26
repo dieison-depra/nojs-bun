@@ -13,6 +13,7 @@ import {
 	_onDispose,
 	_refs,
 	_routerInstance,
+	_SENSITIVE_HEADERS,
 	_stores,
 	_warn,
 } from "../globals.js";
@@ -131,6 +132,16 @@ registerDirective("call", {
 				}
 
 				const extraHeaders = headersAttr ? JSON.parse(headersAttr) : {};
+				if (headersAttr) {
+					for (const k of Object.keys(extraHeaders)) {
+						const lower = k.toLowerCase();
+						if (_SENSITIVE_HEADERS.has(lower) || /^x-(auth|api)-/.test(lower)) {
+							_warn(
+								`Sensitive header "${k}" is set inline on a headers attribute. Use NoJS.config({ headers }) or an interceptor to avoid exposing credentials in HTML source.`,
+							);
+						}
+					}
+				}
 				const data = await _doFetch(
 					resolvedUrl,
 					method,

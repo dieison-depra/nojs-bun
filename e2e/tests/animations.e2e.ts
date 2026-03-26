@@ -5,9 +5,7 @@ test.describe("Animations", () => {
 		await page.goto("/e2e/examples/animations.html");
 	});
 
-	test("1 — Animate fadeIn: element appears functional", async ({
-		page,
-	}) => {
+	test("1 — Animate fadeIn: element appears functional", async ({ page }) => {
 		const target = page.getByTestId("fade-target");
 		await expect(target).toBeHidden();
 
@@ -50,9 +48,7 @@ test.describe("Animations", () => {
 		}
 	});
 
-	test("4 — Transition: element appears correctly", async ({
-		page,
-	}) => {
+	test("4 — Transition: element appears correctly", async ({ page }) => {
 		const target = page.getByTestId("transition-target");
 		await expect(target).toBeHidden();
 

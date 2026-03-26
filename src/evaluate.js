@@ -4,7 +4,9 @@
 
 import { _collectKeys } from "./context.js";
 import {
+	_config,
 	_filters,
+	_globals,
 	_notifyStoreWatchers,
 	_routerInstance,
 	_stores,
@@ -12,8 +14,36 @@ import {
 } from "./globals.js";
 import { _i18n } from "./i18n.js";
 
-const _exprCache = new Map();
-const _stmtCache = new Map();
+function _makeCache() {
+	const map = new Map();
+	return {
+		get(k) {
+			if (!map.has(k)) return undefined;
+			// Move to end so this entry is the most-recently-used
+			const v = map.get(k);
+			map.delete(k);
+			map.set(k, v);
+			return v;
+		},
+		has(k) {
+			return map.has(k);
+		},
+		set(k, v) {
+			const max = _config.exprCacheSize;
+			if (map.has(k)) {
+				map.delete(k); // refresh position before re-inserting
+			} else if (map.size >= max) {
+				map.delete(map.keys().next().value); // evict LRU (insertion-order first)
+			}
+			map.set(k, v);
+		},
+		get size() {
+			return map.size;
+		},
+	};
+}
+export const _exprCache = _makeCache();
+export const _stmtCache = _makeCache();
 
 // ── Tokenizer ──────────────────────────────────────────────────────────
 
@@ -917,13 +947,211 @@ const _SAFE_GLOBALS = {
 	console,
 };
 
-const _DENY_GLOBALS = {
-	eval: 1,
-	Function: 1,
-	process: 1,
-	require: 1,
-	importScripts: 1,
-};
+// Explicit allow-list for browser globals accessible in template expressions.
+// Using an allow-list (opt-in) rather than a deny-list (opt-out) ensures that
+// network and storage APIs — fetch, XMLHttpRequest, localStorage, sessionStorage,
+// WebSocket, indexedDB — are unreachable from template code by default, closing
+// the surface where interpolated external data could trigger unintended requests.
+// window, document, and location are further wrapped in Proxy objects below
+// to block sensitive sub-properties (fetch, cookie, navigation, etc.).
+
+// ── Security proxies for window, document, and location ─────────────────
+// Even though window/document are on the allow-list, we wrap them in Proxy
+// objects that block access to sensitive sub-properties (network, storage,
+// cookie, eval, etc.) while still allowing safe DOM / measurement APIs.
+
+const _BLOCKED_WINDOW_PROPS = new Set([
+	"fetch",
+	"XMLHttpRequest",
+	"localStorage",
+	"sessionStorage",
+	"WebSocket",
+	"indexedDB",
+	"eval",
+	"Function",
+	"importScripts",
+	"open",
+	"postMessage",
+]);
+// Props on window that must return safe proxies instead of raw objects
+const _WINDOW_PROXY_OVERRIDES = {}; // populated after proxy creation below
+
+const _BLOCKED_DOCUMENT_PROPS = new Set([
+	"cookie",
+	"domain",
+	"write",
+	"writeln",
+	"execCommand",
+]);
+
+const _safeWindow =
+	typeof globalThis !== "undefined" && typeof globalThis.window !== "undefined"
+		? new Proxy(globalThis.window, {
+				get(target, prop, receiver) {
+					if (typeof prop === "string" && _BLOCKED_WINDOW_PROPS.has(prop))
+						return undefined;
+					if (typeof prop === "string" && prop in _WINDOW_PROXY_OVERRIDES)
+						return _WINDOW_PROXY_OVERRIDES[prop];
+					return Reflect.get(target, prop, receiver);
+				},
+				set(target, prop, value) {
+					// Block writes to dangerous window properties from expressions;
+					// allow writing user-defined properties (e.g. window.__myHelper)
+					if (typeof prop === "string" && _BLOCKED_WINDOW_PROPS.has(prop))
+						return true;
+					if (prop === "name" || prop === "status") return true; // anti-exfiltration
+					target[prop] = value;
+					return true;
+				},
+			})
+		: undefined;
+
+const _safeDocument =
+	typeof globalThis !== "undefined" &&
+	typeof globalThis.document !== "undefined"
+		? new Proxy(globalThis.document, {
+				get(target, prop, receiver) {
+					if (typeof prop === "string" && _BLOCKED_DOCUMENT_PROPS.has(prop))
+						return undefined;
+					if (prop === "defaultView") return _safeWindow;
+					return Reflect.get(target, prop, receiver);
+				},
+				set(target, prop, value) {
+					if (typeof prop === "string" && _BLOCKED_DOCUMENT_PROPS.has(prop))
+						return true;
+					target[prop] = value;
+					return true;
+				},
+			})
+		: undefined;
+
+// Read-only location wrapper — exposes common getters via a plain object with
+// property descriptors that read from the real location. Navigation methods are
+// replaced with no-ops. Using a plain object avoids Proxy invariant violations
+// on non-configurable properties (like location.assign).
+const _LOCATION_READ_PROPS = [
+	"href",
+	"pathname",
+	"search",
+	"hash",
+	"origin",
+	"hostname",
+	"port",
+	"protocol",
+	"host",
+];
+const _locationNoop = () => {};
+
+const _safeLocation =
+	typeof globalThis !== "undefined" &&
+	typeof globalThis.location !== "undefined"
+		? (() => {
+				const loc = {};
+				for (const prop of _LOCATION_READ_PROPS) {
+					Object.defineProperty(loc, prop, {
+						get() {
+							return globalThis.location[prop];
+						},
+						set() {
+							/* silently ignore writes */
+						},
+						enumerable: true,
+						configurable: false,
+					});
+				}
+				loc.assign = _locationNoop;
+				loc.replace = _locationNoop;
+				loc.reload = _locationNoop;
+				loc.toString = () => globalThis.location.href;
+				return Object.freeze(loc);
+			})()
+		: undefined;
+
+// Read-only history wrapper — exposes state and length as read-only getters,
+// replaces navigation methods with no-ops. Prevents expressions from
+// manipulating browser history (pushState, back, forward, etc.).
+const _HISTORY_READ_PROPS = ["length", "state", "scrollRestoration"];
+
+const _safeHistory =
+	typeof globalThis !== "undefined" && typeof globalThis.history !== "undefined"
+		? (() => {
+				const h = {};
+				for (const prop of _HISTORY_READ_PROPS) {
+					Object.defineProperty(h, prop, {
+						get() {
+							return globalThis.history[prop];
+						},
+						enumerable: true,
+						configurable: false,
+					});
+				}
+				h.pushState = _locationNoop;
+				h.replaceState = _locationNoop;
+				h.back = _locationNoop;
+				h.forward = _locationNoop;
+				h.go = _locationNoop;
+				return Object.freeze(h);
+			})()
+		: undefined;
+
+// Navigator proxy — blocks sendBeacon (data exfiltration) and credentials
+const _BLOCKED_NAVIGATOR_PROPS = new Set(["sendBeacon", "credentials"]);
+const _safeNavigator =
+	typeof globalThis !== "undefined" &&
+	typeof globalThis.navigator !== "undefined"
+		? new Proxy(globalThis.navigator, {
+				get(target, prop, receiver) {
+					if (typeof prop === "string" && _BLOCKED_NAVIGATOR_PROPS.has(prop))
+						return undefined;
+					return Reflect.get(target, prop, receiver);
+				},
+				set() {
+					return true;
+				}, // navigator props are browser-enforced read-only
+			})
+		: undefined;
+
+// Wire window.location → _safeLocation, window.document → _safeDocument,
+// window.history → _safeHistory, window.navigator → _safeNavigator
+// so accessing via the window proxy returns safe versions
+if (_safeLocation) _WINDOW_PROXY_OVERRIDES.location = _safeLocation;
+if (_safeDocument) _WINDOW_PROXY_OVERRIDES.document = _safeDocument;
+if (_safeHistory) _WINDOW_PROXY_OVERRIDES.history = _safeHistory;
+if (_safeNavigator) _WINDOW_PROXY_OVERRIDES.navigator = _safeNavigator;
+
+const _BROWSER_GLOBALS = new Set([
+	"window",
+	"document",
+	"console",
+	"location",
+	"history",
+	"navigator",
+	"screen",
+	"performance",
+	"crypto",
+	// setTimeout/setInterval allow deferred execution from template expressions;
+	// necessary for legitimate use cases (e.g. debounce patterns in event handlers).
+	"setTimeout",
+	"clearTimeout",
+	"setInterval",
+	"clearInterval",
+	"requestAnimationFrame",
+	"cancelAnimationFrame",
+	// alert/confirm/prompt are included for completeness and backward compatibility
+	// (e.g. confirm dialogs before delete). They are discouraged in production UIs —
+	// prefer custom modal components for a better user experience.
+	"alert",
+	"confirm",
+	"prompt",
+	"CustomEvent",
+	"Event",
+	"URL",
+	"URLSearchParams",
+	"FormData",
+	"FileReader",
+	"Blob",
+	"Promise",
+]);
 
 function _evalNode(node, scope) {
 	try {
@@ -936,16 +1164,17 @@ function _evalNode(node, scope) {
 			case "Identifier":
 				if (node.name in scope) return scope[node.name];
 				if (node.name in _SAFE_GLOBALS) return _SAFE_GLOBALS[node.name];
-				// Allow access to browser globals (window, document, etc.) for backward compat
 				if (
-					typeof globalThis !== "undefined" &&
-					node.name in globalThis &&
-					!_DENY_GLOBALS[node.name]
-				)
+					_BROWSER_GLOBALS.has(node.name) &&
+					typeof globalThis !== "undefined"
+				) {
+					if (node.name === "window") return _safeWindow;
+					if (node.name === "document") return _safeDocument;
+					if (node.name === "location") return _safeLocation;
+					if (node.name === "history") return _safeHistory;
+					if (node.name === "navigator") return _safeNavigator;
 					return globalThis[node.name];
-				return undefined;
-
-			case "Forbidden":
+				}
 				return undefined;
 
 			case "BinaryExpr": {
@@ -1137,7 +1366,12 @@ function _evalNode(node, scope) {
 				for (let i = 0; i < node.properties.length; i++) {
 					const prop = node.properties[i];
 					if (prop.spread) {
-						Object.assign(obj, _evalNode(prop.value, scope));
+						const src = _evalNode(prop.value, scope);
+						if (src && typeof src === "object") {
+							for (const k of Object.keys(src)) {
+								if (!_FORBIDDEN_PROPS[k]) obj[k] = src[k];
+							}
+						}
 					} else {
 						const key = prop.computed ? _evalNode(prop.key, scope) : prop.key;
 						if (_FORBIDDEN_PROPS[key]) continue;
@@ -1146,9 +1380,6 @@ function _evalNode(node, scope) {
 				}
 				return obj;
 			}
-
-			case "SpreadElement":
-				return _evalNode(node.argument, scope);
 
 			case "ArrowFunction":
 				return (...callArgs) => {
@@ -1290,9 +1521,9 @@ function _execStmtNode(node, scope) {
 				if (
 					!(name in scope) &&
 					!(name in _SAFE_GLOBALS) &&
-					(typeof globalThis === "undefined" || !(name in globalThis))
+					!_BROWSER_GLOBALS.has(name)
 				) {
-					throw new ReferenceError(`${name} is not defined`);
+					throw new ReferenceError(name + " is not defined");
 				}
 			}
 			return _evalNode(node, scope);
@@ -1408,25 +1639,22 @@ export function evaluate(expr, ctx) {
 		const mainExpr = pipes[0];
 		const { keys, vals } = _collectKeys(ctx);
 
-		// Add special variables
-		const specialKeys = [
-			"$store",
-			"$route",
-			"$router",
-			"$i18n",
-			"$refs",
-			"$form",
-		];
-		for (const sk of specialKeys) {
-			if (!keys.includes(sk)) {
-				keys.push(sk);
-				vals[sk] = ctx[sk];
-			}
-		}
-
-		// Build scope object from keys/vals
+		// Build scope from cache without mutating it
 		const scope = {};
 		for (let i = 0; i < keys.length; i++) scope[keys[i]] = vals[keys[i]];
+		// Add special variables to scope only (never to the shared cache),
+		// preserving any same-named local context vars already in scope
+		if (!("$store" in scope)) scope.$store = _stores;
+		if (!("$route" in scope)) scope.$route = _routerInstance?.current;
+		if (!("$router" in scope)) scope.$router = _routerInstance;
+		if (!("$i18n" in scope)) scope.$i18n = _i18n;
+		if (!("$refs" in scope)) scope.$refs = ctx.$refs;
+		if (!("$form" in scope)) scope.$form = ctx.$form || null;
+		// Inject plugin globals (cannot shadow local or core $ variables)
+		for (const gk in _globals) {
+			const key = "$" + gk;
+			if (!(key in scope)) scope[key] = _globals[gk];
+		}
 
 		// Parse expression into AST (cached)
 		let ast = _exprCache.get(mainExpr);
@@ -1444,7 +1672,8 @@ export function evaluate(expr, ctx) {
 		}
 
 		return result;
-	} catch (_e) {
+	} catch (e) {
+		_warn("Expression error:", expr, e.message);
 		return undefined;
 	}
 }
@@ -1453,25 +1682,21 @@ export function evaluate(expr, ctx) {
 export function _execStatement(expr, ctx, extraVars = {}) {
 	try {
 		const { keys, vals } = _collectKeys(ctx);
-		// Add special vars
-		const specials = {
-			$store: _stores,
-			$route: _routerInstance?.current,
-			$router: _routerInstance,
-			$i18n: _i18n,
-			$refs: ctx.$refs,
-		};
-		Object.assign(specials, extraVars);
-		for (const [k, v] of Object.entries(specials)) {
-			if (!keys.includes(k)) {
-				keys.push(k);
-				vals[k] = v;
-			}
-		}
 
-		// Build scope
+		// Build scope from cache without mutating it, then add special vars and extraVars
 		const scope = {};
 		for (let i = 0; i < keys.length; i++) scope[keys[i]] = vals[keys[i]];
+		if (!("$store" in scope)) scope.$store = _stores;
+		if (!("$route" in scope)) scope.$route = _routerInstance?.current;
+		if (!("$router" in scope)) scope.$router = _routerInstance;
+		if (!("$i18n" in scope)) scope.$i18n = _i18n;
+		if (!("$refs" in scope)) scope.$refs = ctx.$refs;
+		// Inject plugin globals (before extraVars so $event etc. take priority)
+		for (const gk in _globals) {
+			const key = "$" + gk;
+			if (!(key in scope)) scope[key] = _globals[gk];
+		}
+		Object.assign(scope, extraVars);
 
 		// Snapshot context chain values for write-back comparison
 		const chainKeys = new Set();
@@ -1516,10 +1741,11 @@ export function _execStatement(expr, ctx, extraVars = {}) {
 			}
 		}
 
-		// Write back new variables created during execution
+		// Write back new variables created during execution.
+		// Skip extraVars keys (e.g. __val, $el, $event) — they are execution-local
+		// and must not be persisted to the reactive context.
 		for (const k in scope) {
-			if (k.startsWith("$") || chainKeys.has(k)) continue;
-			if (k in vals) continue;
+			if (k.startsWith("$") || chainKeys.has(k) || k in extraVars) continue;
 			ctx.$set(k, scope[k]);
 		}
 
@@ -1546,9 +1772,13 @@ export function resolve(path, ctx) {
 }
 
 // Interpolate strings like "/users/{user.id}?q={search}"
+// Note: interpolated values are encoded with encodeURIComponent, which encodes
+// "/" as "%2F". Path segments that intentionally contain "/" must be passed
+// as pre-encoded strings or concatenated outside of {} placeholders.
 export function _interpolate(str, ctx) {
 	return str.replace(/\{([^}]+)\}/g, (_, expr) => {
 		const val = evaluate(expr.trim(), ctx);
-		return val != null ? val : "";
+		if (val == null) return "";
+		return encodeURIComponent(String(val));
 	});
 }

@@ -5,8 +5,12 @@
 import { createContext } from "../context.js";
 import { findContext } from "../dom.js";
 import { _execStatement, evaluate, resolve } from "../evaluate.js";
-import { _onDispose, _warn } from "../globals.js";
-import { _disposeChildren, processTree, registerDirective } from "../registry.js";
+import { _config, _onDispose, _warn, _currentEl, _setCurrentEl } from "../globals.js";
+import {
+	_disposeChildren,
+	processTree,
+	registerDirective,
+} from "../registry.js";
 
 // Global DND state
 const _dndState = {
@@ -563,7 +567,7 @@ registerDirective("drag-list", {
 		const keyProp = el.getAttribute("drag-list-key");
 		const itemName = el.getAttribute("drag-list-item") || "item";
 		const sortDir = el.getAttribute("drop-sort") || "vertical";
-		const type = el.getAttribute("drag-type") || "__draglist_" + listPath;
+		const type = el.getAttribute("drag-type") || `__draglist_${listPath}`;
 		const acceptAttr = el.getAttribute("drop-accept") || type;
 		const copyMode = el.hasAttribute("drag-list-copy");
 		const removeMode = el.hasAttribute("drag-list-remove");
@@ -698,11 +702,8 @@ registerDirective("drag-list", {
 					_removePlaceholder();
 				};
 
-				wrapper.addEventListener("dragstart", itemDragstart);
-				wrapper.addEventListener("dragend", itemDragend);
-
 				// Keyboard DnD on items
-				wrapper.addEventListener("keydown", (e) => {
+				const itemKeydown = (e) => {
 					if (e.key === " " && !_dndState.dragging) {
 						e.preventDefault();
 						_dndState.dragging = {
@@ -725,9 +726,7 @@ registerDirective("drag-list", {
 						dragClass
 							.split(/\s+/)
 							.filter(Boolean)
-							.forEach((c) => {
-								dragEl.classList.add(c);
-							});
+							.forEach((c) => dragEl.classList.add(c));
 						dragEl.setAttribute("aria-grabbed", "true");
 					} else if (
 						e.key === "Escape" &&
@@ -738,9 +737,7 @@ registerDirective("drag-list", {
 						dragClass
 							.split(/\s+/)
 							.filter(Boolean)
-							.forEach((c) => {
-								dragEl.classList.remove(c);
-							});
+							.forEach((c) => dragEl.classList.remove(c));
 						dragEl.setAttribute("aria-grabbed", "false");
 						_dndState.dragging = null;
 						_removePlaceholder();
@@ -768,7 +765,18 @@ registerDirective("drag-list", {
 							prevEl.focus();
 						}
 					}
-				});
+				};
+
+				const prevEl = _currentEl;
+				_setCurrentEl(wrapper);
+				wrapper.addEventListener("dragstart", itemDragstart);
+				wrapper.addEventListener("dragend", itemDragend);
+				wrapper.addEventListener("keydown", itemKeydown);
+
+				_onDispose(() => wrapper.removeEventListener("dragstart", itemDragstart));
+				_onDispose(() => wrapper.removeEventListener("dragend", itemDragend));
+				_onDispose(() => wrapper.removeEventListener("keydown", itemKeydown));
+				_setCurrentEl(prevEl);
 
 				processTree(wrapper);
 			});

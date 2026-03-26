@@ -5,7 +5,7 @@
 import { _animateIn, _animateOut } from "../animations.js";
 import { _clearDeclared, _cloneTemplate, findContext } from "../dom.js";
 import { evaluate } from "../evaluate.js";
-import { _watchExpr } from "../globals.js";
+import { _onDispose, _watchExpr } from "../globals.js";
 import {
 	_disposeChildren,
 	processTree,
@@ -25,6 +25,13 @@ registerDirective("if", {
 		const animDuration = parseInt(el.getAttribute("animate-duration"), 10) || 0;
 		const originalChildren = [...el.childNodes].map((n) => n.cloneNode(true));
 		let currentState;
+		let _cancelAnim = null;
+		_onDispose(() => {
+			if (_cancelAnim) {
+				_cancelAnim();
+				_cancelAnim = null;
+			}
+		});
 
 		function update() {
 			const result = !!evaluate(expr, ctx);
@@ -33,11 +40,18 @@ registerDirective("if", {
 
 			// Animation leave
 			if (animLeave || transition) {
-				_animateOut(
+				if (_cancelAnim) {
+					_cancelAnim();
+					_cancelAnim = null;
+				}
+				_cancelAnim = _animateOut(
 					el,
 					animLeave,
 					transition,
-					() => render(result),
+					() => {
+						_cancelAnim = null;
+						render(result);
+					},
 					animDuration,
 				);
 			} else {

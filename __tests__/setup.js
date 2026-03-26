@@ -34,6 +34,9 @@ globalThis.InputEvent = window.InputEvent;
 globalThis.UIEvent = window.UIEvent;
 globalThis.ErrorEvent = window.ErrorEvent;
 globalThis.DOMParser = window.DOMParser;
+globalThis.XMLSerializer = window.XMLSerializer;
+globalThis.atob = (str) => Buffer.from(str, "base64").toString("binary");
+globalThis.btoa = (str) => Buffer.from(str, "binary").toString("base64");
 globalThis.localStorage = window.localStorage;
 globalThis.sessionStorage = window.sessionStorage;
 globalThis.History = window.History;
@@ -68,6 +71,6 @@ window.EventTarget.prototype.dispatchEvent = function (event) {
 // Compatibility: Map global jest to Bun's test runner
 globalThis.jest = jest;
 
-// Mocking requestAnimationFrame
-globalThis.requestAnimationFrame = (callback) => setTimeout(callback, 0);
+// Mocking requestAnimationFrame (16ms for rAF simulation in tests)
+globalThis.requestAnimationFrame = (callback) => setTimeout(callback, 16);
 globalThis.cancelAnimationFrame = (id) => clearTimeout(id);

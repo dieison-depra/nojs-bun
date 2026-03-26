@@ -839,6 +839,105 @@ describe("HTTP GET with custom headers", () => {
 			}),
 		);
 	});
+
+	test("warns when a sensitive header is set inline", async () => {
+		_config.debug = true;
+		global.fetch.mockResolvedValue(mockJsonResponse({ ok: true }));
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const el = document.createElement("div");
+		el.setAttribute("get", "/api/secure");
+		el.setAttribute("as", "data");
+		el.setAttribute("headers", '{"Authorization":"Bearer token123"}');
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+		await flush();
+
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining("Authorization"),
+		);
+
+		warnSpy.mockRestore();
+		_config.debug = false;
+	});
+
+	test("warns about sensitive headers even with debug mode off", async () => {
+		_config.debug = false;
+		global.fetch.mockResolvedValue(mockJsonResponse({ ok: true }));
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const el = document.createElement("div");
+		el.setAttribute("get", "/api/data");
+		el.setAttribute("as", "data");
+		el.setAttribute("headers", '{"Authorization":"Bearer token123"}');
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+		await flush();
+
+		expect(warnSpy).toHaveBeenCalled();
+
+		warnSpy.mockRestore();
+	});
+
+	test("warns for mixed-case sensitive header names (e.g. AUTHORIZATION)", async () => {
+		_config.debug = true;
+		global.fetch.mockResolvedValue(mockJsonResponse({ ok: true }));
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const el = document.createElement("div");
+		el.setAttribute("get", "/api/secure");
+		el.setAttribute("as", "data");
+		el.setAttribute("headers", '{"AUTHORIZATION":"Bearer token123"}');
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+		await flush();
+
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining("AUTHORIZATION"),
+		);
+
+		warnSpy.mockRestore();
+		_config.debug = false;
+	});
+
+	test("warns for x-auth-* and x-api-* prefix headers", async () => {
+		_config.debug = true;
+		global.fetch.mockResolvedValue(mockJsonResponse({ ok: true }));
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const el = document.createElement("div");
+		el.setAttribute("get", "/api/secure");
+		el.setAttribute("as", "data");
+		el.setAttribute("headers", '{"X-Auth-Secret":"abc","X-Api-Key":"xyz"}');
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+		await flush();
+
+		const calls = warnSpy.mock.calls.map((a) => a[1]);
+		expect(calls.some((m) => m.includes("X-Auth-Secret"))).toBe(true);
+		expect(calls.some((m) => m.includes("X-Api-Key"))).toBe(true);
+
+		warnSpy.mockRestore();
+		_config.debug = false;
+	});
 });
 
 describe("HTTP GET with redirect", () => {
@@ -1952,14 +2051,39 @@ describe("polling with refresh-interval", () => {
 
 		processTree(parent);
 
-		await jest.advanceTimersByTimeAsync(100);
+		await jest.advanceTimersByTime(100);
 		expect(global.fetch).toHaveBeenCalledTimes(1);
 
-		await jest.advanceTimersByTimeAsync(2000);
+		await jest.advanceTimersByTime(2000);
 		expect(global.fetch).toHaveBeenCalledTimes(2);
 
-		await jest.advanceTimersByTimeAsync(2000);
+		await jest.advanceTimersByTime(2000);
 		expect(global.fetch).toHaveBeenCalledTimes(3);
+	});
+
+	test("stops polling when element is removed from DOM without explicit dispose", async () => {
+		global.fetch.mockResolvedValue(mockJsonResponse({ status: "ok" }));
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const el = document.createElement("div");
+		el.setAttribute("get", "/api/status");
+		el.setAttribute("as", "status");
+		el.setAttribute("refresh", "1000");
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		await jest.advanceTimersByTime(100);
+		expect(global.fetch).toHaveBeenCalledTimes(1);
+
+		// Remove element externally (bypassing framework dispose)
+		parent.innerHTML = "";
+
+		const countBefore = global.fetch.mock.calls.length;
+		await jest.advanceTimersByTime(3000);
+		expect(global.fetch).toHaveBeenCalledTimes(countBefore);
 	});
 });
 
@@ -2248,19 +2372,19 @@ describe("HTTP GET — reactive URL with debounce", () => {
 		document.body.appendChild(parent);
 
 		processTree(parent);
-		await jest.advanceTimersByTimeAsync(50);
+		await jest.advanceTimersByTime(50);
 		expect(global.fetch).toHaveBeenCalledTimes(1);
 
 		const ctx = findContext(parent);
 
 		ctx.q = "ab";
-		await jest.advanceTimersByTimeAsync(100);
+		await jest.advanceTimersByTime(100);
 		ctx.q = "abc";
-		await jest.advanceTimersByTimeAsync(100);
+		await jest.advanceTimersByTime(100);
 
 		expect(global.fetch).toHaveBeenCalledTimes(1);
 
-		await jest.advanceTimersByTimeAsync(400);
+		await jest.advanceTimersByTime(400);
 		expect(global.fetch).toHaveBeenCalledTimes(2);
 	});
 });
@@ -3497,5 +3621,105 @@ describe("Validation Revamp — $form.reset() enhancements", () => {
 		expect(input.classList.contains("is-error")).toBe(false);
 		expect(ctx.$form.dirty).toBe(false);
 		expect(ctx.$form.touched).toBe(false);
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  M6 — call directive warns about sensitive headers in HTML attributes
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("M6 — call directive sensitive header warning", () => {
+	let originalFetch;
+
+	beforeEach(() => {
+		originalFetch = global.fetch;
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			headers: { get: () => "application/json" },
+			text: () => Promise.resolve(JSON.stringify({ ok: true })),
+		});
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	afterEach(() => {
+		global.fetch = originalFetch;
+		document.body.innerHTML = "";
+	});
+
+	test("should warn when call directive has Authorization in headers attribute", async () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const btn = document.createElement("button");
+		btn.setAttribute("call", "/api/action");
+		btn.setAttribute("method", "post");
+		btn.setAttribute("headers", '{"Authorization": "Bearer x"}');
+		parent.appendChild(btn);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		// Trigger the click to exercise the handler which checks headers
+		btn.click();
+		await new Promise((r) => setTimeout(r, 50));
+
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining("Authorization"),
+		);
+
+		warnSpy.mockRestore();
+	});
+
+	test("should warn for x-api-key sensitive header in call directive", async () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const btn = document.createElement("button");
+		btn.setAttribute("call", "/api/action");
+		btn.setAttribute("headers", '{"X-Api-Key": "secret123"}');
+		parent.appendChild(btn);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		btn.click();
+		await new Promise((r) => setTimeout(r, 50));
+
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining("X-Api-Key"),
+		);
+
+		warnSpy.mockRestore();
+	});
+
+	test("should not warn for non-sensitive headers in call directive", async () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const btn = document.createElement("button");
+		btn.setAttribute("call", "/api/action");
+		btn.setAttribute("headers", '{"Content-Type": "application/json"}');
+		parent.appendChild(btn);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		btn.click();
+		await new Promise((r) => setTimeout(r, 50));
+
+		// _warn should NOT have been called with anything about sensitive headers
+		const sensitiveWarns = warnSpy.mock.calls.filter(
+			(args) =>
+				typeof args[1] === "string" && args[1].includes("Sensitive header"),
+		);
+		expect(sensitiveWarns).toHaveLength(0);
+
+		warnSpy.mockRestore();
 	});
 });

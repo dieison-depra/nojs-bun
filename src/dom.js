@@ -33,14 +33,129 @@ export function _cloneTemplate(id) {
 	return tpl.content ? tpl.content.cloneNode(true) : null;
 }
 
-// Simple HTML sanitizer
+// ─── SVG data URI deep-sanitization ──────────────────────────────────────────
+// Strip JS vectors from raw SVG markup using DOMParser for robust sanitization.
+// Regex-based approaches are bypassable via entity encoding and nested contexts.
+function _sanitizeSvgContent(svg) {
+	const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
+	const root = doc.documentElement;
+	if (
+		root.querySelector("parsererror") ||
+		root.nodeName !== "svg" ||
+		root.getElementsByTagNameNS(
+			"http://www.mozilla.org/newlayout/xml/parsererror.xml",
+			"parsererror",
+		).length
+	) {
+		return "<svg></svg>";
+	}
+	function cleanAttrs(node) {
+		for (const attr of [...node.attributes]) {
+			const name = attr.name.toLowerCase();
+			if (name.startsWith("on")) {
+				node.removeAttribute(attr.name);
+				continue;
+			}
+			if (
+				(name === "href" || name === "xlink:href") &&
+				attr.value.trim().toLowerCase().startsWith("javascript:")
+			) {
+				node.removeAttribute(attr.name);
+			}
+		}
+	}
+	for (const s of [...root.querySelectorAll("script")]) s.remove();
+	cleanAttrs(root);
+	for (const node of root.querySelectorAll("*")) cleanAttrs(node);
+	return new XMLSerializer().serializeToString(root);
+}
+
+// Sanitize a data:image/svg+xml URI — handles both base64 and URL-encoded forms.
+function _sanitizeSvgDataUri(str) {
+	try {
+		const b64 = str.match(/^data:image\/svg\+xml;base64,(.+)$/i);
+		if (b64) {
+			const clean = _sanitizeSvgContent(atob(b64[1]));
+			return "data:image/svg+xml;base64," + btoa(clean);
+		}
+		const comma = str.indexOf(",");
+		if (comma === -1) return "#";
+		const header = str.slice(0, comma + 1);
+		const clean = _sanitizeSvgContent(decodeURIComponent(str.slice(comma + 1)));
+		return header + encodeURIComponent(clean);
+	} catch (_e) {
+		return "#";
+	}
+}
+
+// Structural HTML sanitizer — uses DOMParser to parse the markup before cleaning.
+// Regex-based sanitizers are bypassable via SVG/MathML event handlers, nested
+// srcdoc attributes, and HTML entity encoding (e.g. &#x6A;avascript:).
+// DOMParser resolves entities and builds a real DOM tree, making all vectors
+// uniformly detectable by a single attribute-name/value check.
+//
+// Custom hook: set _config.sanitizeHtml to a function to plug in an external
+// sanitizer (e.g. DOMPurify) without bundling it as a hard dependency.
+const _BLOCKED_TAGS = new Set([
+	"script",
+	"style",
+	"iframe",
+	"object",
+	"embed",
+	"base",
+	"form",
+	"meta",
+	"link",
+	"noscript",
+]);
+
 export function _sanitizeHtml(html) {
-	if (!_config.sanitize) return html;
-	const safe = html
-		.replace(/<script[\s\S]*?<\/script>/gi, "")
-		.replace(/on\w+\s*=/gi, "data-blocked=")
-		.replace(/javascript:/gi, "");
-	return safe;
+	if (_config.dangerouslyDisableSanitize || !_config.sanitize) {
+		_warn(
+			"HTML sanitization is DISABLED. This exposes your app to XSS attacks. Only disable for trusted content.",
+		);
+		return html;
+	}
+	if (typeof _config.sanitizeHtml === "function")
+		return _config.sanitizeHtml(html);
+
+	const doc = new DOMParser().parseFromString(html, "text/html");
+
+	function _clean(node) {
+		for (const child of [...node.childNodes]) {
+			if (child.nodeType !== 1) continue; // text and comment nodes are safe
+			if (_BLOCKED_TAGS.has(child.tagName.toLowerCase())) {
+				child.remove();
+				continue;
+			}
+			for (const attr of [...child.attributes]) {
+				const n = attr.name.toLowerCase();
+				const v = attr.value.toLowerCase().trimStart();
+				const isUrlAttr =
+					n === "href" ||
+					n === "src" ||
+					n === "action" ||
+					n === "xlink:href" ||
+					n === "formaction" ||
+					n === "poster" ||
+					n === "data";
+				const isDangerousScheme =
+					v.startsWith("javascript:") || v.startsWith("vbscript:");
+				const isDangerousData =
+					isUrlAttr && v.startsWith("data:") && !/^data:image\//.test(v);
+				if (n.startsWith("on") || isDangerousScheme || isDangerousData) {
+					child.removeAttribute(attr.name);
+				} else if (isUrlAttr && v.startsWith("data:image/svg+xml")) {
+					// Deep-sanitize SVG data URIs to strip embedded <script> and on* handlers
+					child.setAttribute(attr.name, _sanitizeSvgDataUri(attr.value));
+				}
+			}
+			_clean(child);
+		}
+	}
+
+	_clean(doc.body);
+	return doc.body.innerHTML;
 }
 
 // Resolve a template src path.
@@ -64,6 +179,25 @@ function _resolveTemplateSrc(src, tpl) {
 	return resolveUrl(src, tpl);
 }
 
+// Warn when a template URL uses plain HTTP from an HTTPS page (mixed content / MITM risk).
+// The optional pageProtocol parameter enables testing without mutating jsdom's
+// non-configurable window.location.protocol property.
+export function _warnIfInsecureTemplateUrl(resolvedUrl, src, pageProtocol) {
+	const proto =
+		pageProtocol !== undefined
+			? pageProtocol
+			: typeof window !== "undefined" && window.location
+				? window.location.protocol
+				: "";
+	if (resolvedUrl.startsWith("http://") && proto === "https:") {
+		_warn(
+			'Template "' +
+				src +
+				'" is loaded over insecure HTTP from an HTTPS page. Use HTTPS to prevent tampering.',
+		);
+	}
+}
+
 export async function _loadRemoteTemplates(root) {
 	const scope = root || document;
 	const templates = scope.querySelectorAll("template[src]");
@@ -84,6 +218,7 @@ export async function _loadRemoteTemplates(root) {
 		tpl.__srcLoaded = true;
 		const src = tpl.getAttribute("src");
 		const resolvedUrl = _resolveTemplateSrc(src, tpl);
+		_warnIfInsecureTemplateUrl(resolvedUrl, src);
 		// Track the folder of this template so children can use "./" paths
 		const baseFolder = resolvedUrl.substring(
 			0,
@@ -130,7 +265,7 @@ export async function _loadRemoteTemplates(root) {
 				}
 			}
 		} catch (e) {
-			_warn("Failed to load template:", src, e.message);
+			_warn("Failed to load template:", src, e?.message || e || "Unknown error");
 		}
 	});
 	await Promise.all(promises);
@@ -155,6 +290,7 @@ export async function _loadTemplateElement(tpl) {
 	);
 	tpl.__srcLoaded = true;
 	const resolvedUrl = _resolveTemplateSrc(src, tpl);
+	_warnIfInsecureTemplateUrl(resolvedUrl, src);
 	const baseFolder = resolvedUrl.substring(0, resolvedUrl.lastIndexOf("/") + 1);
 
 	// Synchronously insert loading placeholder before the fetch begins
@@ -236,7 +372,7 @@ export async function _loadTemplateElement(tpl) {
 		}
 	} catch (e) {
 		if (loadingMarker) loadingMarker.remove();
-		_warn("Failed to load template:", src, e.message);
+		_warn("Failed to load template:", src, e?.message || e || "Unknown error");
 	}
 }
 

@@ -7,6 +7,7 @@ import {
 import {
 	_execStatement,
 	_interpolate,
+	_exprCache,
 	evaluate,
 	resolve,
 } from "../src/evaluate.js";
@@ -28,6 +29,7 @@ import {
 	_watchExpr,
 	setRouterInstance,
 } from "../src/globals.js";
+
 import { _disposeTree } from "../src/registry.js";
 
 describe("Globals", () => {
@@ -43,7 +45,11 @@ describe("Globals", () => {
 		_config.sanitize = true;
 		_config.cache = { strategy: "none", ttl: 300000 };
 		_config.router = { useHash: false, base: "/", scrollBehavior: "top" };
-		_config.i18n = { defaultLocale: "en", fallbackLocale: "en", detectBrowser: false };
+		_config.i18n = {
+			defaultLocale: "en",
+			fallbackLocale: "en",
+			detectBrowser: false,
+		};
 	});
 
 	describe("_config defaults", () => {
@@ -56,6 +62,7 @@ describe("Globals", () => {
 			expect(_config.csrf).toBeNull();
 			expect(_config.debug).toBe(false);
 			expect(_config.sanitize).toBe(true);
+			expect(_config.dangerouslyDisableSanitize).toBe(false);
 		});
 
 		test("has default cache config", () => {
@@ -74,149 +81,211 @@ describe("Globals", () => {
 			expect(_config.i18n.fallbackLocale).toBe("en");
 			expect(_config.i18n.detectBrowser).toBe(false);
 		});
-	});
 
-	describe("shared state objects", () => {
-		test("_interceptors has request and response arrays", () => {
-			expect(_interceptors.request).toEqual([]);
-			expect(_interceptors.response).toEqual([]);
+		describe("shared state objects", () => {
+			test("_interceptors has request and response arrays", () => {
+				expect(_interceptors.request).toEqual([]);
+				expect(_interceptors.response).toEqual([]);
+			});
+
+			test("_stores is an object", () => {
+				expect(typeof _stores).toBe("object");
+			});
+
+			test("_validators is an object", () => {
+				expect(typeof _validators).toBe("object");
+			});
+
+			test("_cache is a Map", () => {
+				expect(_cache).toBeInstanceOf(Map);
+			});
 		});
 
-		test("_stores is an object", () => {
-			expect(typeof _stores).toBe("object");
+		describe("setRouterInstance", () => {
+			afterEach(() => setRouterInstance(null));
+
+			test("sets the router instance", () => {
+				const mockRouter = { current: { path: "/" } };
+				setRouterInstance(mockRouter);
+				const ctx = createContext({});
+				expect(ctx.$route).toEqual({ path: "/" });
+			});
 		});
 
-		test("_validators is an object", () => {
-			expect(typeof _validators).toBe("object");
+		describe("_log", () => {
+			test("logs when debug is true", () => {
+				const spy = jest.spyOn(console, "log").mockImplementation();
+				_config.debug = true;
+				_log("test message");
+				expect(spy).toHaveBeenCalledWith("[No.JS]", "test message");
+				_config.debug = false;
+				spy.mockRestore();
+			});
+
+			test("does not log when debug is false", () => {
+				const spy = jest.spyOn(console, "log").mockImplementation();
+				_config.debug = false;
+				_log("test message");
+				expect(spy).not.toHaveBeenCalled();
+				spy.mockRestore();
+			});
 		});
 
-		test("_cache is a Map", () => {
-			expect(_cache).toBeInstanceOf(Map);
-		});
-	});
-
-	describe("setRouterInstance", () => {
-		afterEach(() => setRouterInstance(null));
-
-		test("sets the router instance", () => {
-			const mockRouter = { current: { path: "/" } };
-			setRouterInstance(mockRouter);
-			const ctx = createContext({});
-			expect(ctx.$route).toEqual({ path: "/" });
-		});
-	});
-
-	describe("_log", () => {
-		test("logs when debug is true", () => {
-			const spy = jest.spyOn(console, "log").mockImplementation();
-			_config.debug = true;
-			_log("test message");
-			expect(spy).toHaveBeenCalledWith("[No.JS]", "test message");
-			_config.debug = false;
-			spy.mockRestore();
+		describe("_warn", () => {
+			test("always warns", () => {
+				const spy = jest.spyOn(console, "warn").mockImplementation();
+				_warn("warning msg");
+				expect(spy).toHaveBeenCalledWith("[No.JS]", "warning msg");
+				spy.mockRestore();
+			});
 		});
 
-		test("does not log when debug is false", () => {
-			const spy = jest.spyOn(console, "log").mockImplementation();
-			_config.debug = false;
-			_log("test message");
-			expect(spy).not.toHaveBeenCalled();
-			spy.mockRestore();
-		});
-	});
-
-	describe("_warn", () => {
-		test("always warns", () => {
-			const spy = jest.spyOn(console, "warn").mockImplementation();
-			_warn("warning msg");
-			expect(spy).toHaveBeenCalledWith("[No.JS]", "warning msg");
-			spy.mockRestore();
-		});
-	});
-
-	describe("_notifyStoreWatchers", () => {
-		test("calls all store watchers", () => {
-			const fn1 = jest.fn();
-			const fn2 = jest.fn();
-			_storeWatchers.add(fn1);
-			_storeWatchers.add(fn2);
-			_notifyStoreWatchers();
-			expect(fn1).toHaveBeenCalled();
-			expect(fn2).toHaveBeenCalled();
-			_storeWatchers.delete(fn1);
-			_storeWatchers.delete(fn2);
-		});
-	});
-
-	describe("_emitEvent", () => {
-		test("calls registered event handlers", () => {
-			const fn = jest.fn();
-			_eventBus["test-event"] = [fn];
-			_emitEvent("test-event", { key: "value" });
-			expect(fn).toHaveBeenCalledWith({ key: "value" });
-			delete _eventBus["test-event"];
+		describe("_notifyStoreWatchers", () => {
+			test("calls all store watchers", () => {
+				const fn1 = jest.fn();
+				const fn2 = jest.fn();
+				_storeWatchers.add(fn1);
+				_storeWatchers.add(fn2);
+				_notifyStoreWatchers();
+				expect(fn1).toHaveBeenCalled();
+				expect(fn2).toHaveBeenCalled();
+				_storeWatchers.delete(fn1);
+				_storeWatchers.delete(fn2);
+			});
 		});
 
-		test("handles missing event gracefully", () => {
-			expect(() => _emitEvent("nonexistent", {})).not.toThrow();
-		});
-	});
+		describe("_emitEvent", () => {
+			test("calls registered event handlers", () => {
+				const fn = jest.fn();
+				_eventBus["test-event"] = [fn];
+				_emitEvent("test-event", { key: "value" });
+				expect(fn).toHaveBeenCalledWith({ key: "value" });
+				delete _eventBus["test-event"];
+			});
 
-	describe("_watchExpr", () => {
-		test("watches context with $watch", () => {
-			const ctx = createContext({ x: 1 });
-			const fn = jest.fn();
-			_watchExpr("x", ctx, fn);
-			ctx.x = 2;
-			expect(fn).toHaveBeenCalled();
-		});
-
-		test("adds to _storeWatchers when expr includes $store", () => {
-			const ctx = createContext({});
-			const fn = jest.fn();
-			const sizeBefore = _storeWatchers.size;
-			_watchExpr("$store.cart.items", ctx, fn);
-			expect(_storeWatchers.size).toBe(sizeBefore + 1);
-			_storeWatchers.delete(fn);
+			test("handles missing event gracefully", () => {
+				expect(() => _emitEvent("nonexistent", {})).not.toThrow();
+			});
 		});
 
-		test("registers _onDispose that calls unwatch on disposal", () => {
-			const ctx = createContext({ x: 1 });
-			const fn = jest.fn();
-			const el = document.createElement("div");
-			document.body.appendChild(el);
+		describe("_watchExpr", () => {
+			test("watches context with $watch", () => {
+				const ctx = createContext({ x: 1 });
+				const fn = jest.fn();
+				_watchExpr("x", ctx, fn);
+				ctx.x = 2;
+				expect(fn).toHaveBeenCalled();
+			});
 
-			_setCurrentEl(el);
-			_watchExpr("x", ctx, fn);
-			_setCurrentEl(null);
+			test("adds to _storeWatchers when expr includes $store", () => {
+				const ctx = createContext({});
+				const fn = jest.fn();
+				const sizeBefore = _storeWatchers.size;
+				_watchExpr("$store.cart.items", ctx, fn);
+				expect(_storeWatchers.size).toBe(sizeBefore + 1);
+				_storeWatchers.delete(fn);
+			});
 
-			// Watcher fires before disposal
-			ctx.x = 2;
-			expect(fn).toHaveBeenCalledTimes(1);
+			test("registers _onDispose that calls unwatch on disposal", () => {
+				const ctx = createContext({ x: 1 });
+				const fn = jest.fn();
+				const el = document.createElement("div");
+				document.body.appendChild(el);
 
-			// Dispose the element
-			_disposeTree(el);
+				_setCurrentEl(el);
+				_watchExpr("x", ctx, fn);
+				_setCurrentEl(null);
 
-			// Watcher should no longer fire after disposal
-			fn.mockClear();
-			ctx.x = 3;
-			expect(fn).not.toHaveBeenCalled();
-		});
+				// Watcher fires before disposal
+				ctx.x = 2;
+				expect(fn).toHaveBeenCalledTimes(1);
 
-		test("removes from _storeWatchers on disposal", () => {
-			const ctx = createContext({});
-			const fn = jest.fn();
-			const el = document.createElement("div");
+				// Dispose the element
+				_disposeTree(el);
 
-			_setCurrentEl(el);
-			_watchExpr("$store.cart.items", ctx, fn);
-			_setCurrentEl(null);
+				// Watcher should no longer fire after disposal
+				fn.mockClear();
+				ctx.x = 3;
+				expect(fn).not.toHaveBeenCalled();
+			});
 
-			expect(_storeWatchers.has(fn)).toBe(true);
+			test("removes from _storeWatchers on disposal", () => {
+				const ctx = createContext({});
+				const fn = jest.fn();
+				const el = document.createElement("div");
 
-			_disposeTree(el);
+				_setCurrentEl(el);
+				_watchExpr("$store.cart.items", ctx, fn);
+				_setCurrentEl(null);
 
-			expect(_storeWatchers.has(fn)).toBe(false);
+				expect(_storeWatchers.has(fn)).toBe(true);
+
+				_disposeTree(el);
+
+				expect(_storeWatchers.has(fn)).toBe(false);
+			});
+
+			test("removes $store watcher from Set when element is removed without dispose", async () => {
+				const ctx = createContext({});
+				const fn = jest.fn();
+
+				const parent = document.createElement("div");
+				const el = document.createElement("span");
+				parent.appendChild(el);
+				document.body.appendChild(parent);
+
+				_setCurrentEl(el);
+				_watchExpr("$store.cart", ctx, fn);
+				_setCurrentEl(null);
+
+				expect(_storeWatchers.has(fn)).toBe(true);
+
+				// Remove element externally (bypassing framework dispose)
+				parent.innerHTML = "";
+
+				// Allow MutationObserver microtask to run
+				await new Promise((r) => setTimeout(r, 0));
+
+				expect(_storeWatchers.has(fn)).toBe(false);
+			});
+
+			test("disconnects MutationObserver via _onDispose when _disposeTree runs (each re-render pattern)", () => {
+				const ctx = createContext({});
+				const fn = jest.fn();
+
+				const container = document.createElement("div");
+				const itemWrapper = document.createElement("div");
+				container.appendChild(itemWrapper);
+				document.body.appendChild(container);
+
+				// Simulate processElement binding a $store watcher on itemWrapper
+				_setCurrentEl(itemWrapper);
+				_watchExpr("$store.cart.items", ctx, fn);
+				_setCurrentEl(null);
+
+				expect(_storeWatchers.has(fn)).toBe(true);
+
+				// Simulate each re-render: disposeTree then clear innerHTML
+				_disposeTree(itemWrapper);
+				container.innerHTML = "";
+
+				// Watcher must be removed by the _onDispose path (not the MutationObserver callback)
+				expect(_storeWatchers.has(fn)).toBe(false);
+			});
+
+			test("does not throw when element has no parentElement", () => {
+				const ctx = createContext({});
+				const fn = jest.fn();
+
+				// Element with no parent
+				const el = document.createElement("div");
+
+				_setCurrentEl(el);
+				expect(() => _watchExpr("$store.x", ctx, fn)).not.toThrow();
+				_setCurrentEl(null);
+
+				_storeWatchers.delete(fn);
+			});
 		});
 	});
 });
@@ -394,6 +463,32 @@ describe("Reactive Context", () => {
 			const { vals } = _collectKeys(child);
 			expect(vals.x).toBe("child");
 		});
+
+		test("returns cached result when context has not changed", () => {
+			const ctx = createContext({ a: 1 });
+			const first = _collectKeys(ctx);
+			const second = _collectKeys(ctx);
+			expect(second).toBe(first); // same object reference — cache hit
+		});
+
+		test("returns fresh result after context mutation", () => {
+			const ctx = createContext({ a: 1 });
+			const before = _collectKeys(ctx);
+			ctx.a = 99;
+			const after = _collectKeys(ctx);
+			expect(after).not.toBe(before); // different object reference — cache invalidated
+			expect(after.vals.a).toBe(99);
+		});
+
+		test("invalidates child cache when parent context changes", () => {
+			const parent = createContext({ x: 1 });
+			const child = createContext({ y: 2 }, parent);
+			const before = _collectKeys(child);
+			parent.x = 42;
+			const after = _collectKeys(child);
+			expect(after).not.toBe(before);
+			expect(after.vals.x).toBe(42);
+		});
 	});
 });
 
@@ -455,6 +550,47 @@ describe("Expression Evaluator", () => {
 		test("returns undefined for invalid expressions", () => {
 			const ctx = createContext({});
 			expect(evaluate("this is not valid @#$", ctx)).toBeUndefined();
+		});
+
+		test("calls _warn() when expression evaluation fails in debug mode", () => {
+			_config.debug = true;
+			const spy = jest.spyOn(console, "warn").mockImplementation(() => {});
+			try {
+				// Passing null ctx triggers TypeError in evaluate()'s scope-building code
+				evaluate("x", null);
+				expect(spy).toHaveBeenCalled();
+				const warnCall = spy.mock.calls.find((args) =>
+					args.some(
+						(a) => typeof a === "string" && a.includes("Expression error"),
+					),
+				);
+				expect(warnCall).toBeDefined();
+			} finally {
+				spy.mockRestore();
+				_config.debug = false;
+			}
+		});
+
+		test("calls _warn() regardless of debug mode", () => {
+			_config.debug = false;
+			const spy = jest.spyOn(console, "warn").mockImplementation(() => {});
+			try {
+				evaluate("x", null);
+				const warnCall = spy.mock.calls.find((args) =>
+					args.some(
+						(a) => typeof a === "string" && a.includes("Expression error"),
+					),
+				);
+				expect(warnCall).toBeDefined();
+			} finally {
+				spy.mockRestore();
+			}
+		});
+
+		test("does not throw to the caller on expression error", () => {
+			const spy = jest.spyOn(console, "warn").mockImplementation(() => {});
+			expect(() => evaluate("x", null)).not.toThrow();
+			spy.mockRestore();
 		});
 
 		test("accesses nested properties", () => {
@@ -525,6 +661,28 @@ describe("Expression Evaluator", () => {
 		test("handles missing values", () => {
 			const ctx = createContext({});
 			expect(_interpolate("/users/{id}", ctx)).toBe("/users/");
+		});
+
+		test("encodes path traversal sequences in interpolated values", () => {
+			const ctx = createContext({ id: "../admin" });
+			const result = _interpolate("/api/users/{id}", ctx);
+			expect(result).not.toContain("../");
+			expect(result).toBe("/api/users/..%2Fadmin"); // .. + encoded /
+		});
+
+		test("encodes spaces and special characters in interpolated values", () => {
+			const ctx = createContext({ q: "hello world" });
+			expect(_interpolate("/search?q={q}", ctx)).toBe("/search?q=hello%20world");
+		});
+
+		test("encodes slashes inside interpolated values", () => {
+			const ctx = createContext({ path: "a/b/c" });
+			expect(_interpolate("/api/{path}", ctx)).toBe("/api/a%2Fb%2Fc");
+		});
+
+		test("does not encode plain numeric IDs", () => {
+			const ctx = createContext({ id: 123 });
+			expect(_interpolate("/api/users/{id}", ctx)).toBe("/api/users/123");
 		});
 	});
 
@@ -673,11 +831,6 @@ describe("index.js — config()", () => {
 
 	test("config with deprecated mode option converts to useHash with warning", async () => {
 		const { default: No } = await import("../src/index.js");
-		const { _log } = await import("../src/globals.js");
-
-		const _origLog = _log;
-		const _logCalls = [];
-		// _log is not easily mockable since it's an export, so just test the conversion
 		No.config({ router: { mode: "hash" } });
 		expect(_config.router.useHash).toBe(true);
 		expect(_config.router.mode).toBeUndefined();
@@ -1301,6 +1454,30 @@ describe("Expression Parser", () => {
 		test("should not expose obj.constructor", () => {
 			expect(evaluate("obj.constructor", ctx)).toBeUndefined();
 		});
+
+		test("spread filters __proto__", () => {
+			const sCtx = createContext({
+				evil: { __proto__: { hacked: true }, safe: 1 },
+			});
+			const result = evaluate("({ ...evil })", sCtx);
+			expect(result.safe).toBe(1);
+			expect(result).not.toHaveProperty("__proto__", { hacked: true });
+			expect(result.hacked).toBeUndefined();
+		});
+
+		test("spread filters constructor", () => {
+			const sCtx = createContext({ evil: { constructor: "bad", ok: 1 } });
+			const result = evaluate("({ ...evil })", sCtx);
+			expect(result.ok).toBe(1);
+			expect(Object.hasOwn(result, "constructor")).toBe(false);
+		});
+
+		test("spread filters prototype", () => {
+			const sCtx = createContext({ evil: { prototype: "bad", ok: 1 } });
+			const result = evaluate("({ ...evil })", sCtx);
+			expect(result.ok).toBe(1);
+			expect(Object.hasOwn(result, "prototype")).toBe(false);
+		});
 	});
 });
 
@@ -1459,6 +1636,13 @@ describe("Statement Interpreter", () => {
 			_execStatement("msg = $event.type", ctx, { $event: { type: "click" } });
 			expect(ctx.msg).toBe("click");
 		});
+
+		test("extraVars keys are not written back to the context", () => {
+			// __val is used by the model directive; it must not leak into the reactive context
+			_execStatement("count = __val", ctx, { __val: 42 });
+			expect(ctx.count).toBe(42); // assignment succeeded
+			expect("__val" in ctx.__raw).toBe(false); // __val must not persist
+		});
 	});
 
 	describe("$refs Method Call", () => {
@@ -1486,5 +1670,268 @@ describe("Statement Interpreter", () => {
 			_execStatement("count = count + 1", child);
 			expect(parent.count).toBe(1);
 		});
+	});
+
+	describe("Read-only location proxy", () => {
+		test("location.href assignment is blocked", () => {
+			const original = window.location.href;
+			_execStatement("location.href = 'https://evil.com'", createContext({}));
+			expect(window.location.href).toBe(original);
+		});
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// evaluate.js — browser globals allow-list (TIP-S2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("evaluate — browser globals allow-list", () => {
+	let ctx;
+
+	beforeEach(() => {
+		ctx = createContext({});
+	});
+
+	// ── Blocked: network and storage APIs ──────────────────────────────────
+
+	test("fetch is not accessible as a bare identifier", () => {
+		expect(evaluate("fetch", ctx)).toBeUndefined();
+	});
+
+	test("XMLHttpRequest is not accessible as a bare identifier", () => {
+		expect(evaluate("XMLHttpRequest", ctx)).toBeUndefined();
+	});
+
+	test("localStorage is not accessible as a bare identifier", () => {
+		expect(evaluate("localStorage", ctx)).toBeUndefined();
+	});
+
+	test("sessionStorage is not accessible as a bare identifier", () => {
+		expect(evaluate("sessionStorage", ctx)).toBeUndefined();
+	});
+
+	test("WebSocket is not accessible as a bare identifier", () => {
+		expect(evaluate("WebSocket", ctx)).toBeUndefined();
+	});
+
+	test("indexedDB is not accessible as a bare identifier", () => {
+		expect(evaluate("indexedDB", ctx)).toBeUndefined();
+	});
+
+	// ── Allowed: safe browser globals ──────────────────────────────────────
+
+	test("window is accessible (returns safe proxy)", () => {
+		expect(evaluate("window", ctx)).toBeDefined();
+	});
+
+	test("document is accessible (returns safe proxy)", () => {
+		expect(evaluate("document", ctx)).toBeDefined();
+	});
+
+	test("URL is accessible", () => {
+		expect(evaluate("URL", ctx)).toBe(URL);
+	});
+
+	test("setTimeout is accessible", () => {
+		expect(evaluate("setTimeout", ctx)).toBe(setTimeout);
+	});
+
+	test("Promise is accessible", () => {
+		expect(evaluate("Promise", ctx)).toBe(Promise);
+	});
+
+	// ── _SAFE_GLOBALS are unaffected ────────────────────────────────────────
+
+	test("Math is still accessible (in _SAFE_GLOBALS)", () => {
+		expect(evaluate("Math.max(1, 2)", ctx)).toBe(2);
+	});
+
+	test("JSON is still accessible (in _SAFE_GLOBALS)", () => {
+		expect(evaluate("JSON.stringify({a:1})", ctx)).toBe('{"a":1}');
+	});
+
+	// ── Scope values take precedence over allow-list ────────────────────────
+
+	test("scope variable shadows a browser global", () => {
+		const ctxWithWindow = createContext({ window: "shadowed" });
+		expect(evaluate("window", ctxWithWindow)).toBe("shadowed");
+	});
+
+	// ── Security proxies: blocked sub-properties on window ────────────────
+
+	test("window.fetch is blocked by proxy", () => {
+		expect(evaluate("window.fetch", ctx)).toBeUndefined();
+	});
+
+	test("window.localStorage is blocked by proxy", () => {
+		expect(evaluate("window.localStorage", ctx)).toBeUndefined();
+	});
+
+	test("document.cookie is blocked by proxy", () => {
+		expect(evaluate("document.cookie", ctx)).toBeUndefined();
+	});
+
+	test("window.innerWidth is still accessible", () => {
+		// jsdom may not have innerWidth, just confirm no throw
+		expect(() => evaluate("window.innerWidth", ctx)).not.toThrow();
+	});
+
+	test("document.querySelector is still accessible", () => {
+		expect(evaluate("document.querySelector", ctx)).toBeDefined();
+	});
+
+	// ── Read-only location proxy ────────────────────────────────────────────
+
+	test("location.href is readable", () => {
+		expect(evaluate("location.href", ctx)).toBeDefined();
+	});
+
+	test("location.pathname is readable", () => {
+		expect(evaluate("location.pathname", ctx)).toBeDefined();
+	});
+
+	// ── Bypass vector tests ─────────────────────────────────────────────────
+
+	test("window.location returns safe location proxy (not raw)", () => {
+		const loc = evaluate("window.location", ctx);
+		expect(loc).toBeDefined();
+		// Should be the safe proxy — assign should be a noop
+		if (loc && typeof loc.assign === "function") {
+			expect(() => loc.assign("https://evil.com")).not.toThrow();
+		}
+	});
+
+	test("window.location.href assignment is blocked via window path", () => {
+		const original = window.location.href;
+		_execStatement(
+			"window.location.href = 'https://evil.com'",
+			createContext({}),
+		);
+		expect(window.location.href).toBe(original);
+	});
+
+	test("document.defaultView returns safe window proxy (not raw)", () => {
+		const dv = evaluate("document.defaultView", ctx);
+		if (dv) {
+			expect(dv.fetch).toBeUndefined();
+			expect(dv.localStorage).toBeUndefined();
+		}
+	});
+
+	test("document.execCommand is blocked", () => {
+		expect(evaluate("document.execCommand", ctx)).toBeUndefined();
+	});
+
+	test("bracket notation does not bypass window proxy", () => {
+		expect(evaluate("window['fetch']", ctx)).toBeUndefined();
+		expect(evaluate("window['localStorage']", ctx)).toBeUndefined();
+	});
+
+	test("bracket notation does not bypass document proxy", () => {
+		expect(evaluate("document['cookie']", ctx)).toBeUndefined();
+	});
+
+	test("window.document returns safe document proxy", () => {
+		const doc = evaluate("window.document", ctx);
+		if (doc) {
+			expect(doc.cookie).toBeUndefined();
+		}
+	});
+
+	// ── Read-only history proxy ───────────────────────────────────────────
+
+	test("history.length is readable", () => {
+		expect(evaluate("history.length", ctx)).toBeDefined();
+	});
+
+	test("history.pushState is a no-op", () => {
+		const h = evaluate("history", ctx);
+		expect(h.pushState).toBeDefined();
+		expect(() => h.pushState({}, "", "/evil")).not.toThrow();
+		// Real history should not have changed
+	});
+
+	test("history.back is a no-op", () => {
+		const h = evaluate("history", ctx);
+		expect(h.back).toBeDefined();
+		expect(() => h.back()).not.toThrow();
+	});
+
+	test("window.history returns safe history wrapper", () => {
+		const h = evaluate("window.history", ctx);
+		expect(h).toBeDefined();
+		expect(h.pushState).toBeDefined();
+		expect(() => h.pushState({}, "", "/evil")).not.toThrow();
+	});
+
+	// ── Navigator proxy ─────────────────────────────────────────────────
+
+	test("navigator.sendBeacon is blocked", () => {
+		expect(evaluate("navigator.sendBeacon", ctx)).toBeUndefined();
+	});
+
+	test("navigator.userAgent is still accessible", () => {
+		expect(evaluate("navigator.userAgent", ctx)).toBeDefined();
+	});
+
+	test("window.navigator returns safe navigator proxy", () => {
+		const nav = evaluate("window.navigator", ctx);
+		if (nav) {
+			expect(nav.sendBeacon).toBeUndefined();
+			expect(nav.userAgent).toBeDefined();
+		}
+	});
+
+	// ── Window set trap ─────────────────────────────────────────────────
+
+	test("window.name writes are blocked (anti-exfiltration)", () => {
+		const original = window.name;
+		_execStatement("window.name = 'evil'", createContext({}));
+		expect(window.name).toBe(original);
+	});
+
+	test("window.fetch writes are blocked", () => {
+		const original = window.fetch;
+		_execStatement("window.fetch = null", createContext({}));
+		expect(window.fetch).toBe(original);
+	});
+
+	test("window user-defined property writes are allowed", () => {
+		_execStatement("window.__testProp = 42", createContext({}));
+		expect(window.__testProp).toBe(42);
+		delete window.__testProp;
+	});
+});
+
+describe("evaluate.js — expression cache (LRU)", () => {
+	test("cache does not grow beyond 500 entries", () => {
+		const ctx = createContext({});
+
+		for (let i = 0; i < 510; i++) {
+			evaluate(`__lru_test_${i}__ || 0`, ctx);
+		}
+
+		expect(_exprCache.size).toBeLessThanOrEqual(500);
+	});
+
+	test("evicts the LRU entry when the cache is full", () => {
+		const ctx = createContext({});
+
+		// Fill to the limit with known keys
+		for (let i = 0; i < 500; i++) {
+			evaluate(`__evict_test_${i}__ || 0`, ctx);
+		}
+
+		const firstKey = "__evict_test_0__ || 0";
+
+		// Re-access the first key so it becomes the most-recently-used
+		evaluate(firstKey, ctx);
+
+		// Adding one more should evict the LRU entry (entry 1, not entry 0)
+		evaluate("__evict_overflow__ || 0", ctx);
+
+		// The recently-accessed entry must be retained
+		expect(_exprCache.has(firstKey)).toBe(true);
+		expect(_exprCache.size).toBeLessThanOrEqual(500);
 	});
 });

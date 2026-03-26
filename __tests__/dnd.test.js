@@ -1,4 +1,5 @@
 import { processTree } from "../src/registry.js";
+import { _config } from "../src/globals.js";
 
 import "../src/filters.js";
 import "../src/directives/state.js";
@@ -96,7 +97,7 @@ describe("Drag Directive", () => {
 		document.body.innerHTML = "";
 		// Clean up injected styles
 		document
-			.querySelectorAll("style[id=\"nojs-dnd-styles\"]")
+			.querySelectorAll('style[id="nojs-dnd-styles"]')
 			.forEach((s) => s.remove());
 	});
 
@@ -154,11 +155,11 @@ describe("Drag Directive", () => {
 		// Mousedown on handle area
 		const gripEl = el.querySelector(".grip");
 		gripEl.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-		
+
 		const evt = createDragEvent("dragstart");
 		const spy = jest.spyOn(evt, "preventDefault");
 		el.dispatchEvent(evt);
-		
+
 		// Should NOT prevent default when handle is used
 		expect(spy).not.toHaveBeenCalled();
 	});
@@ -262,7 +263,7 @@ describe("Drag Directive", () => {
 
 	test("15 — injects DnD styles once", () => {
 		setupDrag("item");
-		const styles = document.querySelectorAll("style[id=\"nojs-dnd-styles\"]");
+		const styles = document.querySelectorAll('style[id="nojs-dnd-styles"]');
 		expect(styles.length).toBe(1);
 	});
 });
@@ -275,7 +276,7 @@ describe("Drop Directive", () => {
 	afterEach(() => {
 		document.body.innerHTML = "";
 		document
-			.querySelectorAll("style[id=\"nojs-dnd-styles\"]")
+			.querySelectorAll('style[id="nojs-dnd-styles"]')
 			.forEach((s) => s.remove());
 	});
 
@@ -499,7 +500,7 @@ describe("Drag-List Directive", () => {
 	afterEach(() => {
 		document.body.innerHTML = "";
 		document
-			.querySelectorAll("style[id=\"nojs-dnd-styles\"]")
+			.querySelectorAll('style[id="nojs-dnd-styles"]')
 			.forEach((s) => s.remove());
 	});
 
@@ -688,6 +689,71 @@ describe("Drag-List Directive", () => {
 		el.dispatchEvent(evt);
 		expect(spy).not.toHaveBeenCalled();
 	});
+
+	test("44 — each drag-list item wrapper has __disposers registered", () => {
+		const { el } = setupDragList("tasks", ["A", "B", "C"]);
+		const wrappers = el.querySelectorAll('[role="option"]');
+
+		wrappers.forEach((wrapper) => {
+			expect(wrapper.__disposers).toBeDefined();
+			expect(Array.isArray(wrapper.__disposers)).toBe(true);
+			// Should have at least 3 disposers: dragstart, dragend, keydown
+			expect(wrapper.__disposers.length).toBeGreaterThanOrEqual(3);
+			wrapper.__disposers.forEach((fn) => {
+				expect(typeof fn).toBe("function");
+			});
+		});
+	});
+
+	test("45 — calling __disposers removes dragstart, dragend, and keydown listeners", () => {
+		const { el } = setupDragList("tasks", ["A", "B"]);
+		const wrapper = el.children[0];
+
+		// Spy on removeEventListener to verify cleanup
+		const removeSpy = jest.spyOn(wrapper, "removeEventListener");
+
+		// Run all disposers
+		wrapper.__disposers.forEach((fn) => fn());
+
+		// Should have removed dragstart, dragend, and keydown listeners
+		const removedEvents = removeSpy.mock.calls.map((call) => call[0]);
+		expect(removedEvents).toContain("dragstart");
+		expect(removedEvents).toContain("dragend");
+		expect(removedEvents).toContain("keydown");
+
+		removeSpy.mockRestore();
+	});
+
+	test("46 — after disposal, keydown Space does not trigger drag behavior", () => {
+		const { el } = setupDragList("tasks", ["A"]);
+		const wrapper = el.children[0];
+		// dragEl is the first visible child (wrapper has display:contents)
+		const dragEl = wrapper.firstElementChild || wrapper;
+
+		// Clear any leftover drag state from prior tests by using dragstart/dragend cycle
+		wrapper.dispatchEvent(createDragEvent("dragstart"));
+		wrapper.dispatchEvent(createDragEvent("dragend"));
+		expect(dragEl.getAttribute("aria-grabbed")).toBe("false");
+
+		// Now verify keyboard drag works before disposal
+		wrapper.dispatchEvent(
+			new KeyboardEvent("keydown", { key: " ", bubbles: true }),
+		);
+		expect(dragEl.getAttribute("aria-grabbed")).toBe("true");
+
+		// Reset via dragend to clear _dndState.dragging
+		wrapper.dispatchEvent(createDragEvent("dragend"));
+		expect(dragEl.getAttribute("aria-grabbed")).toBe("false");
+
+		// Run disposers to clean up all listeners
+		wrapper.__disposers.forEach((fn) => fn());
+
+		// After disposal, pressing Space should NOT set aria-grabbed to true
+		wrapper.dispatchEvent(
+			new KeyboardEvent("keydown", { key: " ", bubbles: true }),
+		);
+		expect(dragEl.getAttribute("aria-grabbed")).toBe("false");
+	});
 });
 
 // =======================================================================
@@ -698,7 +764,7 @@ describe("Drag-Multiple Directive", () => {
 	afterEach(() => {
 		document.body.innerHTML = "";
 		document
-			.querySelectorAll("style[id=\"nojs-dnd-styles\"]")
+			.querySelectorAll('style[id="nojs-dnd-styles"]')
 			.forEach((s) => s.remove());
 	});
 
@@ -722,14 +788,14 @@ describe("Drag-Multiple Directive", () => {
 		return { parent, list };
 	}
 
-	test("44 — click selects item", () => {
+	test("47 — click selects item", () => {
 		const { list } = setupSelectableItems();
 		const items = list.querySelectorAll(".sel-item");
 		items[0].click();
 		expect(items[0].classList.contains("nojs-selected")).toBe(true);
 	});
 
-	test("45 — click without Ctrl replaces selection", () => {
+	test("48 — click without Ctrl replaces selection", () => {
 		const { list } = setupSelectableItems();
 		const items = list.querySelectorAll(".sel-item");
 		items[0].click();
@@ -739,7 +805,7 @@ describe("Drag-Multiple Directive", () => {
 		expect(items[0].classList.contains("nojs-selected")).toBe(false);
 	});
 
-	test("46 — Ctrl+click adds to selection", () => {
+	test("49 — Ctrl+click adds to selection", () => {
 		const { list } = setupSelectableItems();
 		const items = list.querySelectorAll(".sel-item");
 		items[0].click();
@@ -750,7 +816,7 @@ describe("Drag-Multiple Directive", () => {
 		expect(items[1].classList.contains("nojs-selected")).toBe(true);
 	});
 
-	test("47 — custom select class", () => {
+	test("50 — custom select class", () => {
 		const parent = document.createElement("div");
 		parent.setAttribute("state", "{ x: 1 }");
 		const el = document.createElement("div");
@@ -767,7 +833,7 @@ describe("Drag-Multiple Directive", () => {
 		expect(el.classList.contains("ring-sky-500")).toBe(true);
 	});
 
-	test("48 — Escape clears selection", () => {
+	test("51 — Escape clears selection", () => {
 		const { list } = setupSelectableItems();
 		const items = list.querySelectorAll(".sel-item");
 		items[0].click();
@@ -782,7 +848,7 @@ describe("Drag-Multiple Directive", () => {
 		expect(items[1].classList.contains("nojs-selected")).toBe(false);
 	});
 
-	test("49 — Ctrl+click toggles off", () => {
+	test("52 — Ctrl+click toggles off", () => {
 		const { list } = setupSelectableItems();
 		const items = list.querySelectorAll(".sel-item");
 		items[0].click();
@@ -799,14 +865,17 @@ describe("Drag-Multiple Directive", () => {
 // =======================================================================
 
 describe("DnD Accessibility", () => {
+	beforeEach(() => {
+		_config.debug = true;
+	});
 	afterEach(() => {
 		document.body.innerHTML = "";
 		document
-			.querySelectorAll("style[id=\"nojs-dnd-styles\"]")
+			.querySelectorAll('style[id="nojs-dnd-styles"]')
 			.forEach((s) => s.remove());
 	});
 
-	test("50 — aria-grabbed set on dragstart/dragend", () => {
+	test("53 — aria-grabbed set on dragstart/dragend", () => {
 		const { el } = setupDrag("item");
 		expect(el.getAttribute("aria-grabbed")).toBe("false");
 		el.dispatchEvent(createDragEvent("dragstart"));
@@ -815,14 +884,14 @@ describe("DnD Accessibility", () => {
 		expect(el.getAttribute("aria-grabbed")).toBe("false");
 	});
 
-	test("51 — aria-dropeffect on drop zones", () => {
+	test("54 — aria-dropeffect on drop zones", () => {
 		const { el } = setupDrop("items = [...items, $drag]", {
 			"drop-effect": "copy",
 		});
 		expect(el.getAttribute("aria-dropeffect")).toBe("copy");
 	});
 
-	test("52 — keyboard Space grabs item (drag)", () => {
+	test("55 — keyboard Space grabs item (drag)", () => {
 		const { el } = setupDrag("item");
 		let detail = null;
 		el.addEventListener("drag-start", (e) => {
@@ -832,19 +901,26 @@ describe("DnD Accessibility", () => {
 		expect(el.getAttribute("aria-grabbed")).toBe("true");
 		expect(el.classList.contains("nojs-dragging")).toBe(true);
 		expect(detail).not.toBeNull();
+		// Cleanup
+		el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 	});
 
-	test("53 — keyboard Escape cancels drag", async () => {
+	test("56 — keyboard Escape cancels drag", async () => {
 		const { el } = setupDrag("item");
 		el.focus(); // Must be focused for keyboard events in JSDOM
-		
-		el.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
-		await new Promise(r => setTimeout(r, 10)); // Allow internal state update
-		expect(el.getAttribute("aria-grabbed")).toBe("true");
-		
+
+		// Ensure clean state from previous tests
 		el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-		await new Promise(r => setTimeout(r, 10));
-		
+
+		el.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+		await new Promise((r) => setTimeout(r, 10)); // Allow internal state update
+		expect(el.getAttribute("aria-grabbed")).toBe("true");
+
+		el.dispatchEvent(
+			new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+		);
+		await new Promise((r) => setTimeout(r, 10));
+
 		expect(el.getAttribute("aria-grabbed")).toBe("false");
 		expect(el.classList.contains("nojs-dragging")).toBe(false);
 	});
@@ -858,11 +934,11 @@ describe("DnD Edge Cases", () => {
 	afterEach(() => {
 		document.body.innerHTML = "";
 		document
-			.querySelectorAll("style[id=\"nojs-dnd-styles\"]")
+			.querySelectorAll('style[id="nojs-dnd-styles"]')
 			.forEach((s) => s.remove());
 	});
 
-	test("54 — drop outside any zone resets drag class", () => {
+	test("57 — drop outside any zone resets drag class", () => {
 		const { el } = setupDrag("item");
 		el.dispatchEvent(createDragEvent("dragstart"));
 		expect(el.classList.contains("nojs-dragging")).toBe(true);
@@ -871,7 +947,7 @@ describe("DnD Edge Cases", () => {
 		expect(el.classList.contains("nojs-dragging")).toBe(false);
 	});
 
-	test("55 — nested dragenter/dragleave depth tracking", () => {
+	test("58 — nested dragenter/dragleave depth tracking", () => {
 		const { el: dragEl } = setupDrag("item");
 		const { el: dropEl } = setupDrop("items = [...items, $drag]");
 
@@ -892,7 +968,7 @@ describe("DnD Edge Cases", () => {
 		expect(dropEl.classList.contains("nojs-drag-over")).toBe(false);
 	});
 
-	test("56 — multiple independent DnD systems on same page", () => {
+	test("59 — multiple independent DnD systems on same page", () => {
 		// System 1: tasks
 		const { el: taskDrag } = setupDrag("item", {
 			"drag-type": "task",

@@ -5,6 +5,79 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `bind-html` now emits a `console.warn` in `debug` or `devtools` mode when given a non-literal (dynamic) expression, prompting developers to ensure the value is trusted or sanitized.
+
+### Fixed
+
+- Replace hardcoded `|| 2000` / `|| 1000` animation fallback timeouts with `|| 0` in `_animateOut`, `_animateIn`, and the `each` / `foreach` animate-leave branches ([#7](https://github.com/ErickXavier/no-js/issues/7))
+  - The fallback `setTimeout(done, 0)` fires on the next event-loop tick instead of blocking for 1–2 s when no CSS animation or transition is present (e.g. JSDOM, missing stylesheet)
+  - Explicit `animate-duration` values are forwarded unchanged — no behavioral change for apps that set an explicit duration
+
+### Documentation
+
+- `docs/md/animations.md`: add animation attributes reference table and a note explaining the `animate-duration` / fallback-timeout relationship
+
+## [1.10.1](https://github.com/ErickXavier/no-js/compare/v1.10.0...v1.10.1) — 2026-03-23
+
+### Security
+
+- Add `set` traps to `document` and `navigator` proxies preventing sandbox escape via property assignment ([`d763d2f`](https://github.com/ErickXavier/no-js/commit/d763d2f))
+- Block `navigator.sendBeacon` and add targeted `window` set trap to prevent data exfiltration ([`0faf54a`](https://github.com/ErickXavier/no-js/commit/0faf54a))
+- Sanitize flag enforcement, event bus limits, SVG DOMParser hardening, template integrity checks, persist schema validation ([`e0c72ec`](https://github.com/ErickXavier/no-js/commit/e0c72ec))
+- Proxy sandbox hardening, expression cache LRU eviction, `nl2br` filter sanitization, devtools redaction ([`6c2d68a`](https://github.com/ErickXavier/no-js/commit/6c2d68a))
+
+### Fixed
+
+- Security hardening across expression evaluator, fetch proxy, DOM binding, and state persistence ([`1f44849`](https://github.com/ErickXavier/no-js/commit/1f44849))
+- Documentation accuracy and playground bug fixes ([`1f44849`](https://github.com/ErickXavier/no-js/commit/1f44849))
+
+## [1.10.0](https://github.com/ErickXavier/no-js/compare/v1.9.1...v1.10.0) — 2026-03-23
+
+### Added
+
+- Key-based reconciliation in `each` and `foreach` directives for efficient list diffing ([#19](https://github.com/ErickXavier/no-js/pull/19))
+- `persist-fields` attribute to limit which state properties get persisted to storage ([#10](https://github.com/ErickXavier/no-js/pull/10))
+- `llms.txt`, `llms-full.txt`, `sitemap.xml`, and inline LLM metadata for AI discoverability
+- OG and Twitter Card metadata with thumbnail image
+
+### Fixed
+
+- Replace `globalThis` deny-list with explicit browser globals allow-list in expression evaluator ([#18](https://github.com/ErickXavier/no-js/pull/18))
+- Replace regex HTML sanitizer with `DOMParser` structural sanitization in `bind-html` ([#17](https://github.com/ErickXavier/no-js/pull/17))
+- Warn when sensitive headers (Authorization, Cookie) are set inline ([#16](https://github.com/ErickXavier/no-js/pull/16))
+- Clear outlet and warn when route guard fails without a redirect ([#14](https://github.com/ErickXavier/no-js/pull/14))
+- Warn loudly when `sanitize` is explicitly disabled on `bind-html` ([#15](https://github.com/ErickXavier/no-js/pull/15))
+- Reduce MutationObserver cost with `subtree:false`; register ResizeObserver via `_onDispose` ([#12](https://github.com/ErickXavier/no-js/pull/12))
+- Stop polling and observers when element disconnects from DOM ([#11](https://github.com/ErickXavier/no-js/pull/11))
+- Restrict `window.__NOJS_DEVTOOLS__` to localhost only ([#9](https://github.com/ErickXavier/no-js/pull/9))
+- Sanitize `javascript:` URLs and encode interpolated `href` values ([#8](https://github.com/ErickXavier/no-js/pull/8))
+
+### Changed
+
+- Cap expression caches and fix `_collectKeys` cache mutation leak ([#13](https://github.com/ErickXavier/no-js/pull/13))
+- Fix documentation accuracy across `llms-full.txt` and `llms.txt`
+- Add NoJS LSP link to site navigation
+
+## [1.9.1](https://github.com/ErickXavier/no-js/compare/v1.9.0...v1.9.1) — 2026-03-18
+
+### Fixed
+
+- Fix `foreach` directive infinite recursion: strip 15 directive attributes from inline template clone before `processTree` re-entry ([#5](https://github.com/ErickXavier/no-js/issues/5))
+- Add `_warn()` call in `evaluate()` catch block for visible error reporting ([#5](https://github.com/ErickXavier/no-js/issues/5))
+- Make `_deepMerge`, `_i18nCache`, `_loadedNs`, `_loadLocale` module-private in i18n.js ([#5](https://github.com/ErickXavier/no-js/issues/5))
+- Fix docs Example 1 (Login): replace verbose `success` template with `then` + `redirect`
+- Fix docs Example 3 (Live Search): replace unsupported `function()` syntax with arrow function
+- Fix docs Example 5 (Live Polling): correct `poll` → `refresh` attribute across template and 5 locales
+
+### Added
+
+- 11 new unit tests covering `foreach` inline-template and `evaluate` error-reporting fixes
+- Add NoJS LSP link (`https://lsp.no-js.dev/`) to desktop header nav, mobile nav, and footer
+
 ## [1.9.0](https://github.com/ErickXavier/no-js/compare/v1.8.2...v1.9.0) — 2026-03-17
 
 ### Added
@@ -305,4 +378,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Animation system with `animate` and `transition` directives
 - Scoped context system with parent inheritance
 - Filter system with `|` pipe syntax
-- ~20 KB gzipped, zero dependencies
+- Zero dependencies

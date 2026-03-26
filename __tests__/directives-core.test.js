@@ -1,6 +1,6 @@
 import { createContext } from "../src/context.js";
 import { findContext } from "../src/dom.js";
-import { _stores } from "../src/globals.js";
+import { _config, _stores } from "../src/globals.js";
 import { _disposeTree, processTree } from "../src/registry.js";
 
 import "../src/filters.js";
@@ -9,6 +9,7 @@ import "../src/directives/binding.js";
 import "../src/directives/conditionals.js";
 import "../src/directives/events.js";
 import "../src/directives/loops.js";
+import "../src/directives/validation.js";
 
 describe("State Directive", () => {
 	afterEach(() => {
@@ -280,6 +281,167 @@ describe("Bind-* Directive", () => {
 		expect(div.getAttribute("title")).toBe("hello");
 		parent.__ctx.title = null;
 		expect(div.hasAttribute("title")).toBe(false);
+	});
+
+	test("blocks javascript: protocol in bind-href", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ url: "javascript:alert(1)" }');
+		const a = document.createElement("a");
+		a.setAttribute("bind-href", "url");
+		parent.appendChild(a);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		expect(a.getAttribute("href")).toBe("#");
+	});
+
+	test("blocks vbscript: protocol in bind-href", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ url: "vbscript:run()" }');
+		const a = document.createElement("a");
+		a.setAttribute("bind-href", "url");
+		parent.appendChild(a);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		expect(a.getAttribute("href")).toBe("#");
+	});
+
+	test("blocks javascript: protocol in bind-src", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ src: "javascript:void(0)" }');
+		const img = document.createElement("img");
+		img.setAttribute("bind-src", "src");
+		parent.appendChild(img);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		expect(img.getAttribute("src")).toBe("#");
+	});
+
+	test("passes safe HTTPS URL through bind-href unchanged", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ url: "https://example.com/page" }');
+		const a = document.createElement("a");
+		a.setAttribute("bind-href", "url");
+		parent.appendChild(a);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		expect(a.getAttribute("href")).toBe("https://example.com/page");
+	});
+
+	test("does not sanitize non-URL attributes like data-custom", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ val: "javascript:test" }');
+		const div = document.createElement("div");
+		div.setAttribute("bind-data-custom", "val");
+		parent.appendChild(div);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		// data-custom is not in _SAFE_URL_ATTRS — value passes through
+		expect(div.getAttribute("data-custom")).toBe("javascript:test");
+	});
+});
+
+describe("SVG Data URI Sanitization (DOMParser)", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+	});
+
+	function svgDataUri(svgContent) {
+		return "data:image/svg+xml," + encodeURIComponent(svgContent);
+	}
+
+	function getSrcSvg(el) {
+		const src = el.getAttribute("src");
+		const comma = src.indexOf(",");
+		return decodeURIComponent(src.slice(comma + 1));
+	}
+
+	function bindSrc(dataUri) {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ uri: "" }');
+		const img = document.createElement("img");
+		img.setAttribute("bind-src", "uri");
+		parent.appendChild(img);
+		document.body.appendChild(parent);
+		processTree(parent);
+		parent.__ctx.uri = dataUri;
+		return img;
+	}
+
+	test("strips <script> tags from SVG", () => {
+		const uri = svgDataUri(
+			'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><circle r="5"/></svg>',
+		);
+		const img = bindSrc(uri);
+		const svg = getSrcSvg(img);
+		expect(svg).not.toContain("<script");
+		expect(svg).toContain("circle");
+	});
+
+	test("strips onerror attribute from SVG elements", () => {
+		const uri = svgDataUri(
+			'<svg xmlns="http://www.w3.org/2000/svg"><image onerror="alert(1)" href="x"/></svg>',
+		);
+		const img = bindSrc(uri);
+		const svg = getSrcSvg(img);
+		expect(svg).not.toContain("onerror");
+	});
+
+	test("strips onload attribute from SVG elements", () => {
+		const uri = svgDataUri(
+			'<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><rect width="1" height="1"/></svg>',
+		);
+		const img = bindSrc(uri);
+		const svg = getSrcSvg(img);
+		expect(svg).not.toContain("onload");
+		expect(svg).toContain("rect");
+	});
+
+	test("strips javascript: href from SVG elements", () => {
+		const uri = svgDataUri(
+			'<svg xmlns="http://www.w3.org/2000/svg"><a href="javascript:alert(1)"><text>click</text></a></svg>',
+		);
+		const img = bindSrc(uri);
+		const svg = getSrcSvg(img);
+		expect(svg).not.toContain("javascript:");
+		expect(svg).toContain("text");
+	});
+
+	test("passes clean SVG through intact", () => {
+		const uri = svgDataUri(
+			'<svg xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="red"/></svg>',
+		);
+		const img = bindSrc(uri);
+		const svg = getSrcSvg(img);
+		expect(svg).toContain("circle");
+		expect(svg).toContain("fill=\"red\"");
+		expect(svg).toContain("r=\"40\"");
+	});
+
+	test("returns safe output for malformed SVG input", () => {
+		const uri = svgDataUri("<<<not-valid-xml>>>");
+		const img = bindSrc(uri);
+		const src = img.getAttribute("src");
+		// Should either fall back to "#" or return a safe SVG — never the raw malformed input
+		expect(src).not.toContain("<<<");
+	});
+
+	test("sanitizes base64-encoded SVG data URIs", () => {
+		const svgContent =
+			"<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script><rect/></svg>";
+		const uri = "data:image/svg+xml;base64," + btoa(svgContent);
+		const img = bindSrc(uri);
+		const src = img.getAttribute("src");
+		// Decode the base64 result
+		const b64Match = src.match(/^data:image\/svg\+xml;base64,(.+)$/);
+		expect(b64Match).not.toBeNull();
+		const decoded = atob(b64Match[1]);
+		expect(decoded).not.toContain("<script");
+		expect(decoded).toContain("rect");
 	});
 });
 
@@ -1037,6 +1199,224 @@ describe("state persist directive", () => {
 		expect(() => processTree(parent)).not.toThrow();
 		const ctx = findContext(parent);
 		expect(ctx.safe).toBe(true);
+	});
+
+	test("warns and skips persistence when persist-key is missing", () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ x: 1 }");
+		parent.setAttribute("persist", "localStorage");
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining("persist-key"),
+		);
+		expect(localStorage.length).toBe(0);
+
+		warnSpy.mockRestore();
+	});
+
+	test("persist-fields limits which fields are saved to storage", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute(
+			"state",
+			'{ theme: "dark", token: "secret", sidebar: true }',
+		);
+		parent.setAttribute("persist", "localStorage");
+		parent.setAttribute("persist-key", "pf-test1");
+		parent.setAttribute("persist-fields", "theme, sidebar");
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		// Mutate state to trigger the $watch save
+		const ctx = parent.__ctx;
+		ctx.theme = "light";
+
+		const saved = JSON.parse(localStorage.getItem("nojs_state_pf-test1"));
+		expect(saved.theme).toBe("light");
+		expect(saved.sidebar).toBe(true);
+		// token is not in persist-fields — must not be written to storage
+		expect(saved.token).toBeUndefined();
+	});
+
+	test("persist-fields limits which fields are restored from storage", () => {
+		// Pre-populate storage with all three fields (as if saved by old code without persist-fields)
+		localStorage.setItem(
+			"nojs_state_pf-test2",
+			JSON.stringify({ theme: "light", token: "old-secret", sidebar: false }),
+		);
+
+		const parent = document.createElement("div");
+		parent.setAttribute(
+			"state",
+			'{ theme: "dark", token: "default", sidebar: true }',
+		);
+		parent.setAttribute("persist", "localStorage");
+		parent.setAttribute("persist-key", "pf-test2");
+		parent.setAttribute("persist-fields", "theme");
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		const ctx = parent.__ctx;
+		// Only theme should be restored from storage
+		expect(ctx.theme).toBe("light");
+		// token is not in persist-fields — must stay at initial value
+		expect(ctx.token).toBe("default");
+	});
+
+	test("persist-fields handles comma-separated values with whitespace", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ a: 1, b: 2, c: 3 }");
+		parent.setAttribute("persist", "localStorage");
+		parent.setAttribute("persist-key", "pf-test3");
+		parent.setAttribute("persist-fields", "  a , c  ");
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		// Mutate to trigger the $watch save
+		const ctx = parent.__ctx;
+		ctx.a = 10;
+
+		const saved = JSON.parse(localStorage.getItem("nojs_state_pf-test3"));
+		expect(saved.a).toBe(10);
+		expect(saved.c).toBe(3);
+		expect(saved.b).toBeUndefined();
+	});
+
+	test("persist-schema rejects unknown keys with warning", () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		localStorage.setItem(
+			"nojs_state_schema-test1",
+			JSON.stringify({ count: 5, injected: "evil" }),
+		);
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ count: 0 }");
+		parent.setAttribute("persist", "localStorage");
+		parent.setAttribute("persist-key", "schema-test1");
+		parent.setAttribute("persist-schema", "");
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		const ctx = parent.__ctx;
+		expect(ctx.count).toBe(5);
+		expect("injected" in ctx.__raw).toBe(false);
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining('ignoring unknown key "injected"'),
+		);
+
+		warnSpy.mockRestore();
+	});
+
+	test("persist-schema rejects type mismatches with warning", () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		localStorage.setItem(
+			"nojs_state_schema-test2",
+			JSON.stringify({ count: "not-a-number", name: "ok" }),
+		);
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ count: 0, name: "default" }');
+		parent.setAttribute("persist", "localStorage");
+		parent.setAttribute("persist-key", "schema-test2");
+		parent.setAttribute("persist-schema", "");
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		const ctx = parent.__ctx;
+		expect(ctx.count).toBe(0); // rejected — stays at initial
+		expect(ctx.name).toBe("ok"); // accepted — type matches
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining('type mismatch for "count"'),
+		);
+
+		warnSpy.mockRestore();
+	});
+
+	test("persist-schema allows valid keys with matching types", () => {
+		localStorage.setItem(
+			"nojs_state_schema-test3",
+			JSON.stringify({ count: 42, name: "restored", active: true }),
+		);
+
+		const parent = document.createElement("div");
+		parent.setAttribute(
+			"state",
+			'{ count: 0, name: "default", active: false }',
+		);
+		parent.setAttribute("persist", "localStorage");
+		parent.setAttribute("persist-key", "schema-test3");
+		parent.setAttribute("persist-schema", "");
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		const ctx = parent.__ctx;
+		expect(ctx.count).toBe(42);
+		expect(ctx.name).toBe("restored");
+		expect(ctx.active).toBe(true);
+	});
+
+	test("without persist-schema all keys are restored (backwards compat)", () => {
+		localStorage.setItem(
+			"nojs_state_schema-test4",
+			JSON.stringify({ count: 10, extra: "bonus" }),
+		);
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ count: 0 }");
+		parent.setAttribute("persist", "localStorage");
+		parent.setAttribute("persist-key", "schema-test4");
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		const ctx = parent.__ctx;
+		expect(ctx.count).toBe(10);
+		expect(ctx.extra).toBe("bonus");
+	});
+
+	test("sensitive field names trigger a warning when persist is used", () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		const parent = document.createElement("div");
+		parent.setAttribute(
+			"state",
+			'{ username: "bob", authToken: "abc123", password: "secret" }',
+		);
+		parent.setAttribute("persist", "localStorage");
+		parent.setAttribute("persist-key", "sensitive-test1");
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining("may contain sensitive data"),
+		);
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining("authToken"),
+		);
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining("password"),
+		);
+
+		warnSpy.mockRestore();
 	});
 });
 
@@ -1810,6 +2190,34 @@ describe("on:updated lifecycle hook", () => {
 
 		expect(ctx.updated).toBe(true);
 	});
+
+	test("does not fire after element is removed from DOM externally", async () => {
+		const callCount = 0;
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ count: 0 }");
+		const child = document.createElement("div");
+		child.setAttribute("on:updated", "count++");
+		child.innerHTML = "<span>Original</span>";
+		parent.appendChild(child);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		// Confirm it fires while connected
+		child.innerHTML = "<span>Changed</span>";
+		await new Promise((r) => setTimeout(r, 50));
+		const ctx = findContext(parent);
+		expect(ctx.count).toBe(1);
+
+		// Remove element externally (bypassing framework dispose)
+		parent.innerHTML = "";
+
+		// Trigger a mutation on the now-detached child
+		child.innerHTML = "<span>After removal</span>";
+		await new Promise((r) => setTimeout(r, 50));
+
+		// Count must not have increased
+		expect(ctx.count).toBe(1);
+	});
 });
 
 describe("on:error lifecycle hook", () => {
@@ -1917,5 +2325,1131 @@ describe("foreach with animation attributes", () => {
 		expect(wrappersArr[0].firstElementChild.style.animationDelay).toBe("0ms");
 		expect(wrappersArr[1].firstElementChild.style.animationDelay).toBe("100ms");
 		expect(wrappersArr[2].firstElementChild.style.animationDelay).toBe("200ms");
+	});
+});
+
+describe("foreach with inline template (no external template)", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	test("renders items correctly without external template", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ items: ["a", "b", "c"] }');
+
+		const list = document.createElement("ul");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.innerHTML = '<li><span bind="item"></span></li>';
+		parent.appendChild(list);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		const wrappers = list.querySelectorAll('div[style*="contents"]');
+		expect(wrappers.length).toBe(3);
+
+		const texts = [...wrappers].map((w) => w.querySelector("span").textContent);
+		expect(texts).toEqual(["a", "b", "c"]);
+	});
+
+	test("does not cause infinite recursion with inline template", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ items: ["x", "y"] }');
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.innerHTML = '<span bind="item"></span>';
+		parent.appendChild(list);
+		document.body.appendChild(parent);
+
+		// Track how many times the foreach directive initializes.
+		// With the bug, cloneNode preserves foreach/from on the clone,
+		// so processTree on the wrapper re-triggers the directive infinitely.
+		let foreachInitCount = 0;
+		const origProcessTree = processTree;
+		const observer = new MutationObserver(() => {
+			// Count display:contents wrappers nested more than 1 level deep
+			// which would indicate recursive foreach initialization
+			const nestedWrappers = list.querySelectorAll(
+				'div[style*="contents"] div[style*="contents"]',
+			);
+			if (nestedWrappers.length > 0) {
+				foreachInitCount++;
+			}
+		});
+
+		processTree(parent);
+
+		// After processing, there should be exactly 2 wrappers (one per item),
+		// and no nested wrappers (which would indicate recursion)
+		const wrappers = list.querySelectorAll('div[style*="contents"]');
+		expect(wrappers.length).toBe(2);
+
+		const nestedWrappers = list.querySelectorAll(
+			'div[style*="contents"] div[style*="contents"]',
+		);
+		expect(nestedWrappers.length).toBe(0);
+
+		// The cloned elements inside wrappers should NOT have foreach/from attributes
+		wrappers.forEach((wrapper) => {
+			const clonedEl = wrapper.firstElementChild;
+			if (clonedEl) {
+				expect(clonedEl.hasAttribute("foreach")).toBe(false);
+				expect(clonedEl.hasAttribute("from")).toBe(false);
+			}
+		});
+	});
+
+	test("provides iteration variables ($index, $count, $first, $last, $even, $odd)", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ items: ["a", "b", "c"] }');
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.innerHTML =
+			"<div>" +
+			'<span class="val" bind="item"></span>' +
+			'<span class="idx" bind="$index"></span>' +
+			'<span class="cnt" bind="$count"></span>' +
+			'<span class="first" bind="$first"></span>' +
+			'<span class="last" bind="$last"></span>' +
+			'<span class="even" bind="$even"></span>' +
+			'<span class="odd" bind="$odd"></span>' +
+			"</div>";
+		parent.appendChild(list);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		const wrappers = [...list.querySelectorAll('div[style*="contents"]')];
+		expect(wrappers.length).toBe(3);
+
+		// First item: index=0, count=3, first=true, last=false, even=true, odd=false
+		const w0 = wrappers[0];
+		expect(w0.querySelector(".val").textContent).toBe("a");
+		expect(w0.querySelector(".idx").textContent).toBe("0");
+		expect(w0.querySelector(".cnt").textContent).toBe("3");
+		expect(w0.querySelector(".first").textContent).toBe("true");
+		expect(w0.querySelector(".last").textContent).toBe("false");
+		expect(w0.querySelector(".even").textContent).toBe("true");
+		expect(w0.querySelector(".odd").textContent).toBe("false");
+
+		// Second item: index=1, first=false, last=false, even=false, odd=true
+		const w1 = wrappers[1];
+		expect(w1.querySelector(".val").textContent).toBe("b");
+		expect(w1.querySelector(".idx").textContent).toBe("1");
+		expect(w1.querySelector(".first").textContent).toBe("false");
+		expect(w1.querySelector(".last").textContent).toBe("false");
+		expect(w1.querySelector(".even").textContent).toBe("false");
+		expect(w1.querySelector(".odd").textContent).toBe("true");
+
+		// Third item: index=2, first=false, last=true, even=true, odd=false
+		const w2 = wrappers[2];
+		expect(w2.querySelector(".val").textContent).toBe("c");
+		expect(w2.querySelector(".idx").textContent).toBe("2");
+		expect(w2.querySelector(".first").textContent).toBe("false");
+		expect(w2.querySelector(".last").textContent).toBe("true");
+		expect(w2.querySelector(".even").textContent).toBe("true");
+		expect(w2.querySelector(".odd").textContent).toBe("false");
+	});
+
+	test("supports filter, sort, and limit with inline template", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute(
+			"state",
+			'{ users: [{ name: "Charlie", age: 30 }, { name: "Alice", age: 25 }, { name: "Bob", age: 35 }, { name: "Diana", age: 28 }] }',
+		);
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "user");
+		list.setAttribute("from", "users");
+		list.setAttribute("filter", "user.age >= 28");
+		list.setAttribute("sort", "name");
+		list.setAttribute("limit", "2");
+		list.innerHTML = '<span bind="user.name"></span>';
+		parent.appendChild(list);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		const wrappers = [...list.querySelectorAll('div[style*="contents"]')];
+		// Filtered: Charlie(30), Bob(35), Diana(28) — ages >= 28
+		// Sorted by name: Bob, Charlie, Diana
+		// Limit 2: Bob, Charlie
+		expect(wrappers.length).toBe(2);
+
+		const names = wrappers.map((w) => w.querySelector("span").textContent);
+		expect(names).toEqual(["Bob", "Charlie"]);
+	});
+
+	test("re-renders when source array changes", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ items: ["a", "b"] }');
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.innerHTML = '<span bind="item"></span>';
+		parent.appendChild(list);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		// Initial: 2 items
+		let wrappers = list.querySelectorAll('div[style*="contents"]');
+		expect(wrappers.length).toBe(2);
+
+		// Mutate the array via the reactive context
+		const ctx = parent.__ctx;
+		ctx.items = ["x", "y", "z"];
+
+		// After mutation: 3 items
+		wrappers = list.querySelectorAll('div[style*="contents"]');
+		expect(wrappers.length).toBe(3);
+
+		const texts = [...wrappers].map((w) => w.querySelector("span").textContent);
+		expect(texts).toEqual(["x", "y", "z"]);
+	});
+
+	test("supports custom index name via index attribute", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ items: ["a", "b"] }');
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.setAttribute("index", "i");
+		list.innerHTML = '<span bind="i"></span>';
+		parent.appendChild(list);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		const wrappers = [...list.querySelectorAll('div[style*="contents"]')];
+		expect(wrappers.length).toBe(2);
+		expect(wrappers[0].querySelector("span").textContent).toBe("0");
+		expect(wrappers[1].querySelector("span").textContent).toBe("1");
+	});
+
+	test("renders empty list without errors", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ items: [] }");
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.innerHTML = '<span bind="item"></span>';
+		parent.appendChild(list);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		const wrappers = list.querySelectorAll('div[style*="contents"]');
+		expect(wrappers.length).toBe(0);
+	});
+
+	test("supports offset with inline template", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ items: ["a", "b", "c", "d", "e"] }');
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.setAttribute("offset", "2");
+		list.setAttribute("limit", "2");
+		list.innerHTML = '<span bind="item"></span>';
+		parent.appendChild(list);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		const wrappers = [...list.querySelectorAll('div[style*="contents"]')];
+		expect(wrappers.length).toBe(2);
+
+		const texts = wrappers.map((w) => w.querySelector("span").textContent);
+		expect(texts).toEqual(["c", "d"]);
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// loops.js — key-based reconciliation in each and foreach (TIP-P3)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("each — key-based reconciliation", () => {
+	let container;
+
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		container = document.createElement("div");
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.innerHTML = "";
+	});
+
+	function makeEachList(items) {
+		const state = document.createElement("div");
+		state.setAttribute("state", JSON.stringify({ items }));
+		container.appendChild(state);
+
+		const tpl = document.createElement("template");
+		tpl.id = "row-tpl";
+		tpl.innerHTML = '<span class="row"></span>';
+		document.body.appendChild(tpl);
+
+		const list = document.createElement("div");
+		list.setAttribute("each", "item in items");
+		list.setAttribute("template", "row-tpl");
+		list.setAttribute("key", "item.id");
+		state.appendChild(list);
+
+		processTree(state);
+		return { state, list };
+	}
+
+	test("push: only one new wrapper is created, existing ones are preserved", () => {
+		const { list, state } = makeEachList([{ id: 1 }, { id: 2 }]);
+		const initialWrappers = [...list.children];
+		expect(initialWrappers).toHaveLength(2);
+
+		// Mark wrappers to detect identity preservation
+		initialWrappers[0].__marker = "A";
+		initialWrappers[1].__marker = "B";
+
+		// Push a new item
+		state.__ctx.__raw.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+		state.__ctx.$notify();
+
+		expect(list.children).toHaveLength(3);
+		expect(list.children[0].__marker).toBe("A");
+		expect(list.children[1].__marker).toBe("B");
+		expect(list.children[2].__marker).toBeUndefined(); // new node
+	});
+
+	test("splice: only the removed wrapper is disposed, others preserved", () => {
+		const { list, state } = makeEachList([{ id: 1 }, { id: 2 }, { id: 3 }]);
+		const wrapperB = list.children[1];
+		wrapperB.__marker = "B";
+		list.children[0].__marker = "A";
+		list.children[2].__marker = "C";
+
+		// Remove middle item
+		state.__ctx.__raw.items = [{ id: 1 }, { id: 3 }];
+		state.__ctx.$notify();
+
+		expect(list.children).toHaveLength(2);
+		expect(list.children[0].__marker).toBe("A");
+		expect(list.children[1].__marker).toBe("C");
+		expect(wrapperB.isConnected).toBe(false); // removed from DOM
+	});
+
+	test("reorder: DOM order matches new list order without recreating nodes", () => {
+		const { list, state } = makeEachList([{ id: 1 }, { id: 2 }, { id: 3 }]);
+		list.children[0].__marker = "A";
+		list.children[1].__marker = "B";
+		list.children[2].__marker = "C";
+
+		// Reverse the list
+		state.__ctx.__raw.items = [{ id: 3 }, { id: 2 }, { id: 1 }];
+		state.__ctx.$notify();
+
+		expect(list.children).toHaveLength(3);
+		expect(list.children[0].__marker).toBe("C");
+		expect(list.children[1].__marker).toBe("B");
+		expect(list.children[2].__marker).toBe("A");
+	});
+
+	test("no key attribute: falls back to full rebuild (backward compat)", () => {
+		// Ensure row-tpl exists in this test's DOM (beforeEach clears it)
+		const tpl = document.createElement("template");
+		tpl.id = "row-tpl";
+		tpl.innerHTML = '<span class="row"></span>';
+		document.body.appendChild(tpl);
+
+		const state = document.createElement("div");
+		state.setAttribute(
+			"state",
+			JSON.stringify({ items: [{ id: 1 }, { id: 2 }] }),
+		);
+		container.appendChild(state);
+
+		const list = document.createElement("div");
+		list.setAttribute("each", "item in items");
+		list.setAttribute("template", "row-tpl");
+		// Note: no key attribute
+		state.appendChild(list);
+		processTree(state);
+
+		const first = list.children[0];
+		first.__marker = "should-be-gone";
+
+		state.__ctx.__raw.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+		state.__ctx.$notify();
+
+		// Full rebuild: original wrapper is gone, marker is not on any child
+		const markers = [...list.children].map((c) => c.__marker).filter(Boolean);
+		expect(markers).toHaveLength(0);
+	});
+
+	test("$index and $count are updated on existing wrappers", () => {
+		const { list, state } = makeEachList([{ id: 1 }, { id: 2 }, { id: 3 }]);
+
+		// Remove first item — $index of remaining items must update
+		state.__ctx.__raw.items = [{ id: 2 }, { id: 3 }];
+		state.__ctx.$notify();
+
+		expect(list.children[0].__ctx.__raw.$index).toBe(0);
+		expect(list.children[1].__ctx.__raw.$index).toBe(1);
+		expect(list.children[0].__ctx.__raw.$first).toBe(true);
+		expect(list.children[1].__ctx.__raw.$last).toBe(true);
+	});
+
+	test("empty list clears all rendered wrappers (keyMap flushed)", () => {
+		const { list, state } = makeEachList([{ id: 1 }, { id: 2 }]);
+		expect(list.children).toHaveLength(2);
+
+		state.__ctx.__raw.items = [];
+		state.__ctx.$notify();
+
+		// Both wrappers disposed and removed
+		expect(list.children).toHaveLength(0);
+	});
+});
+
+describe("foreach — key-based reconciliation", () => {
+	let container;
+
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		container = document.createElement("div");
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.innerHTML = "";
+	});
+
+	function makeForeachList(items) {
+		const state = document.createElement("div");
+		state.setAttribute("state", JSON.stringify({ items }));
+		container.appendChild(state);
+
+		const tpl = document.createElement("template");
+		tpl.id = "fc-row-tpl";
+		tpl.innerHTML = '<span class="fc-row"></span>';
+		document.body.appendChild(tpl);
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.setAttribute("template", "fc-row-tpl");
+		list.setAttribute("key", "item.id");
+		state.appendChild(list);
+
+		processTree(state);
+		return { state, list };
+	}
+
+	test("push: existing wrappers preserved, one new wrapper created", () => {
+		const { list, state } = makeForeachList([{ id: "a" }, { id: "b" }]);
+		list.children[0].__marker = "A";
+		list.children[1].__marker = "B";
+
+		state.__ctx.__raw.items = [{ id: "a" }, { id: "b" }, { id: "c" }];
+		state.__ctx.$notify();
+
+		expect(list.children).toHaveLength(3);
+		expect(list.children[0].__marker).toBe("A");
+		expect(list.children[1].__marker).toBe("B");
+		expect(list.children[2].__marker).toBeUndefined();
+	});
+
+	test("splice: only the removed wrapper is taken out of DOM", () => {
+		const { list, state } = makeForeachList([
+			{ id: "a" },
+			{ id: "b" },
+			{ id: "c" },
+		]);
+		const removed = list.children[1];
+		removed.__marker = "B";
+		list.children[0].__marker = "A";
+		list.children[2].__marker = "C";
+
+		state.__ctx.__raw.items = [{ id: "a" }, { id: "c" }];
+		state.__ctx.$notify();
+
+		expect(list.children).toHaveLength(2);
+		expect(list.children[0].__marker).toBe("A");
+		expect(list.children[1].__marker).toBe("C");
+		expect(removed.isConnected).toBe(false);
+	});
+
+	test("reorder: nodes reused and repositioned without recreation", () => {
+		const { list, state } = makeForeachList([
+			{ id: "x" },
+			{ id: "y" },
+			{ id: "z" },
+		]);
+		list.children[0].__marker = "X";
+		list.children[1].__marker = "Y";
+		list.children[2].__marker = "Z";
+
+		state.__ctx.__raw.items = [{ id: "z" }, { id: "x" }, { id: "y" }];
+		state.__ctx.$notify();
+
+		expect(list.children[0].__marker).toBe("Z");
+		expect(list.children[1].__marker).toBe("X");
+		expect(list.children[2].__marker).toBe("Y");
+	});
+
+	test("no key attribute: uses full rebuild (backward compat)", () => {
+		const state = document.createElement("div");
+		state.setAttribute(
+			"state",
+			JSON.stringify({ items: [{ id: 1 }, { id: 2 }] }),
+		);
+		container.appendChild(state);
+
+		const tpl = document.createElement("template");
+		tpl.id = "fc-nokey-tpl";
+		tpl.innerHTML = "<span></span>";
+		document.body.appendChild(tpl);
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.setAttribute("template", "fc-nokey-tpl");
+		// No key attribute
+		state.appendChild(list);
+		processTree(state);
+
+		const first = list.children[0];
+		first.__marker = "original";
+
+		state.__ctx.__raw.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+		state.__ctx.$notify();
+
+		const markers = [...list.children].map((c) => c.__marker).filter(Boolean);
+		expect(markers).toHaveLength(0); // full rebuild, no preserved markers
+	});
+});
+
+// ─── foreach + key + inline template (no external <template> element) ──────
+describe("foreach — key-based reconciliation, inline template", () => {
+	let container;
+
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		container = document.createElement("div");
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.innerHTML = "";
+	});
+
+	// Build a foreach list that uses the element itself as the template
+	// (no template= attribute). The element's inner HTML becomes the clone source.
+	function makeInlineForeachList(items) {
+		const state = document.createElement("div");
+		state.setAttribute("state", JSON.stringify({ items }));
+		container.appendChild(state);
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.setAttribute("key", "item.id");
+		list.innerHTML = '<span class="inline-row"></span>';
+		state.appendChild(list);
+
+		processTree(state);
+		return { state, list };
+	}
+
+	test("push: existing wrappers preserved, one new wrapper created", () => {
+		const { list, state } = makeInlineForeachList([{ id: 1 }, { id: 2 }]);
+		expect(list.children).toHaveLength(2);
+		list.children[0].__marker = "A";
+		list.children[1].__marker = "B";
+
+		state.__ctx.__raw.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+		state.__ctx.$notify();
+
+		expect(list.children).toHaveLength(3);
+		expect(list.children[0].__marker).toBe("A");
+		expect(list.children[1].__marker).toBe("B");
+		expect(list.children[2].__marker).toBeUndefined();
+	});
+
+	test("splice: only the removed wrapper is taken out of DOM", () => {
+		const { list, state } = makeInlineForeachList([
+			{ id: 1 },
+			{ id: 2 },
+			{ id: 3 },
+		]);
+		const removed = list.children[1];
+		removed.__marker = "B";
+		list.children[0].__marker = "A";
+		list.children[2].__marker = "C";
+
+		state.__ctx.__raw.items = [{ id: 1 }, { id: 3 }];
+		state.__ctx.$notify();
+
+		expect(list.children).toHaveLength(2);
+		expect(list.children[0].__marker).toBe("A");
+		expect(list.children[1].__marker).toBe("C");
+		expect(removed.isConnected).toBe(false);
+	});
+
+	test("reorder: nodes repositioned without recreation", () => {
+		const { list, state } = makeInlineForeachList([
+			{ id: 1 },
+			{ id: 2 },
+			{ id: 3 },
+		]);
+		list.children[0].__marker = "A";
+		list.children[1].__marker = "B";
+		list.children[2].__marker = "C";
+
+		state.__ctx.__raw.items = [{ id: 3 }, { id: 1 }, { id: 2 }];
+		state.__ctx.$notify();
+
+		expect(list.children[0].__marker).toBe("C");
+		expect(list.children[1].__marker).toBe("A");
+		expect(list.children[2].__marker).toBe("B");
+	});
+
+	test("each item renders its own clone (no shared template state)", () => {
+		const { list } = makeInlineForeachList([{ id: "x" }, { id: "y" }]);
+		const spans = list.querySelectorAll(".inline-row");
+		expect(spans).toHaveLength(2);
+		// Each span is a distinct node
+		expect(spans[0]).not.toBe(spans[1]);
+	});
+});
+
+// ─── key reconciliation: disposal of removed items ──────────────────────────
+describe("key reconciliation — disposal of removed items", () => {
+	let container;
+
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		container = document.createElement("div");
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.innerHTML = "";
+	});
+
+	test("each: __disposers on removed item child are called on splice", () => {
+		const state = document.createElement("div");
+		state.setAttribute(
+			"state",
+			JSON.stringify({ items: [{ id: 1 }, { id: 2 }, { id: 3 }] }),
+		);
+		container.appendChild(state);
+
+		const tpl = document.createElement("template");
+		tpl.id = "dispose-row-tpl";
+		tpl.innerHTML = '<span class="row"></span>';
+		document.body.appendChild(tpl);
+
+		const list = document.createElement("div");
+		list.setAttribute("each", "item in items");
+		list.setAttribute("template", "dispose-row-tpl");
+		list.setAttribute("key", "item.id");
+		state.appendChild(list);
+		processTree(state);
+
+		// Plant a disposer on the span inside the second wrapper (item id=2)
+		const spanToDispose = list.children[1].querySelector(".row");
+		const disposed = [];
+		spanToDispose.__disposers = [() => disposed.push("id2-disposed")];
+
+		// Remove item id=2
+		state.__ctx.__raw.items = [{ id: 1 }, { id: 3 }];
+		state.__ctx.$notify();
+
+		expect(disposed).toEqual(["id2-disposed"]);
+	});
+
+	test("foreach: __disposers on removed item child are called on splice", () => {
+		const state = document.createElement("div");
+		state.setAttribute(
+			"state",
+			JSON.stringify({ items: [{ id: "a" }, { id: "b" }, { id: "c" }] }),
+		);
+		container.appendChild(state);
+
+		const tpl = document.createElement("template");
+		tpl.id = "fc-dispose-tpl";
+		tpl.innerHTML = '<span class="fc-row"></span>';
+		document.body.appendChild(tpl);
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.setAttribute("template", "fc-dispose-tpl");
+		list.setAttribute("key", "item.id");
+		state.appendChild(list);
+		processTree(state);
+
+		const spanToDispose = list.children[1].querySelector(".fc-row");
+		const disposed = [];
+		spanToDispose.__disposers = [() => disposed.push("b-disposed")];
+
+		state.__ctx.__raw.items = [{ id: "a" }, { id: "c" }];
+		state.__ctx.$notify();
+
+		expect(disposed).toEqual(["b-disposed"]);
+	});
+
+	test("foreach inline: __disposers on removed item child are called on splice", () => {
+		const state = document.createElement("div");
+		state.setAttribute(
+			"state",
+			JSON.stringify({ items: [{ id: 1 }, { id: 2 }] }),
+		);
+		container.appendChild(state);
+
+		const list = document.createElement("div");
+		list.setAttribute("foreach", "item");
+		list.setAttribute("from", "items");
+		list.setAttribute("key", "item.id");
+		list.innerHTML = '<span class="inline-dispose"></span>';
+		state.appendChild(list);
+		processTree(state);
+
+		const spanToDispose = list.children[0].querySelector(".inline-dispose");
+		const disposed = [];
+		spanToDispose.__disposers = [() => disposed.push("id1-disposed")];
+
+		// Remove first item
+		state.__ctx.__raw.items = [{ id: 2 }];
+		state.__ctx.$notify();
+
+		expect(disposed).toEqual(["id1-disposed"]);
+	});
+
+	test("each: preserved wrappers do NOT have their disposers called on update", () => {
+		const state = document.createElement("div");
+		state.setAttribute(
+			"state",
+			JSON.stringify({ items: [{ id: 1 }, { id: 2 }] }),
+		);
+		container.appendChild(state);
+
+		const tpl = document.createElement("template");
+		tpl.id = "no-dispose-tpl";
+		tpl.innerHTML = '<span class="nd-row"></span>';
+		document.body.appendChild(tpl);
+
+		const list = document.createElement("div");
+		list.setAttribute("each", "item in items");
+		list.setAttribute("template", "no-dispose-tpl");
+		list.setAttribute("key", "item.id");
+		state.appendChild(list);
+		processTree(state);
+
+		const preserved = list.children[0].querySelector(".nd-row");
+		const disposed = [];
+		preserved.__disposers = [() => disposed.push("id1-wrongly-disposed")];
+
+		// Push a new item — id=1 wrapper must be preserved
+		state.__ctx.__raw.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+		state.__ctx.$notify();
+
+		expect(disposed).toHaveLength(0);
+	});
+});
+
+describe("bind-html — D1 dynamic expression warning", () => {
+	let warnSpy;
+
+	beforeEach(() => {
+		
+		_config.devtools = false;
+		warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		
+		_config.devtools = false;
+		warnSpy.mockRestore();
+	});
+
+	test("warns when debug is true and expression is dynamic", () => {
+		_config.debug = true;
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ html: "<b>hi</b>" }');
+		const el = document.createElement("div");
+		el.setAttribute("bind-html", "html");
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+		processTree(parent);
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining(
+				"[Security] bind-html used with dynamic expression",
+			),
+			el,
+		);
+		document.body.removeChild(parent);
+	});
+
+	test("warns when devtools is true and expression is dynamic", () => {
+		_config.devtools = true;
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ html: "<b>hi</b>" }');
+		const el = document.createElement("div");
+		el.setAttribute("bind-html", "html");
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+		processTree(parent);
+		expect(warnSpy).toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining(
+				"[Security] bind-html used with dynamic expression",
+			),
+			el,
+		);
+		document.body.removeChild(parent);
+	});
+
+	test("does not warn when expression is a string literal", () => {
+		
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const el = document.createElement("div");
+		el.setAttribute("bind-html", '"<b>static</b>"');
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+		processTree(parent);
+		expect(warnSpy).not.toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining(
+				"[Security] bind-html used with dynamic expression",
+			),
+			expect.anything(),
+		);
+		document.body.removeChild(parent);
+	});
+
+	test("does not warn when debug and devtools are both false", () => {
+		_config.debug = false;
+		_config.devtools = false;
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ html: "<b>hi</b>" }');
+		const el = document.createElement("div");
+		el.setAttribute("bind-html", "html");
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+		processTree(parent);
+		expect(warnSpy).not.toHaveBeenCalledWith(
+			"[No.JS]",
+			expect.stringContaining(
+				"[Security] bind-html used with dynamic expression",
+			),
+			expect.anything(),
+		);
+		document.body.removeChild(parent);
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  AUDIT FIX — H2: Validation listeners are properly removed on disposal
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("Validation listener disposal (H2)", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	test("should remove form-level event listeners (input, change, focusout) on dispose", () => {
+		
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ }");
+		const form = document.createElement("form");
+		form.setAttribute("validate", "");
+		const input = document.createElement("input");
+		input.setAttribute("name", "username");
+		input.setAttribute("validate", "required");
+		form.appendChild(input);
+		parent.appendChild(form);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		// The form element should have disposers registered
+		expect(form.__disposers).toBeDefined();
+		expect(form.__disposers.length).toBeGreaterThan(0);
+
+		const removeSpy = jest.spyOn(window.EventTarget.prototype, "removeEventListener");
+		_disposeTree(form);
+
+		// Verify removeEventListener was called for form-level events
+		if (_config.debug) {
+		}
+		const removedEvents = removeSpy.mock.calls
+			.map((c) => c[0]);
+		expect(removedEvents).toContain("input");
+		expect(removedEvents).toContain("change");
+		expect(removedEvents).toContain("focusout");
+		expect(removedEvents).toContain("submit");
+		removeSpy.mockRestore();
+	});
+
+	test("should not accumulate duplicate listeners when re-processing a validated form", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ }");
+		const form = document.createElement("form");
+		form.setAttribute("validate", "");
+		const input = document.createElement("input");
+		input.setAttribute("name", "email");
+		input.setAttribute("validate", "required");
+		form.appendChild(input);
+		parent.appendChild(form);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		const disposerCountFirst = form.__disposers ? form.__disposers.length : 0;
+
+		// Dispose and re-process to simulate re-render
+		_disposeTree(form);
+		processTree(form);
+
+		const disposerCountSecond = form.__disposers ? form.__disposers.length : 0;
+
+		// After re-processing, disposer count should be the same as the first time
+		// (no accumulation of duplicate listeners)
+		expect(disposerCountSecond).toBe(disposerCountFirst);
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  AUDIT FIX — H3: Validation error element clearing calls _disposeChildren
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("Validation error element disposal (H3)", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	test("should dispose children of error element when field becomes valid", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ }");
+
+		// Create a template for error display
+		const errorTpl = document.createElement("template");
+		errorTpl.id = "field-error";
+		errorTpl.innerHTML = '<span class="error-msg">Error</span>';
+		document.body.appendChild(errorTpl);
+
+		// Standalone field-level validation with error template
+		const input = document.createElement("input");
+		input.setAttribute("name", "field");
+		input.setAttribute("validate", "required");
+		input.setAttribute("error", "#field-error");
+		parent.appendChild(input);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		// Trigger an error: empty value fires required error
+		input.value = "";
+		input.dispatchEvent(new Event("input", { bubbles: true }));
+
+		// Locate the error element inserted after input
+		const errorEl = input.nextElementSibling;
+		expect(errorEl).toBeTruthy();
+		expect(errorEl.__validationError).toBe(true);
+		expect(errorEl.innerHTML).not.toBe("");
+
+		// Plant a mock disposer on a child to verify _disposeChildren was called
+		const errorChild = errorEl.querySelector(".error-msg");
+		expect(errorChild).toBeTruthy();
+		const disposed = [];
+		errorChild.__disposers = [() => disposed.push("child-disposed")];
+
+		// Now make the field valid
+		input.value = "valid text";
+		input.dispatchEvent(new Event("input", { bubbles: true }));
+
+		// The child disposer should have been called when clearing the error
+		expect(disposed).toEqual(["child-disposed"]);
+		expect(errorEl.innerHTML).toBe("");
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  AUDIT FIX — M8: error-boundary nojs:error listener cleanup on dispose
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("Error-boundary nojs:error listener disposal (M8)", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	test("should not trigger fallback after error-boundary element is disposed", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ }");
+
+		// Create a fallback template
+		const fallbackTpl = document.createElement("template");
+		fallbackTpl.id = "error-fallback";
+		fallbackTpl.innerHTML = '<div class="fallback">Something went wrong</div>';
+		document.body.appendChild(fallbackTpl);
+
+		const boundary = document.createElement("div");
+		boundary.setAttribute("error-boundary", "#error-fallback");
+		boundary.innerHTML = "<p>Normal content</p>";
+		parent.appendChild(boundary);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+
+		// Verify error-boundary has disposers registered
+		expect(boundary.__disposers).toBeDefined();
+		expect(boundary.__disposers.length).toBeGreaterThan(0);
+
+		// Capture initial innerHTML
+		const initialHTML = boundary.innerHTML;
+
+		// Dispose the boundary element (simulates removal from DOM)
+		_disposeTree(boundary);
+
+		// Now dispatch a nojs:error event — should NOT trigger fallback rendering
+		boundary.dispatchEvent(
+			new CustomEvent("nojs:error", {
+				detail: { message: "Test error after disposal" },
+			}),
+		);
+
+		// innerHTML should remain unchanged — no fallback was rendered
+		expect(boundary.innerHTML).toBe(initialHTML);
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  AUDIT FIX — M9: bind-html calls _disposeChildren before innerHTML
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("bind-html child disposal (M9)", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	test("should call child disposers when bind-html updates with new content", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", '{ content: "<b>Initial</b>" }');
+		const div = document.createElement("div");
+		div.setAttribute("bind-html", "content");
+		parent.appendChild(div);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		expect(div.innerHTML).toBe("<b>Initial</b>");
+
+		// Plant a mock disposer on the child <b> element
+		const boldChild = div.querySelector("b");
+		expect(boldChild).toBeTruthy();
+		const disposed = [];
+		boldChild.__disposers = [() => disposed.push("bold-disposed")];
+
+		// Update content — should trigger _disposeChildren before setting new innerHTML
+		parent.__ctx.content = "<em>Updated</em>";
+
+		// Verify the old child's disposer was called
+		expect(disposed).toEqual(["bold-disposed"]);
+		// And the new content is in place
+		expect(div.innerHTML).toBe("<em>Updated</em>");
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  H1 — persist watcher is unsubscribed after element disposal
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("H1 — persist watcher disposal", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+		localStorage.clear();
+	});
+
+	test("should stop persisting to localStorage after element disposal", () => {
+		const div = document.createElement("div");
+		div.setAttribute("state", "{ count: 0 }");
+		div.setAttribute("persist", "localStorage");
+		div.setAttribute("persist-key", "test-h1");
+		document.body.appendChild(div);
+		processTree(div);
+
+		const ctx = div.__ctx;
+
+		// Verify persistence works before disposal
+		ctx.count = 10;
+		const saved = JSON.parse(localStorage.getItem("nojs_state_test-h1"));
+		expect(saved.count).toBe(10);
+
+		// Dispose the element tree
+		_disposeTree(div);
+
+		// Mutate state after disposal — should NOT write to localStorage
+		ctx.count = 999;
+		const afterDispose = JSON.parse(localStorage.getItem("nojs_state_test-h1"));
+		// The value should still be 10, not 999
+		expect(afterDispose.count).toBe(10);
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  M5 — debounce timer is cleared on element disposal
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("M5 — debounce timer cleared on disposal", () => {
+	beforeEach(() => {
+		jest.useFakeTimers();
+		document.body.innerHTML = "";
+	});
+
+	afterEach(() => {
+		jest.useRealTimers();
+		document.body.innerHTML = "";
+	});
+
+	test("should not fire debounced callback after element is disposed mid-debounce", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ clicked: false }");
+		const btn = document.createElement("button");
+		btn.setAttribute("on:click.debounce.500", "clicked = true");
+		parent.appendChild(btn);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		const ctx = parent.__ctx;
+
+		// Click the button to start the debounce timer
+		btn.dispatchEvent(new Event("click"));
+
+		// Dispose the element before the debounce fires (only 100ms in)
+		jest.advanceTimersByTime(100);
+		expect(ctx.clicked).toBe(false); // Not yet fired
+
+		_disposeTree(btn);
+
+		// Advance past the debounce window
+		jest.advanceTimersByTime(500);
+
+		// The callback should NOT have fired because disposal cleared the timer
+		expect(ctx.clicked).toBe(false);
 	});
 });

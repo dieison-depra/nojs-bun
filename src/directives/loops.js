@@ -21,7 +21,7 @@ registerDirective("each", {
 		const [, itemName, listPath] = match;
 		const tplId = el.getAttribute("template");
 		const elseTpl = el.getAttribute("else");
-		const _keyExpr = el.getAttribute("key");
+		const keyExpr = el.getAttribute("key");
 		const animEnter =
 			el.getAttribute("animate-enter") || el.getAttribute("animate");
 		const animLeave = el.getAttribute("animate-leave");
@@ -29,16 +29,16 @@ registerDirective("each", {
 		const animDuration = parseInt(el.getAttribute("animate-duration"), 10) || 0;
 		let prevList = null;
 
+		// key → wrapper div; only populated when the `key` attribute is set.
+		const keyMap = new Map();
+
 		function update() {
 			const list = /[[\]()\s+\-*/!?:&|]/.test(listPath)
 				? evaluate(listPath, ctx)
 				: resolve(listPath, ctx);
 			if (!Array.isArray(list)) return;
 
-			// If same list reference and items are rendered, skip re-render
-			// and just propagate the notification to child contexts so their
-			// watchers (bind, show, model, etc.) can react to parent changes
-			// without destroying/recreating the DOM (preserves input focus).
+			// Same-reference optimisation: propagate to children without DOM rebuild.
 			if (list === prevList && list.length > 0 && el.children.length > 0) {
 				for (const child of el.children) {
 					if (child.__ctx?.$notify) child.__ctx.$notify();
@@ -52,6 +52,7 @@ registerDirective("each", {
 				const clone = _cloneTemplate(elseTpl);
 				if (clone) {
 					_disposeChildren(el);
+					keyMap.clear();
 					el.innerHTML = "";
 					el.appendChild(clone);
 					processTree(el);
@@ -75,7 +76,8 @@ registerDirective("each", {
 						if (remaining <= 0) renderItems(tpl, list);
 					};
 					target.addEventListener("animationend", done, { once: true });
-					setTimeout(done, animDuration || 2000);
+					// || 0: unblocks the next render on the next tick when no CSS animation fires.
+					setTimeout(done, animDuration || 0);
 				});
 			} else {
 				renderItems(tpl, list);
@@ -83,6 +85,88 @@ registerDirective("each", {
 		}
 
 		function renderItems(tpl, list) {
+			if (keyExpr) {
+				reconcileItems(tpl, list);
+			} else {
+				rebuildItems(tpl, list);
+			}
+		}
+
+		// Key-based reconciliation: reuses existing wrapper divs for items whose
+		// key is still present in the new list, only creating/removing DOM nodes
+		// for items that genuinely appeared or disappeared.
+		function reconcileItems(tpl, list) {
+			const count = list.length;
+
+			// Evaluate the key for every item in the new list up-front.
+			const newOrder = list.map((item, i) => {
+				const tempCtx = createContext({ [itemName]: item, $index: i }, ctx);
+				return { key: evaluate(keyExpr, tempCtx), item, i };
+			});
+
+			const nextKeySet = new Set(newOrder.map((e) => e.key));
+
+			// Remove wrappers whose keys are no longer in the list.
+			for (const [key, wrapper] of keyMap) {
+				if (!nextKeySet.has(key)) {
+					_disposeChildren(wrapper);
+					wrapper.remove();
+					keyMap.delete(key);
+				}
+			}
+
+			// Create new wrappers and update existing ones.
+			newOrder.forEach(({ key, item, i }) => {
+				const childData = {
+					[itemName]: item,
+					$index: i,
+					$count: count,
+					$first: i === 0,
+					$last: i === count - 1,
+					$even: i % 2 === 0,
+					$odd: i % 2 !== 0,
+				};
+
+				if (!keyMap.has(key)) {
+					const clone = tpl.content.cloneNode(true);
+					const wrapper = document.createElement("div");
+					wrapper.style.display = "contents";
+					wrapper.__ctx = createContext(childData, ctx);
+					wrapper.appendChild(clone);
+					keyMap.set(key, wrapper);
+					el.appendChild(wrapper); // placed at end; reordered below
+					processTree(wrapper);
+
+					if (animEnter) {
+						const firstChild = wrapper.firstElementChild;
+						if (firstChild) {
+							firstChild.classList.add(animEnter);
+							firstChild.addEventListener(
+								"animationend",
+								() => firstChild.classList.remove(animEnter),
+								{ once: true },
+							);
+							if (stagger) firstChild.style.animationDelay = `${i * stagger}ms`;
+						}
+					}
+				} else {
+					// Existing item: update positional metadata and notify watchers.
+					Object.assign(keyMap.get(key).__ctx.__raw, childData);
+					keyMap.get(key).__ctx.$notify();
+				}
+			});
+
+			// Reorder DOM to match the new list using a single forward pass.
+			for (let i = 0; i < newOrder.length; i++) {
+				const wrapper = keyMap.get(newOrder[i].key);
+				if (wrapper !== el.children[i])
+					el.insertBefore(wrapper, el.children[i] ?? null);
+			}
+		}
+
+		// Full rebuild: dispose all children and recreate from scratch.
+		// Used when no `key` attribute is set (backward-compatible behaviour).
+		function rebuildItems(tpl, list) {
 			const count = list.length;
 			_disposeChildren(el);
 			el.innerHTML = "";
@@ -142,6 +226,7 @@ registerDirective("foreach", {
 		const limit = parseInt(el.getAttribute("limit"), 10) || Infinity;
 		const offset = parseInt(el.getAttribute("offset"), 10) || 0;
 		const tplId = el.getAttribute("template");
+		const keyExpr = el.getAttribute("key");
 		const animEnter =
 			el.getAttribute("animate-enter") || el.getAttribute("animate");
 		const animLeave = el.getAttribute("animate-leave");
@@ -153,6 +238,28 @@ registerDirective("foreach", {
 		const templateContent = tplId
 			? null // Will use external template
 			: el.cloneNode(true); // Use the element itself as template
+
+		// Prevent infinite recursion: strip directive attributes from inline template clone
+		if (templateContent) {
+			templateContent.removeAttribute("foreach");
+			templateContent.removeAttribute("from");
+			templateContent.removeAttribute("index");
+			templateContent.removeAttribute("filter");
+			templateContent.removeAttribute("sort");
+			templateContent.removeAttribute("limit");
+			templateContent.removeAttribute("offset");
+			templateContent.removeAttribute("else");
+			templateContent.removeAttribute("template");
+			templateContent.removeAttribute("key");
+			templateContent.removeAttribute("animate-enter");
+			templateContent.removeAttribute("animate");
+			templateContent.removeAttribute("animate-leave");
+			templateContent.removeAttribute("animate-stagger");
+			templateContent.removeAttribute("animate-duration");
+		}
+
+		// key → wrapper div; only populated when the `key` attribute is set.
+		const keyMap = new Map();
 
 		function update() {
 			let list = resolve(fromPath, ctx);
@@ -189,6 +296,7 @@ registerDirective("foreach", {
 				const clone = _cloneTemplate(elseTpl);
 				if (clone) {
 					_disposeChildren(el);
+					keyMap.clear();
 					el.innerHTML = "";
 					el.appendChild(clone);
 					processTree(el);
@@ -198,6 +306,11 @@ registerDirective("foreach", {
 
 			const tpl = tplId ? document.getElementById(tplId) : null;
 			const count = list.length;
+
+			if (keyExpr) {
+				reconcileForeachItems(tpl, list, count);
+				return;
+			}
 
 			function renderForeachItems() {
 				_disposeChildren(el);
@@ -243,7 +356,6 @@ registerDirective("foreach", {
 								() => firstChild.classList.remove(animEnter),
 								{ once: true },
 							);
-							// Stagger animation — delay must be on the child, not the wrapper
 							if (stagger) {
 								firstChild.style.animationDelay = `${i * stagger}ms`;
 							}
@@ -265,10 +377,90 @@ registerDirective("foreach", {
 						if (remaining <= 0) renderForeachItems();
 					};
 					target.addEventListener("animationend", done, { once: true });
-					setTimeout(done, animDuration || 2000);
+					// || 0: unblocks the next render on the next tick when no CSS animation fires.
+					setTimeout(done, animDuration || 0);
 				});
 			} else {
 				renderForeachItems();
+			}
+		}
+
+		// Key-based reconciliation for foreach — mirrors each's reconcileItems.
+		// Applied to the final (filtered, sorted, sliced) list so keys always
+		// correspond to what is actually rendered.
+		function reconcileForeachItems(tpl, list, count) {
+			// On first render the element may still hold its original inline template
+			// markup (the same content that was captured into templateContent).
+			// Clear it so only managed wrappers appear as children.
+			if (keyMap.size === 0) el.innerHTML = "";
+
+			const newOrder = list.map((item, i) => {
+				const tempCtx = createContext(
+					{ [itemName]: item, [indexName]: i },
+					ctx,
+				);
+				return { key: evaluate(keyExpr, tempCtx), item, i };
+			});
+
+			const nextKeySet = new Set(newOrder.map((e) => e.key));
+
+			for (const [key, wrapper] of keyMap) {
+				if (!nextKeySet.has(key)) {
+					_disposeChildren(wrapper);
+					wrapper.remove();
+					keyMap.delete(key);
+				}
+			}
+
+			newOrder.forEach(({ key, item, i }) => {
+				const childData = {
+					[itemName]: item,
+					[indexName]: i,
+					$index: i,
+					$count: count,
+					$first: i === 0,
+					$last: i === count - 1,
+					$even: i % 2 === 0,
+					$odd: i % 2 !== 0,
+				};
+
+				if (!keyMap.has(key)) {
+					let clone;
+					if (tpl) {
+						clone = tpl.content.cloneNode(true);
+					} else {
+						clone = templateContent.cloneNode(true);
+					}
+					const wrapper = document.createElement("div");
+					wrapper.style.display = "contents";
+					wrapper.__ctx = createContext(childData, ctx);
+					wrapper.appendChild(clone);
+					keyMap.set(key, wrapper);
+					el.appendChild(wrapper);
+					processTree(wrapper);
+
+					if (animEnter) {
+						const firstChild = wrapper.firstElementChild;
+						if (firstChild) {
+							firstChild.classList.add(animEnter);
+							firstChild.addEventListener(
+								"animationend",
+								() => firstChild.classList.remove(animEnter),
+								{ once: true },
+							);
+							if (stagger) firstChild.style.animationDelay = `${i * stagger}ms`;
+						}
+					}
+				} else {
+					Object.assign(keyMap.get(key).__ctx.__raw, childData);
+					keyMap.get(key).__ctx.$notify();
+				}
+			});
+
+			for (let i = 0; i < newOrder.length; i++) {
+				const wrapper = keyMap.get(newOrder[i].key);
+				if (wrapper !== el.children[i])
+					el.insertBefore(wrapper, el.children[i] ?? null);
 			}
 		}
 

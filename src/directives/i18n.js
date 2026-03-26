@@ -3,11 +3,15 @@
 //  DIRECTIVE: i18n-ns (load namespace before children)
 // ═══════════════════════════════════════════════════════════════════════
 
-import { findContext } from "../dom.js";
+import { _sanitizeHtml, findContext } from "../dom.js";
 import { evaluate } from "../evaluate.js";
 import { _watchExpr } from "../globals.js";
 import { _i18n, _loadI18nNamespace, _notifyI18n, _watchI18n } from "../i18n.js";
-import { processTree, registerDirective } from "../registry.js";
+import {
+	_disposeChildren,
+	processTree,
+	registerDirective,
+} from "../registry.js";
 
 registerDirective("t", {
 	priority: 20,
@@ -29,7 +33,8 @@ registerDirective("t", {
 			}
 			const text = _i18n.t(key, params);
 			if (useHtml) {
-				el.innerHTML = text;
+				_disposeChildren(el);
+				el.innerHTML = _sanitizeHtml(text);
 			} else {
 				el.textContent = text;
 			}

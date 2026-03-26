@@ -26,6 +26,10 @@ registerDirective("on:*", {
 		}
 		if (event === "updated") {
 			const updatedObserver = new MutationObserver(() => {
+				if (!el.isConnected) {
+					updatedObserver.disconnect();
+					return;
+				}
 				_execStatement(expr, ctx, { $el: el });
 			});
 			updatedObserver.observe(el, {
@@ -128,6 +132,7 @@ registerDirective("on:*", {
 				clearTimeout(timer);
 				timer = setTimeout(() => original(e), debounceMs);
 			};
+			_onDispose(() => clearTimeout(timer));
 		}
 
 		// Wrap with throttle

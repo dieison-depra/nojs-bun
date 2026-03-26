@@ -58,6 +58,9 @@
 
     // Security
     sanitize: true,            // Sanitize bind-html
+
+    // Performance
+    exprCacheSize: 500,        // Max entries in the expression/statement LRU caches
   });
 </script>
 ```
@@ -117,8 +120,22 @@ If a store name already exists, `config()` will **not** overwrite it. This means
 ### XSS Protection
 
 - `bind` always sets `textContent`, never `innerHTML` — safe by default.
-- `bind-html` sanitizes content through a DOMPurify-compatible sanitizer.
+- `bind-html` sanitizes content using a DOMParser-based structural sanitizer. Regex-based sanitizers are bypassable via SVG/MathML event handlers and entity encoding — DOMParser resolves entities first, making all vectors uniformly detectable.
 - Template expressions are evaluated by a custom sandboxed parser — no `eval()` or `Function()` is used, and dangerous properties like `__proto__` and `constructor` are blocked.
+
+#### Custom sanitizer hook (`sanitizeHtml`)
+
+To use an external sanitizer like [DOMPurify](https://github.com/cure53/DOMPurify) instead of the built-in one:
+
+```js
+NoJS.config({
+  sanitizeHtml: (html) => DOMPurify.sanitize(html)
+});
+```
+
+When `sanitizeHtml` is set to a function, the built-in sanitizer is bypassed entirely and the provided function is used for all `bind-html` content. Set `sanitize: false` to disable sanitization entirely (not recommended — see [Security](#security)).
+
+The built-in sanitizer blocks the following tags by default: `script`, `style`, `iframe`, `object`, `embed`, `base`, `form`, `meta`, `link`, `noscript`. It also strips `on*` event handler attributes and `javascript:`/`vbscript:` scheme attributes on any element, and `data:` URIs on URL attributes (`href`, `src`, `action`) unless they are safe image types.
 
 ### CSRF Protection
 
@@ -192,6 +209,43 @@ Controls whether fetched locale JSON files are stored in an in-memory `Map` afte
 ```js
 NoJS.i18n({ cache: false }); // Always re-fetch locale files
 ```
+
+---
+
+### `exprCacheSize`
+
+**Type:** `number` | **Default:** `500`
+
+Maximum number of entries in each of the two internal LRU caches used by the expression evaluator: one for parsed expression ASTs (`_exprCache`) and one for parsed statement ASTs (`_stmtCache`). When the limit is reached the least-recently-used entry is evicted to make room.
+
+The default of 500 is suitable for most applications. Increase it if your app evaluates a large number of distinct template expressions (e.g. a dynamic form with hundreds of unique field bindings). Decrease it to reduce memory pressure in memory-constrained environments.
+
+```js
+// Larger cache for apps with many distinct expressions
+NoJS.config({ exprCacheSize: 1000 });
+
+// Smaller cache for memory-constrained environments
+NoJS.config({ exprCacheSize: 100 });
+```
+
+Non-positive or non-numeric values are ignored and the default of 500 is used.
+
+---
+
+## Plugin System
+
+No.JS includes a plugin system for extending the framework with reusable packages. The following methods are available on the `NoJS` object:
+
+| Method | Description |
+| ------ | ----------- |
+| `NoJS.use(plugin, options?)` | Register a plugin. Accepts an object with `{ name, install }` or a named function |
+| `NoJS.global(name, value)` | Inject a reactive variable accessible as `$name` in templates |
+| `NoJS.dispose()` | Full app teardown — disposes plugins in reverse order, clears globals and interceptors |
+| `NoJS.CANCEL` | Sentinel Symbol — return from a request interceptor to abort the request |
+| `NoJS.RESPOND` | Sentinel Symbol — return from a request interceptor to serve a cached response |
+| `NoJS.REPLACE` | Sentinel Symbol — return from a response interceptor to replace the response data |
+
+See [Plugins →](plugins.md) for the full API reference, plugin lifecycle, security guidelines, and examples.
 
 ---
 

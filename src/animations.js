@@ -5,10 +5,10 @@
 let _stylesInjected = false;
 
 function _injectBuiltInStyles() {
-  if (_stylesInjected || typeof document === "undefined") return;
-  _stylesInjected = true;
+	if (_stylesInjected || typeof document === "undefined") return;
+	_stylesInjected = true;
 
-  const css = `
+	const css = `
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -25,92 +25,117 @@ function _injectBuiltInStyles() {
 @keyframes bounceOut { 0% { opacity: 1; transform: scale(1); } 20% { transform: scale(0.9); } 50%,55% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(0.3); } }
 `.trim();
 
-  const style = document.createElement("style");
-  style.setAttribute("data-nojs-animations", "");
-  style.textContent = css;
-  document.head.appendChild(style);
+	const style = document.createElement("style");
+	style.setAttribute("data-nojs-animations", "");
+	style.textContent = css;
+	document.head.appendChild(style);
 }
 
 export function _animateIn(el, animName, transitionName, durationMs) {
-  _injectBuiltInStyles();
-  const fallback = durationMs || 1000;
-  if (animName) {
-    const target = el.firstElementChild || el;
-    target.classList.add(animName);
-    if (durationMs) target.style.animationDuration = durationMs + "ms";
-    target.addEventListener(
-      "animationend",
-      () => target.classList.remove(animName),
-      { once: true },
-    );
-  }
-  if (transitionName) {
-    const target = el.firstElementChild || el;
-    target.classList.add(
-      transitionName + "-enter",
-      transitionName + "-enter-active",
-    );
-    requestAnimationFrame(() => {
-      target.classList.remove(transitionName + "-enter");
-      target.classList.add(transitionName + "-enter-to");
-      const done = () => {
-        target.classList.remove(
-          transitionName + "-enter-active",
-          transitionName + "-enter-to",
-        );
-      };
-      target.addEventListener("transitionend", done, { once: true });
-      // Fallback
-      setTimeout(done, fallback);
-    });
-  }
+	_injectBuiltInStyles();
+	// || 0: fires on the next event-loop tick when no CSS transition is present,
+	// instead of blocking for an arbitrary duration.
+	const fallback = durationMs || 0;
+	if (animName) {
+		const target = el.firstElementChild || el;
+		target.classList.add(animName);
+		if (durationMs) target.style.animationDuration = durationMs + "ms";
+		const done = () => target.classList.remove(animName);
+		target.addEventListener("animationend", done, { once: true });
+		// Fallback: remove the class on the next tick if animationend never fires
+		// (e.g. CSS absent, element detached). Mirrors the transitionName branch.
+		setTimeout(done, fallback);
+	}
+	if (transitionName) {
+		const target = el.firstElementChild || el;
+		target.classList.add(
+			transitionName + "-enter",
+			transitionName + "-enter-active",
+		);
+		requestAnimationFrame(() => {
+			target.classList.remove(transitionName + "-enter");
+			target.classList.add(transitionName + "-enter-to");
+			const done = () => {
+				target.classList.remove(
+					transitionName + "-enter-active",
+					transitionName + "-enter-to",
+				);
+			};
+			target.addEventListener("transitionend", done, { once: true });
+			// Fallback
+			setTimeout(done, fallback);
+		});
+	}
 }
 
-export function _animateOut(el, animName, transitionName, callback, durationMs) {
-  _injectBuiltInStyles();
-  const fallback = durationMs || 2000;
-  if (!el.firstElementChild && !el.childNodes.length) {
-    callback();
-    return;
-  }
-  if (animName) {
-    const target = el.firstElementChild || el;
-    target.classList.add(animName);
-    if (durationMs) target.style.animationDuration = durationMs + "ms";
-    let called = false;
-    const done = () => {
-      if (called) return;
-      called = true;
-      target.classList.remove(animName);
-      callback();
-    };
-    target.addEventListener("animationend", done, { once: true });
-    setTimeout(done, fallback); // Fallback
-    return;
-  }
-  if (transitionName) {
-    const target = el.firstElementChild || el;
-    target.classList.add(
-      transitionName + "-leave",
-      transitionName + "-leave-active",
-    );
-    requestAnimationFrame(() => {
-      target.classList.remove(transitionName + "-leave");
-      target.classList.add(transitionName + "-leave-to");
-      let called = false;
-      const done = () => {
-        if (called) return;
-        called = true;
-        target.classList.remove(
-          transitionName + "-leave-active",
-          transitionName + "-leave-to",
-        );
-        callback();
-      };
-      target.addEventListener("transitionend", done, { once: true });
-      setTimeout(done, fallback);
-    });
-    return;
-  }
-  callback();
+export function _animateOut(
+	el,
+	animName,
+	transitionName,
+	callback,
+	durationMs,
+) {
+	_injectBuiltInStyles();
+	// || 0: fires on the next event-loop tick when no CSS animation/transition is
+	// present, instead of blocking for an arbitrary duration.
+	const fallback = durationMs || 0;
+	if (!el.firstElementChild && !el.childNodes.length) {
+		callback();
+		return () => {};
+	}
+	if (animName) {
+		const target = el.firstElementChild || el;
+		target.classList.add(animName);
+		if (durationMs) target.style.animationDuration = durationMs + "ms";
+		let called = false;
+		const done = () => {
+			if (called) return;
+			called = true;
+			target.classList.remove(animName);
+			callback();
+		};
+		target.addEventListener("animationend", done, { once: true });
+		const timerId = setTimeout(done, fallback); // Fallback
+		return () => {
+			called = true;
+			clearTimeout(timerId);
+			target.removeEventListener("animationend", done);
+		};
+	}
+	if (transitionName) {
+		const target = el.firstElementChild || el;
+		target.classList.add(
+			transitionName + "-leave",
+			transitionName + "-leave-active",
+		);
+		let called = false;
+		let timerId;
+		const rafId = requestAnimationFrame(() => {
+			target.classList.remove(transitionName + "-leave");
+			target.classList.add(transitionName + "-leave-to");
+			const done = () => {
+				if (called) return;
+				called = true;
+				target.classList.remove(
+					transitionName + "-leave-active",
+					transitionName + "-leave-to",
+				);
+				callback();
+			};
+			target.addEventListener("transitionend", done, { once: true });
+			timerId = setTimeout(done, fallback);
+		});
+		return () => {
+			called = true;
+			cancelAnimationFrame(rafId);
+			clearTimeout(timerId);
+			target.classList.remove(
+				transitionName + "-leave",
+				transitionName + "-leave-active",
+				transitionName + "-leave-to",
+			);
+		};
+	}
+	callback();
+	return () => {};
 }

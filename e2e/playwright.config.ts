@@ -18,7 +18,7 @@ export default defineConfig({
 		{
 			name: "chromium",
 			use: { browserName: "chromium" },
-		}
+		},
 	],
 	webServer: {
 		command: "bun ../test-server.js",

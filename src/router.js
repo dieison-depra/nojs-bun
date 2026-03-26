@@ -12,11 +12,18 @@ import {
 	findContext,
 } from "./dom.js";
 import { evaluate } from "./evaluate.js";
-import { _config, _log, _stores } from "./globals.js";
+import { _config, _log, _stores, _warn } from "./globals.js";
 import { _disposeTree, processTree } from "./registry.js";
 
 const _BUILTIN_404_HTML =
 	'<div style="text-align:center;padding:3rem 1rem;font-family:system-ui,sans-serif"><h1 style="font-size:4rem;margin:0;opacity:.3">404</h1><p style="font-size:1.25rem;color:#666">Page not found</p></div>';
+
+function _clearOutlets() {
+	for (const outletEl of document.querySelectorAll("[route-view]")) {
+		_disposeTree(outletEl);
+		outletEl.innerHTML = "";
+	}
+}
 
 function _stripBase(pathname) {
 	const base = (_config.router.base || "/").replace(/\/$/, "");
@@ -31,6 +38,7 @@ export function _createRouter() {
 	let current = { path: "", params: {}, query: {}, hash: "" };
 	const listeners = new Set();
 	const _autoTemplateCache = new Map();
+	const _globalHandlers = [];
 
 	function _getOrCreateEntry(path) {
 		let entry = routes.find((r) => r.path === path);
@@ -97,8 +105,15 @@ export function _createRouter() {
 				ctx.__raw.$store = _stores;
 				ctx.__raw.$route = current;
 				const allowed = evaluate(guardExpr, ctx);
-				if (!allowed && redirectPath) {
-					await navigate(redirectPath, true);
+				if (!allowed) {
+					if (redirectPath) {
+						await navigate(redirectPath, true);
+					} else {
+						_warn(
+							`Route guard failed for "${path}" but no redirect is defined. The route will not render.`,
+						);
+						_clearOutlets();
+					}
 					return;
 				}
 			}
@@ -115,8 +130,15 @@ export function _createRouter() {
 					ctx.__raw.$store = _stores;
 					ctx.__raw.$route = current;
 					const allowed = evaluate(guardExpr, ctx);
-					if (!allowed && redirectPath) {
-						await navigate(redirectPath, true);
+					if (!allowed) {
+						if (redirectPath) {
+							await navigate(redirectPath, true);
+						} else {
+							_warn(
+								`Route guard failed for "${path}" but no redirect is defined. The route will not render.`,
+							);
+							_clearOutlets();
+						}
 						return;
 					}
 				}
@@ -446,7 +468,7 @@ export function _createRouter() {
 			});
 
 			// Bind route links
-			document.addEventListener("click", (e) => {
+			const _clickHandler = (e) => {
 				const link = e.target.closest("[route]");
 				if (link && !link.hasAttribute("route-view")) {
 					e.preventDefault();
@@ -474,11 +496,15 @@ export function _createRouter() {
 						}
 					}
 				}
-			});
+			};
+			document.addEventListener("click", _clickHandler);
+			_globalHandlers.push(() =>
+				document.removeEventListener("click", _clickHandler),
+			);
 
 			// Listen for URL changes
 			if (_config.router.useHash) {
-				window.addEventListener("hashchange", () => {
+				const _hashchangeHandler = () => {
 					const raw = window.location.hash.slice(1) || "/";
 					if (!raw.startsWith("/")) {
 						const el = document.getElementById(raw);
@@ -492,12 +518,16 @@ export function _createRouter() {
 					const [p] = raw.split("?");
 					if (p === current.path) return;
 					navigate(raw, true);
-				});
+				};
+				window.addEventListener("hashchange", _hashchangeHandler);
+				_globalHandlers.push(() =>
+					window.removeEventListener("hashchange", _hashchangeHandler),
+				);
 				// Initial route
 				const path = window.location.hash.slice(1) || "/";
 				await navigate(path, true);
 			} else {
-				window.addEventListener("popstate", () => {
+				const _popstateHandler = () => {
 					const path = _stripBase(window.location.pathname);
 					// Guard: don't re-navigate if only the hash changed
 					if (path === current.path) {
@@ -509,13 +539,22 @@ export function _createRouter() {
 						return;
 					}
 					navigate(path, true);
-				});
+				};
+				window.addEventListener("popstate", _popstateHandler);
+				_globalHandlers.push(() =>
+					window.removeEventListener("popstate", _popstateHandler),
+				);
 				const path = _stripBase(window.location.pathname);
 				await navigate(path, true);
 			}
 
 			// Prefetch route templates declared via <a route> links
 			_prefetchRoutes();
+		},
+		destroy() {
+			_globalHandlers.forEach((fn) => fn());
+			_globalHandlers.length = 0;
+			listeners.clear();
 		},
 	};
 

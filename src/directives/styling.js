@@ -59,7 +59,11 @@ registerDirective("class-*", {
 			el.classList.toggle(suffix, !!evaluate(expr, ctx));
 		}
 		_watchExpr(expr, ctx, update);
-		if (expr.includes("$i18n") || expr.includes("NoJS.locale"))
+		if (
+			expr.includes("$i18n") ||
+			expr.includes("NoJS.locale") ||
+			expr.includes("window.NoJS.locale")
+		)
 			_watchI18n(update);
 		update();
 	},

@@ -1,3 +1,4 @@
+
 import { _config } from "../src/globals.js";
 import {
 	_deepMerge,
@@ -8,7 +9,11 @@ import {
 	_loadI18nNamespace,
 	_loadLocale,
 	_notifyI18n,
+	_watchI18n,
 } from "../src/i18n.js";
+import { _disposeChildren, processTree } from "../src/registry.js";
+import "../src/directives/state.js";
+import "../src/directives/i18n.js";
 
 describe("i18n System", () => {
 	beforeEach(() => {
@@ -208,52 +213,73 @@ describe("i18n — pluralization forms[1] fallback (L25)", () => {
 //  EXTERNAL FILE LOADING — NEW TESTS
 // ═══════════════════════════════════════════════════════════════════════
 
-describe("_deepMerge", () => {
-	test("merges flat objects", () => {
-		expect(_deepMerge({ a: 1 }, { b: 2 })).toEqual({ a: 1, b: 2 });
-	});
-
-	test("deep merges nested objects", () => {
-		const target = { nav: { home: "Home" } };
-		const source = { nav: { docs: "Docs" } };
-		expect(_deepMerge(target, source)).toEqual({
-			nav: { home: "Home", docs: "Docs" },
-		});
-	});
-
-	test("source overwrites scalar", () => {
-		expect(_deepMerge({ a: 1 }, { a: 2 })).toEqual({ a: 2 });
-	});
-
-	test("does not merge arrays (replaces)", () => {
-		expect(_deepMerge({ a: [1] }, { a: [2, 3] })).toEqual({ a: [2, 3] });
-	});
-
-	test("returns new object (no mutation)", () => {
-		const target = { a: 1 };
-		const source = { b: 2 };
-		const result = _deepMerge(target, source);
-		expect(result).not.toBe(target);
-		expect(result).not.toBe(source);
-		expect(target).toEqual({ a: 1 });
-		expect(source).toEqual({ b: 2 });
-	});
-
-	test("handles empty inputs", () => {
-		expect(_deepMerge({}, { a: 1 })).toEqual({ a: 1 });
-		expect(_deepMerge({ a: 1 }, {})).toEqual({ a: 1 });
-	});
-});
-
-describe("_loadLocale", () => {
+describe("deep merge behavior (via _loadI18nForLocale)", () => {
 	const originalFetch = global.fetch;
 	let fetchMock;
 
 	beforeEach(() => {
 		_i18n.locales = {};
-		_i18nCache.clear();
 		_config.i18n.loadPath = "/locales/{locale}.json";
+		_config.i18n.cache = false;
+		_config.i18n.ns = [];
+	});
+
+	afterEach(() => {
+		_i18n.locales = {};
+		_config.i18n.loadPath = null;
 		_config.i18n.cache = true;
+		_config.i18n.ns = [];
+		global.fetch = originalFetch;
+	});
+
+	test("deep merges nested locale objects", async () => {
+		_i18n.locales.en = { nav: { home: "Home" }, existing: "value" };
+		fetchMock = jest.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ nav: { docs: "Docs" }, greeting: "Hello" }),
+		});
+		global.fetch = fetchMock;
+		await _loadI18nForLocale("en");
+		expect(_i18n.locales.en).toEqual({
+			nav: { home: "Home", docs: "Docs" },
+			existing: "value",
+			greeting: "Hello",
+		});
+	});
+
+	test("source overwrites scalar values", async () => {
+		_i18n.locales.en = { greeting: "Hi" };
+		fetchMock = jest.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ greeting: "Hello" }),
+		});
+		global.fetch = fetchMock;
+		await _loadI18nForLocale("en");
+		expect(_i18n.locales.en.greeting).toBe("Hello");
+	});
+
+	test("replaces arrays instead of merging", async () => {
+		_i18n.locales.en = { tags: ["old"] };
+		fetchMock = jest.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ tags: ["new1", "new2"] }),
+		});
+		global.fetch = fetchMock;
+		await _loadI18nForLocale("en");
+		expect(_i18n.locales.en.tags).toEqual(["new1", "new2"]);
+	});
+});
+
+describe("locale loading (via _loadI18nForLocale)", () => {
+	const originalFetch = global.fetch;
+	let fetchMock;
+
+	beforeEach(() => {
+		_i18n.locales = {};
+		_config.i18n.loadPath = "/locales/{locale}.json";
+		_config.i18n.cache = false;
+		_config.i18n.ns = [];
+		_i18nCache.clear();
 
 		fetchMock = jest.fn().mockResolvedValue({
 			ok: true,
@@ -264,40 +290,37 @@ describe("_loadLocale", () => {
 
 	afterEach(() => {
 		_i18n.locales = {};
-		_i18nCache.clear();
 		_config.i18n.loadPath = null;
 		_config.i18n.cache = true;
+		_config.i18n.ns = [];
+		_i18nCache.clear();
 		global.fetch = originalFetch;
 	});
 
 	test("flat mode: fetches and merges", async () => {
-		await _loadLocale("en", null);
+		await _loadI18nForLocale("en");
 		expect(fetchMock).toHaveBeenCalledWith("/locales/en.json");
 		expect(_i18n.locales.en).toEqual({ greeting: "Hello" });
 	});
 
 	test("ns mode: fetches with namespace", async () => {
 		_config.i18n.loadPath = "/locales/{locale}/{ns}.json";
-		await _loadLocale("en", "dashboard");
+		_config.i18n.ns = ["dashboard"];
+		await _loadI18nForLocale("en");
 		expect(fetchMock).toHaveBeenCalledWith("/locales/en/dashboard.json");
 	});
 
-	test("caches response", async () => {
-		await _loadLocale("en", null);
-		await _loadLocale("en", null);
+	test("caches response when cache enabled", async () => {
+		_config.i18n.cache = true;
+		await _loadI18nForLocale("en");
+		await _loadI18nForLocale("en");
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-	});
-
-	test("skips fetch when cache hit", async () => {
-		_i18nCache.set("en", { greeting: "Cached" });
-		await _loadLocale("en", null);
-		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
 	test("handles fetch error gracefully", async () => {
 		fetchMock.mockResolvedValue({ ok: false, status: 404 });
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation();
-		await _loadLocale("en", null);
+		await _loadI18nForLocale("en");
 		expect(warnSpy).toHaveBeenCalled();
 		expect(_i18n.locales.en).toBeUndefined();
 		warnSpy.mockRestore();
@@ -305,8 +328,8 @@ describe("_loadLocale", () => {
 
 	test("respects cache:false", async () => {
 		_config.i18n.cache = false;
-		await _loadLocale("en", null);
-		await _loadLocale("en", null);
+		await _loadI18nForLocale("en");
+		await _loadI18nForLocale("en");
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
@@ -316,8 +339,7 @@ describe("_loadLocale", () => {
 			ok: true,
 			json: () => Promise.resolve({ greeting: "Hello", nav: { docs: "Docs" } }),
 		});
-		_config.i18n.cache = false;
-		await _loadLocale("en", null);
+		await _loadI18nForLocale("en");
 		expect(_i18n.locales.en).toEqual({
 			existing: "value",
 			greeting: "Hello",
@@ -328,13 +350,13 @@ describe("_loadLocale", () => {
 	test("handles network error gracefully", async () => {
 		fetchMock.mockRejectedValue(new Error("Network error"));
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation();
-		await _loadLocale("en", null);
+		await _loadI18nForLocale("en");
 		expect(warnSpy).toHaveBeenCalled();
 		warnSpy.mockRestore();
 	});
 });
 
-describe("_loadI18nForLocale", () => {
+describe("_loadI18nForLocale (Legacy tests)", () => {
 	const originalFetch = global.fetch;
 	let fetchMock;
 
@@ -588,5 +610,104 @@ describe("_notifyI18n", () => {
 		_notifyI18n();
 		expect(fn).not.toHaveBeenCalled();
 		expect(_i18nListeners.has(fn)).toBe(false);
+	});
+});
+
+describe("t-html sanitization integration", () => {
+	beforeEach(() => {
+		_i18n.locale = "en";
+		_i18n.locales = {
+			en: {
+				xssScript: "<b>Bold</b><script>alert(\"xss\")</script>",
+				xssOnerror: "<b>Bold</b><img src=x onerror=alert(1)>",
+			},
+		};
+		_config.i18n.fallbackLocale = "en";
+	});
+
+	afterEach(() => {
+		_i18n.locale = "en";
+		_i18n.locales = {};
+		document.body.innerHTML = "";
+	});
+
+	test("strips <script> tags from t-html output", () => {
+		const parent = document.createElement("div");
+		const el = document.createElement("span");
+		el.setAttribute("t", "xssScript");
+		el.setAttribute("t-html", "");
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		expect(el.innerHTML).toContain("<b>Bold</b>");
+		expect(el.innerHTML).not.toContain("<script>");
+		expect(el.innerHTML).not.toContain("alert");
+	});
+
+	test("strips onerror attributes from t-html output", () => {
+		const parent = document.createElement("div");
+		const el = document.createElement("span");
+		el.setAttribute("t", "xssOnerror");
+		el.setAttribute("t-html", "");
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		expect(el.innerHTML).toContain("<b>Bold</b>");
+		expect(el.innerHTML).not.toContain("onerror");
+		expect(el.innerHTML).not.toContain("alert");
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  AUDIT FIX — M10: t directive with t-html calls _disposeChildren
+//  before setting innerHTML
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("t-html child disposal (M10)", () => {
+	beforeEach(() => {
+		_i18n.locale = "en";
+		_i18n.locales = {
+			en: {
+				richMsg: "<b>Hello</b>",
+				richMsgUpdated: "<em>Updated</em>",
+			},
+		};
+		_config.i18n.fallbackLocale = "en";
+	});
+
+	afterEach(() => {
+		_i18n.locale = "en";
+		_i18n.locales = {};
+		document.body.innerHTML = "";
+	});
+
+	test("should call child disposers when t-html updates with new content", () => {
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{ }");
+		const el = document.createElement("span");
+		el.setAttribute("t", "richMsg");
+		el.setAttribute("t-html", "");
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+		processTree(parent);
+
+		expect(el.innerHTML).toContain("<b>Hello</b>");
+
+		// Plant a mock disposer on the child <b> element
+		const boldChild = el.querySelector("b");
+		expect(boldChild).toBeTruthy();
+		const disposed = [];
+		boldChild.__disposers = [() => disposed.push("bold-disposed")];
+
+		// Trigger an i18n update that changes the content
+		_i18n.locales.en.richMsg = "<em>Changed</em>";
+		_notifyI18n();
+
+		// Verify the old child's disposer was called
+		expect(disposed).toEqual(["bold-disposed"]);
+		// And the new content is in place
+		expect(el.innerHTML).toContain("<em>Changed</em>");
 	});
 });

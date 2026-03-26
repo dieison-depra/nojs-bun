@@ -463,26 +463,37 @@ registerDirective("validate", {
 
 				if (triggers.includes("input")) {
 					field.addEventListener("input", handler);
+					_onDispose(() => field.removeEventListener("input", handler));
 				} else {
 					// Always track dirty and re-validate on input for data accuracy
 					// (validate-on only affects visual feedback like error-class/templates)
-					field.addEventListener("input", () => {
+					const silentInputHandler = () => {
 						dirtyFields.add(field.name);
 						formCtx.dirty = true;
 						checkValidity();
-					});
+					};
+					field.addEventListener("input", silentInputHandler);
+					_onDispose(() =>
+						field.removeEventListener("input", silentInputHandler),
+					);
 				}
 				if (triggers.includes("blur") || triggers.includes("focusout")) {
-					field.addEventListener("focusout", (_e) => {
+					const blurFocusoutHandler = (_e) => {
 						touchHandler();
 						if (triggers.includes("blur")) handler();
-					});
+					};
+					field.addEventListener("focusout", blurFocusoutHandler);
+					_onDispose(() =>
+						field.removeEventListener("focusout", blurFocusoutHandler),
+					);
 				} else {
 					// Always track touched on focusout
 					field.addEventListener("focusout", touchHandler);
+					_onDispose(() => field.removeEventListener("focusout", touchHandler));
 				}
 				if (triggers.includes("submit")) {
 					field.addEventListener("focusout", touchHandler);
+					_onDispose(() => field.removeEventListener("focusout", touchHandler));
 				}
 			}
 
@@ -496,21 +507,25 @@ registerDirective("validate", {
 				// Legacy behavior: form-level input, change, and focusout
 				const inputHandler = (e) => {
 					const target = e.target;
-					if (target?.name) {
+					if (target && target.name) {
 						dirtyFields.add(target.name);
 					}
 					formCtx.dirty = true;
 					checkValidity();
 				};
 				el.addEventListener("input", inputHandler);
+				_onDispose(() => el.removeEventListener("input", inputHandler));
 				el.addEventListener("change", inputHandler);
-				el.addEventListener("focusout", (e) => {
-					if (e.target?.name) {
+				_onDispose(() => el.removeEventListener("change", inputHandler));
+				const focusoutHandler = (e) => {
+					if (e.target && e.target.name) {
 						touchedFields.add(e.target.name);
 					}
 					formCtx.touched = true;
 					checkValidity();
-				});
+				};
+				el.addEventListener("focusout", focusoutHandler);
+				_onDispose(() => el.removeEventListener("focusout", focusoutHandler));
 			} else {
 				// Per-field event binding with validate-on
 				for (const field of getFields()) {
@@ -518,7 +533,7 @@ registerDirective("validate", {
 				}
 			}
 
-			el.addEventListener("submit", (_e) => {
+			const submitHandler = (_e) => {
 				// If validate-on="submit", run validation now
 				formCtx.submitting = true;
 				// Mark all fields as touched on submit
@@ -532,7 +547,9 @@ registerDirective("validate", {
 					formCtx.submitting = false;
 					ctx.$set("$form", { ...formCtx });
 				});
-			});
+			};
+			el.addEventListener("submit", submitHandler);
+			_onDispose(() => el.removeEventListener("submit", submitHandler));
 
 			// Initial check
 			requestAnimationFrame(checkValidity);
@@ -549,7 +566,7 @@ registerDirective("validate", {
 				el.tagName === "SELECT")
 		) {
 			const errorTpl = el.getAttribute("error");
-			el.addEventListener("input", () => {
+			const fieldInputHandler = () => {
 				const err = _validateField(el.value, rules, {});
 				if (err && errorTpl) {
 					let errorEl = el.nextElementSibling?.__validationError
@@ -564,6 +581,7 @@ registerDirective("validate", {
 					const clone = _cloneTemplate(errorTpl);
 					if (clone) {
 						const childCtx = createContext({ err: { message: err } }, ctx);
+						_disposeChildren(errorEl);
 						errorEl.innerHTML = "";
 						errorEl.__ctx = childCtx;
 						errorEl.appendChild(clone);
@@ -573,9 +591,14 @@ registerDirective("validate", {
 					const errorEl = el.nextElementSibling?.__validationError
 						? el.nextElementSibling
 						: null;
-					if (errorEl) errorEl.innerHTML = "";
+					if (errorEl) {
+						_disposeChildren(errorEl);
+						errorEl.innerHTML = "";
+					}
 				}
-			});
+			};
+			el.addEventListener("input", fieldInputHandler);
+			_onDispose(() => el.removeEventListener("input", fieldInputHandler));
 		}
 	},
 });
@@ -601,9 +624,11 @@ registerDirective("error-boundary", {
 		}
 
 		// Listen for NoJS expression errors dispatched from event handlers
-		el.addEventListener("nojs:error", (e) => {
+		const nojsErrorHandler = (e) => {
 			showFallback(e.detail?.message || "An error occurred");
-		});
+		};
+		el.addEventListener("nojs:error", nojsErrorHandler);
+		_onDispose(() => el.removeEventListener("nojs:error", nojsErrorHandler));
 
 		// Listen for window-level errors (resource load failures, etc.)
 		const errorHandler = (e) => {

@@ -32,6 +32,81 @@ function _stripBase(pathname) {
 	return pathname.replace(new RegExp(`^${escaped}`), "") || "/";
 }
 
+// Interpolates {expr} placeholders in a raw string (used for page-jsonld on route templates).
+// Uses the same JSON-safe regex as the head-management directive — skips
+// { starting with " or ' to avoid consuming JSON structural braces.
+function _interpolateRaw(str, ctx) {
+	return str.replace(/\{([^}"'{][^}]*)\}/g, (_, expr) => {
+		try {
+			const val = evaluate(expr.trim(), ctx);
+			return val != null ? String(val) : "";
+		} catch (_) {
+			return "";
+		}
+	});
+}
+
+// Updates <head> metadata from route template attributes (page-title, page-description,
+// page-canonical, page-jsonld). Called after each navigation with the matched template
+// and the current route state. $route and $store are available as implicit variables.
+function _applyRouteHeadAttrs(tpl, current) {
+	if (!document.head) return;
+	const ctx = createContext({}, null);
+	ctx.__raw.$route = current;
+	ctx.__raw.$store = _stores;
+
+	// page-title
+	const titleExpr = tpl.getAttribute("page-title");
+	if (titleExpr) {
+		const val = evaluate(titleExpr, ctx);
+		if (val != null) document.title = String(val);
+	}
+
+	// page-description → <meta name="description">
+	const descExpr = tpl.getAttribute("page-description");
+	if (descExpr) {
+		const val = evaluate(descExpr, ctx);
+		if (val != null) {
+			let meta = document.querySelector('meta[name="description"]');
+			if (!meta) {
+				meta = document.createElement("meta");
+				meta.name = "description";
+				document.head.appendChild(meta);
+			}
+			meta.content = String(val);
+		}
+	}
+
+	// page-canonical → <link rel="canonical">
+	const canonicalExpr = tpl.getAttribute("page-canonical");
+	if (canonicalExpr) {
+		const val = evaluate(canonicalExpr, ctx);
+		if (val != null) {
+			let link = document.querySelector('link[rel="canonical"]');
+			if (!link) {
+				link = document.createElement("link");
+				link.rel = "canonical";
+				document.head.appendChild(link);
+			}
+			link.href = String(val);
+		}
+	}
+
+	// page-jsonld → <script type="application/ld+json" data-nojs>
+	// Supports {placeholder} interpolation for dynamic values (e.g. $route.params.id).
+	const jsonldAttr = tpl.getAttribute("page-jsonld");
+	if (jsonldAttr) {
+		let script = document.querySelector('script[type="application/ld+json"][data-nojs]');
+		if (!script) {
+			script = document.createElement("script");
+			script.type = "application/ld+json";
+			script.setAttribute("data-nojs", "");
+			document.head.appendChild(script);
+		}
+		script.textContent = _interpolateRaw(jsonldAttr, ctx);
+	}
+}
+
 export function _createRouter() {
 	const routes = [];
 	const _wildcards = new Map();
@@ -312,6 +387,24 @@ export function _createRouter() {
 
 				_clearDeclared(wrapper);
 				processTree(wrapper);
+
+				// Update <head> metadata from route template attributes (page-title, etc.).
+				_applyRouteHeadAttrs(tpl, current);
+
+				// Focus management: move focus to the new content when focusBehavior is "auto".
+				if (_config.router.focusBehavior === "auto") {
+					requestAnimationFrame(() => {
+						const focusTarget =
+							outletEl.querySelector("[autofocus]") ||
+							outletEl.querySelector('[tabindex="-1"]') ||
+							outletEl.querySelector("h1") ||
+							outletEl;
+						if (!focusTarget.hasAttribute("tabindex")) {
+							focusTarget.setAttribute("tabindex", "-1");
+						}
+						focusTarget.focus({ preventScroll: true });
+					});
+				}
 			} else if (!matched || tpl?.__loadFailed) {
 				// No route matched and no wildcard — inject built-in 404
 				outletEl.innerHTML = _BUILTIN_404_HTML;
@@ -455,6 +548,14 @@ export function _createRouter() {
 			entry.outlets[outlet] = templateEl;
 		},
 		async init() {
+			// Warn when hash mode is active: hash URLs are not indexed as separate pages by search engines.
+			// Suppress with: NoJS.config({ router: { suppressHashWarning: true } })
+			if (_config.router.useHash && !_config.router.suppressHashWarning) {
+				_warn(
+					"Router is running in hash mode (useHash: true). URLs like /#/about are not indexed as separate pages by search engines. Use useHash: false with a server-side SPA fallback (try_files) for SEO-friendly routing.",
+				);
+			}
+
 			// Collect route templates
 			document.querySelectorAll("template[route]").forEach((tpl) => {
 				const path = tpl.getAttribute("route");

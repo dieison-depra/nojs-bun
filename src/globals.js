@@ -18,6 +18,8 @@ export const _config = {
 		scrollBehavior: "top",
 		templates: "pages",
 		ext: ".tpl",
+		suppressHashWarning: false,
+		focusBehavior: "none",
 	},
 	i18n: {
 		defaultLocale: "en",

@@ -73,11 +73,30 @@ The following metrics represent the complete unit test suite (1046 tests) on mac
 
 ---
 
-## ✅ Final Status
+## ✅ Final Status (v1.11.0 — 2026-03-26)
 - **Runtime:** 100% Bun Native
+- **Upstream parity:** v1.11.0 (ErickXavier/no-js `6fbde9f`)
 - **Build Speed:** < 0.1s
 - **Test Speed:** < 10s (Unit) / < 30s (E2E)
-- **E2E Success (Playwright):** 100% (120/120 tests)
-- **Unit Test Success (Bun):** 99.9% (1034/1046 tests)
-- **Code Coverage:** ~95.2%
+- **E2E Success (Playwright):** 100% (26/26 tests — infraWebDev)
+- **Unit Test Success (Bun):** 1370 tests, 3 pre-existing failures (router popstate, anchor link, validation reset — unrelated to migration)
 - **Vulnerabilities:** 0 (Audit clean)
+
+---
+
+## v1.11.0 Upstream Sync (2026-03-26)
+
+After the initial Bun migration, the following features from upstream v1.11.0 were ported:
+
+| Feature | Files |
+|---------|-------|
+| Head management directives (`page-title`, `page-description`, `page-canonical`, `page-jsonld`) | `src/directives/head.js` (new), `src/index.js` |
+| Router `_applyRouteHeadAttrs()` — SEO meta from route templates | `src/router.js` |
+| Router `focusBehavior` — a11y focus management on navigation | `src/globals.js`, `src/router.js` |
+| Router `suppressHashWarning` — silence hash-mode warning | `src/globals.js`, `src/router.js` |
+| Memory leak regression test suite (T1–T6) | `__tests__/leak-regression.test.js` |
+| API audit test suite | `__tests__/audit-changes.test.js` |
+| Head directives test suite | `__tests__/directives-head.test.js`, `__tests__/inject-head-attrs.test.js` |
+| Keyed reconciliation benchmark | `__benchmarks__/keyed-vs-rebuild.bench.spec.ts` |
+
+See `sync-map-with-nojs.md` for full traceability and instructions for future syncs.

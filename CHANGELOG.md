@@ -21,6 +21,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `docs/md/animations.md`: add animation attributes reference table and a note explaining the `animate-duration` / fallback-timeout relationship
 
+## [1.11.0] — 2026-03-26
+
+### Added
+
+- Head management directives for reactive `<head>` updates from body elements ([upstream #42](https://github.com/ErickXavier/no-js/pull/42)):
+  - `page-title` — updates `document.title` reactively
+  - `page-description` — creates/updates `<meta name="description">`
+  - `page-canonical` — creates/updates `<link rel="canonical">`
+  - `page-jsonld` — creates/updates `<script type="application/ld+json" data-nojs>` with `{expr}` interpolation
+- `_applyRouteHeadAttrs(tpl, current)` in router — declare SEO meta tags directly on `<template route="...">` elements; applied on every navigation
+- Router option `focusBehavior` (`"none"` | `"auto"`) — when `"auto"`, moves browser focus to `[autofocus]`, `[tabindex="-1"]`, `h1`, or the outlet on each SPA navigation (accessibility improvement)
+- Router option `suppressHashWarning` — silences the hash-mode console warning for projects that intentionally use `useHash: true`
+- Memory leak regression tests T1–T6 (`__tests__/leak-regression.test.js`) — cover `each`/store watcher accumulation and `MutationObserver` disposal
+- Audit-changes test suite (`__tests__/audit-changes.test.js`) — verifies public API surface stability (adapted from upstream: CJS→ESM, `__dirname`→`import.meta.dir`)
+- Keyed reconciliation vs full-rebuild benchmark (`__benchmarks__/keyed-vs-rebuild.bench.spec.ts`)
+
+### Fixed
+
+- `_watchExpr`: `MutationObserver` created for `$store` expressions now registered via `_onDispose` — eliminates 40-node detached DOM leak on `each` re-renders (upstream regression fix)
+
+---
+
 ## [1.10.1](https://github.com/ErickXavier/no-js/compare/v1.10.0...v1.10.1) — 2026-03-23
 
 ### Security

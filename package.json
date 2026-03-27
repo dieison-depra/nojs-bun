@@ -1,5 +1,5 @@
 {
-	"name": "@erickxavier/no-js",
+	"name": "@dieison-depra/no-js",
 	"version": "1.11.0",
 	"description": "The HTML-first reactive framework — build dynamic web apps with just HTML attributes, no JavaScript required",
 	"main": "dist/cjs/no.js",
@@ -50,13 +50,13 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/ErickXavier/no-js.git"
+		"url": "git+https://github.com/dieison-depra/nojs-bun.git"
 	},
-	"homepage": "https://no-js.dev",
+	"homepage": "https://github.com/dieison-depra/nojs-bun",
 	"bugs": {
-		"url": "https://github.com/ErickXavier/no-js/issues"
+		"url": "https://github.com/dieison-depra/nojs-bun/issues"
 	},
-	"author": "exs.dev",
+	"author": "dieison-depra",
 	"license": "MIT",
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.7",

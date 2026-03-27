@@ -1,8 +1,14 @@
 <h1>
-  <img src="docs/logo-dark-round.png" alt="No.JS" width="26" style="vertical-align: middle; margin-top: -6px;"> No.JS
+  <img src="docs/logo-dark-round.png" alt="No.JS" width="26" style="vertical-align: middle; margin-top: -6px;"> No.JS — Bun Fork
 </h1>
 
-**The HTML-First Reactive Framework**
+> **This is a personal fork** of [ErickXavier/no-js](https://github.com/ErickXavier/no-js), migrated to run 100% natively on the [Bun](https://bun.sh) runtime.
+> It introduces its own additions and divergences. It may eventually incorporate new features from the upstream project, but that is not guaranteed or a stated goal.
+> For the original project, documentation, CDN, and community, see the upstream repo: **[ErickXavier/no-js](https://github.com/ErickXavier/no-js)**.
+
+---
+
+**The HTML-First Reactive Framework — Bun Native**
 
 Build dynamic, reactive web applications using nothing but HTML attributes.
 No build step. No virtual DOM. No transpiler. No JSX. Just HTML.
@@ -40,37 +46,29 @@ No build step. No virtual DOM. No transpiler. No JSX. Just HTML.
 
 ## Quick Start
 
-### CDN
+### Local / Self-hosted
 
-```html
-<script src="https://cdn.no-js.dev/"></script>
-```
-
-With the CDN, No.JS auto-starts on `DOMContentLoaded`. You can configure it before it loads:
-
-```html
-<script>
-NoJS.config({
-  debug: true,
-  router: {
-    useHash: true
-  },
-});
-</script>
-```
-
-### NPM
+Build from source and include the output file:
 
 ```bash
-npm install no-js-framework
+git clone https://github.com/dieison-depra/nojs-bun.git
+cd nojs-bun
+bun install
+bun run build
+# Output: dist/iife/no.js
 ```
 
-```javascript
-// ESM
-import NoJS from 'no-js-framework';
+```html
+<script src="/path/to/no.js"></script>
+```
 
-// CommonJS
-const NoJS = require('no-js-framework');
+### CDN (upstream — original project)
+
+The upstream project is available via CDN. This fork is **not published** to any CDN or npm registry:
+
+```html
+<!-- upstream only -->
+<script src="https://cdn.no-js.dev/"></script>
 ```
 
 ---
@@ -198,26 +196,31 @@ Full documentation is available in the [docs/](docs/) folder:
 
 ---
 
-## Community
+## Differences from Upstream
 
-Join the conversation and get help:
+| Area | This fork (Bun) | Upstream (ErickXavier/no-js) |
+|------|----------------|------------------------------|
+| Runtime | Bun (100% native) | Node.js |
+| Build | `Bun.build` | esbuild |
+| Test runner | `bun test` | Jest |
+| Linter/formatter | Biome | ESLint / Prettier |
+| Dev server | `Bun.serve` | Node `http` |
+| Dead code | knip | — |
+| Test env | happy-dom + jsdom | jsdom |
+| Module format | ESM (`"type": "module"`) | CJS + ESM |
+
+## Credits
+
+Original project: **[No.JS](https://github.com/ErickXavier/no-js)** by [Erick Xavier](https://github.com/ErickXavier).
+This fork exists solely to run the framework on a Bun-native environment.
+
+## Community (upstream)
+
+For questions, discussions, and community support, refer to the original project:
 
 - [Discord](https://discord.gg/CaSbGYg3xY)
 - [GitHub Discussions](https://github.com/ErickXavier/no-js/discussions)
 
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
-
-- [Changelog](CHANGELOG.md)
-
 ## License
 
-[MIT](LICENSE)
-
----
-
-<p align="center">
-  <strong>No.JS</strong> — Because the best JavaScript is the JavaScript you don't write.<br>
-  <code>Zero dependencies</code> · <code>MIT License</code>
-</p>
+[MIT](LICENSE) — same as the original project.

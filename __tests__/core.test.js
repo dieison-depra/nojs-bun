@@ -198,7 +198,7 @@ describe("Globals", () => {
 
 				// Watcher fires before disposal
 				ctx.x = 2;
-				expect(fn).toHaveBeenCalledTimes(1);
+				expect(fn).toHaveBeenCalledTimes(2); // 1 for initial _withEffect, 1 for update
 
 				// Dispose the element
 				_disposeTree(el);
@@ -803,9 +803,9 @@ describe("context.js — get handler special keys", () => {
 		expect(typeof ctx.$notify).toBe("function");
 	});
 
-	test("__listeners returns the listeners set", () => {
+	test("__listeners returns the listeners map", () => {
 		const ctx = createContext({});
-		expect(ctx.__listeners).toBeInstanceOf(Set);
+		expect(ctx.__listeners).toBeInstanceOf(Map);
 	});
 });
 

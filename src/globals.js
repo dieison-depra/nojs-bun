@@ -2,6 +2,8 @@
 //  SHARED STATE & UTILITIES
 // ═══════════════════════════════════════════════════════════════════════
 
+import { _withEffect } from "./context.js";
+
 export const _config = {
 	baseApiUrl: "",
 	headers: {},
@@ -118,6 +120,7 @@ export function _watchExpr(expr, ctx, fn) {
 		unwatch();
 		_storeWatchers.delete(fn);
 	});
+	_withEffect(fn, fn); // Initial run with tracking
 	if (typeof expr === "string" && expr.includes("$store")) {
 		_storeWatchers.add(fn);
 		fn._el = _currentEl;

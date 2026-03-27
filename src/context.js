@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
-//  REACTIVE CONTEXT
+//  REACTIVE CONTEXT (FINE-GRAINED)
 // ═══════════════════════════════════════════════════════════════════════
 
 import { _ctxRegistry, _devtoolsEmit } from "./devtools.js";
@@ -17,6 +17,9 @@ let _batchDepth = 0;
 const _batchQueue = new Set();
 let _ctxId = 0;
 let _ctxGeneration = 0;
+
+// Global state for dependency tracking
+export let _activeEffect = null;
 
 export function _resetCtxId() {
 	_ctxId = 0;
@@ -40,32 +43,58 @@ export function _endBatch() {
 	}
 }
 
+/**
+ * Execute a function and track which reactive keys it accesses.
+ */
+export function _withEffect(fn, effect) {
+	const prev = _activeEffect;
+	_activeEffect = effect;
+	try {
+		return fn();
+	} finally {
+		_activeEffect = prev;
+	}
+}
+
 export function createContext(data = {}, parent = null) {
-	const listeners = new Set();
+	// listeners: Map<key, Set<fn>>
+	// key '*' is for global listeners (catch-all)
+	const listeners = new Map();
+	listeners.set("*", new Set());
+
 	const raw = {};
 	Object.assign(raw, data);
 	if (_config.devtools) raw.__devtoolsId = ++_ctxId;
 	let notifying = false;
 
-	function notify() {
+	function getListenersForKey(key) {
+		const sets = [listeners.get("*")];
+		if (key && key !== "*") {
+			const specific = listeners.get(key);
+			if (specific) sets.push(specific);
+		}
+		return sets;
+	}
+
+	function notify(key = "*") {
 		if (notifying) return;
 		notifying = true;
 		try {
-			if (_batchDepth > 0) {
-				for (const fn of listeners) {
+			const setsToNotify = key === "*" 
+				? Array.from(listeners.values())
+				: getListenersForKey(key);
+
+			for (const set of setsToNotify) {
+				for (const fn of set) {
 					if (fn._el && !fn._el.isConnected) {
-						listeners.delete(fn);
+						set.delete(fn);
 						continue;
 					}
-					_batchQueue.add(fn);
-				}
-			} else {
-				for (const fn of listeners) {
-					if (fn._el && !fn._el.isConnected) {
-						listeners.delete(fn);
-						continue;
+					if (_batchDepth > 0) {
+						_batchQueue.add(fn);
+					} else {
+						fn();
 					}
-					fn();
 				}
 			}
 		} finally {
@@ -78,13 +107,30 @@ export function createContext(data = {}, parent = null) {
 			if (key === "__isProxy") return true;
 			if (key === "__raw") return target;
 			if (key === "__listeners") return listeners;
+			
 			if (key === "$watch")
-				return (fn) => {
+				return (keyOrFn, maybeFn) => {
+					let k = "*";
+					let fn = keyOrFn;
+					
+					if (typeof keyOrFn === "string" && typeof maybeFn === "function") {
+						k = keyOrFn;
+						fn = maybeFn;
+					}
+
 					if (_currentEl) fn._el = _currentEl;
-					listeners.add(fn);
-					return () => listeners.delete(fn);
+					
+					if (!listeners.has(k)) listeners.set(k, new Set());
+					listeners.get(k).add(fn);
+					
+					return () => {
+						const set = listeners.get(k);
+						if (set) set.delete(fn);
+					};
 				};
+
 			if (key === "$notify") return notify;
+			
 			if (key === "$set")
 				return (k, v) => {
 					const parts = k.split(".");
@@ -99,9 +145,10 @@ export function createContext(data = {}, parent = null) {
 						const lastKey = parts[parts.length - 1];
 						const old = obj[lastKey];
 						obj[lastKey] = v;
-						if (old !== v) notify();
+						if (old !== v) notify(parts[0]); // Notify the root key for deep changes
 					}
 				};
+
 			if (key === "$parent") return parent;
 			if (key === "$refs") return _refs;
 			if (key === "$store") return _stores;
@@ -110,10 +157,18 @@ export function createContext(data = {}, parent = null) {
 			if (key === "$router") return _routerInstance;
 			if (key === "$i18n") return _i18n;
 			if (key === "$form") return target.$form || null;
+			
 			// Plugin globals fallback (after all core $ checks)
-			if (key.startsWith("$") && key.slice(1) in _globals) {
+			if (typeof key === "string" && key.startsWith("$") && key.slice(1) in _globals) {
 				return _globals[key.slice(1)];
 			}
+
+			// Automatic dependency tracking
+			if (_activeEffect && typeof key === "string" && !key.startsWith("$")) {
+				if (!listeners.has(key)) listeners.set(key, new Set());
+				listeners.get(key).add(_activeEffect);
+			}
+
 			if (key in target) return target[key];
 			if (parent?.__isProxy) return parent[key];
 			return undefined;
@@ -123,7 +178,7 @@ export function createContext(data = {}, parent = null) {
 			target[key] = value;
 			if (old !== value) {
 				_ctxGeneration++;
-				notify();
+				notify(key);
 				_devtoolsEmit("ctx:updated", {
 					id: target.__devtoolsId,
 					key,

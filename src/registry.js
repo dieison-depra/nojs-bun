@@ -90,9 +90,11 @@ function _disposeElement(node) {
 	const ctxId = node.__ctx?.__raw?.__devtoolsId;
 
 	if (node.__ctx?.__listeners) {
-		for (const fn of node.__ctx.__listeners) {
-			_storeWatchers.delete(fn);
-			_i18nListeners.delete(fn);
+		for (const set of node.__ctx.__listeners.values()) {
+			for (const fn of set) {
+				_storeWatchers.delete(fn);
+				_i18nListeners.delete(fn);
+			}
 		}
 		node.__ctx.__listeners.clear();
 	}

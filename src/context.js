@@ -68,7 +68,10 @@ export function createContext(data = {}, parent = null) {
 	let notifying = false;
 
 	function getListenersForKey(key) {
-		const sets = [listeners.get("*")];
+		const sets = [];
+		const globalSet = listeners.get("*");
+		if (globalSet) sets.push(globalSet);
+		
 		if (key && key !== "*") {
 			const specific = listeners.get(key);
 			if (specific) sets.push(specific);
@@ -85,6 +88,7 @@ export function createContext(data = {}, parent = null) {
 				: getListenersForKey(key);
 
 			for (const set of setsToNotify) {
+				if (!set) continue;
 				for (const fn of set) {
 					if (fn._el && !fn._el.isConnected) {
 						set.delete(fn);
@@ -145,7 +149,7 @@ export function createContext(data = {}, parent = null) {
 						const lastKey = parts[parts.length - 1];
 						const old = obj[lastKey];
 						obj[lastKey] = v;
-						if (old !== v) notify(parts[0]); // Notify the root key for deep changes
+						if (old !== v) notify(parts[0]);
 					}
 				};
 
@@ -158,7 +162,6 @@ export function createContext(data = {}, parent = null) {
 			if (key === "$i18n") return _i18n;
 			if (key === "$form") return target.$form || null;
 			
-			// Plugin globals fallback (after all core $ checks)
 			if (typeof key === "string" && key.startsWith("$") && key.slice(1) in _globals) {
 				return _globals[key.slice(1)];
 			}
@@ -178,7 +181,9 @@ export function createContext(data = {}, parent = null) {
 			target[key] = value;
 			if (old !== value) {
 				_ctxGeneration++;
-				notify(key);
+				if (typeof key === "string") notify(key);
+				else notify("*");
+				
 				_devtoolsEmit("ctx:updated", {
 					id: target.__devtoolsId,
 					key,
@@ -219,7 +224,6 @@ export function createContext(data = {}, parent = null) {
 }
 
 // Collect all keys from a context + its parent chain
-// Result is cached per context and invalidated on any reactive mutation.
 export function _collectKeys(ctx) {
 	const cache = ctx.__raw.__collectKeysCache;
 	if (cache && cache.gen === _ctxGeneration) return cache.result;

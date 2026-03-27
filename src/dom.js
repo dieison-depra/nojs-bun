@@ -15,7 +15,7 @@ export function findContext(el) {
 	let node = el;
 	while (node) {
 		if (node.__ctx) return node.__ctx;
-		node = node.parentElement;
+		node = node.parentNode || node.host;
 	}
 	return createContext();
 }

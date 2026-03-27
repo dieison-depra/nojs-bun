@@ -655,7 +655,6 @@ if (_safeDocument) _WINDOW_PROXY_OVERRIDES.document = _safeDocument;
 if (_safeHistory) _WINDOW_PROXY_OVERRIDES.history = _safeHistory;
 if (_safeNavigator) _WINDOW_PROXY_OVERRIDES.navigator = _safeNavigator;
 
-// Helper to get safe global value or undefined
 function g(name) {
 	if (name === "window") return _safeWindow;
 	if (name === "document") return _safeDocument;
@@ -667,10 +666,7 @@ function g(name) {
 	if (name === "clearTimeout") return clearTimeout;
 	if (name === "setInterval") return setInterval;
 	if (name === "clearInterval") return clearInterval;
-	
 	if (typeof globalThis === "undefined") return undefined;
-	
-	// Add other safe globals with typeof check to avoid ReferenceError
 	try {
 		switch(name) {
 			case "performance": return typeof performance !== "undefined" ? performance : undefined;
@@ -690,7 +686,6 @@ function g(name) {
 			case "Promise": return typeof Promise !== "undefined" ? Promise : undefined;
 		}
 	} catch(e) { return undefined; }
-	
 	return globalThis[name];
 }
 
@@ -856,20 +851,8 @@ export function evaluate(expr, ctx) {
 			_exprCache.set(mainExpr, jit);
 		}
 
-		const { vals } = _collectKeys(ctx);
-		const scope = { ...vals };
-		if (!("$store" in scope)) scope.$store = _stores;
-		if (!("$route" in scope)) scope.$route = _routerInstance?.current;
-		if (!("$router" in scope)) scope.$router = _routerInstance;
-		if (!("$i18n" in scope)) scope.$i18n = _i18n;
-		if (!("$refs" in scope)) scope.$refs = ctx.$refs;
-		if (!("$form" in scope)) scope.$form = ctx.$form || null;
-		for (const gk in _globals) {
-			const key = `$${gk}`;
-			if (!(key in scope)) scope[key] = _globals[gk];
-		}
-
-		let result = jit(scope, _ALL_GLOBALS);
+		// Pass the context proxy as scope to enable fine-grained tracking
+		let result = jit(ctx, _ALL_GLOBALS);
 
 		for (let i = 1; i < pipes.length; i++) {
 			result = _applyFilter(result, pipes[i]);
@@ -955,17 +938,8 @@ function _execStmtNode(node, scope) {
 
 export function _execStatement(expr, ctx, extraVars = {}) {
 	try {
-		const { vals } = _collectKeys(ctx);
-		const scope = { ...vals };
-		if (!("$store" in scope)) scope.$store = _stores;
-		if (!("$route" in scope)) scope.$route = _routerInstance?.current;
-		if (!("$router" in scope)) scope.$router = _routerInstance;
-		if (!("$i18n" in scope)) scope.$i18n = _i18n;
-		if (!("$refs" in scope)) scope.$refs = ctx.$refs;
-		for (const gk in _globals) {
-			const key = `$${gk}`;
-			if (!(key in scope)) scope[key] = _globals[gk];
-		}
+		// Use proxy for statements too
+		const scope = Object.create(ctx);
 		Object.assign(scope, extraVars);
 
 		const chainKeys = new Set();

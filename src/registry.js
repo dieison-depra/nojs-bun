@@ -27,12 +27,16 @@ export function _freezeDirectives() {
 }
 
 function _matchDirective(attrName) {
-	if (_directives.has(attrName))
+	if (_directives.has(attrName)) {
 		return { directive: _directives.get(attrName), match: attrName };
+	}
 	// Pattern matches
 	const patterns = ["class-*", "on:*", "style-*", "bind-*"];
 	for (const p of patterns) {
 		const prefix = p.replace("*", "");
+		// Special case: bind is exact match, bind-* is pattern
+		if (p === "bind-*" && attrName === "bind") continue;
+		
 		if (attrName.startsWith(prefix) && _directives.has(p)) {
 			return { directive: _directives.get(p), match: p };
 		}
@@ -101,19 +105,13 @@ function _disposeElement(node) {
 	}
 	if (node.__disposers) {
 		node.__disposers.forEach((fn) => {
-			fn();
+			if (typeof fn === "function") fn();
 		});
-		node.__disposers = null;
 	}
+	if (ctxId) _ctxRegistry.delete(ctxId);
 	node.__declared = false;
-
-	if (ctxId != null) {
-		_ctxRegistry.delete(ctxId);
-		_devtoolsEmit("ctx:disposed", {
-			id: ctxId,
-			elementTag: node.tagName?.toLowerCase(),
-		});
-	}
+	node.__ctx = null;
+	node.__disposers = null;
 }
 
 export function _disposeTree(root) {

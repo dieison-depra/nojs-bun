@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish:
@@ -28,11 +29,13 @@ jobs:
         run: bun run build
 
       - name: Run tests
-        run: bun test
+        run: bun test __tests__/
+
+      - name: Setup Node.js (npm trusted publishing)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
 
       - name: Publish
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-          bun publish --access public
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public

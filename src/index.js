@@ -11,7 +11,7 @@ import {
 	_processTemplateIncludes,
 	findContext,
 } from "./dom.js";
-import { evaluate, resolve } from "./evaluate.js";
+import { _execStatement, evaluate, resolve } from "./evaluate.js";
 // Core modules
 import {
 	_CANCEL,
@@ -568,6 +568,12 @@ const NoJS = {
 	processTree,
 	resolve,
 
+	// Manual execution (used by event delegation)
+	run(expr, el, event) {
+		const ctx = findContext(el);
+		_execStatement(expr, ctx, { $el: el, $event: event });
+	},
+
 	// Version
 	version: "1.10.1",
 };
@@ -599,5 +605,9 @@ Object.defineProperty(NoJS, "_initialized", {
 	},
 	configurable: true,
 });
+
+if (typeof window !== "undefined") {
+	window.nojs = NoJS;
+}
 
 export default NoJS;

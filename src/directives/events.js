@@ -7,6 +7,8 @@ import { _execStatement, evaluate } from "../evaluate.js";
 import { _onDispose } from "../globals.js";
 import { registerDirective } from "../registry.js";
 
+const DELEGATED_EVENTS = new Set(["click", "input", "change", "submit"]);
+
 registerDirective("on:*", {
 	priority: 20,
 	init(el, name, expr) {
@@ -14,6 +16,15 @@ registerDirective("on:*", {
 		const parts = name.replace("on:", "").split(".");
 		const event = parts[0];
 		const modifiers = new Set(parts.slice(1));
+
+		// Check if this event is delegated globally
+		if (DELEGATED_EVENTS.has(event) && modifiers.size === 0) {
+			const delegated = el.getAttribute("data-nojs-event") || "";
+			if (delegated.split(",").includes(event)) {
+				// CLI already optimized this, skip attaching individual listener
+				return;
+			}
+		}
 
 		// Lifecycle hooks
 		if (event === "mounted") {

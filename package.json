@@ -1,5 +1,5 @@
 {
-	"name": "@dieison-depra/no-js",
+	"name": "@dieison-depra/nojs-bun",
 	"version": "1.11.0",
 	"description": "The HTML-first reactive framework — build dynamic web apps with just HTML attributes, no JavaScript required",
 	"main": "dist/cjs/no.js",

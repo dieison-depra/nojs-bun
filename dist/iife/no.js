@@ -1,7 +1,7 @@
 /**
  * No.JS v1.11.0 — The HTML-First Reactive Framework
  * No more JavaScript. Just HTML attributes with superpowers.
- * @author exs.dev
+ * @author dieison-depra
  * @homepage https://no-js.dev
  * @license MIT
  * @see https://github.com/ErickXavier/no-js

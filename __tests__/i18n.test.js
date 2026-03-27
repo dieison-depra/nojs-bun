@@ -1,17 +1,13 @@
-
 import { _config } from "../src/globals.js";
 import {
-	_deepMerge,
 	_i18n,
 	_i18nCache,
 	_i18nListeners,
 	_loadI18nForLocale,
 	_loadI18nNamespace,
-	_loadLocale,
 	_notifyI18n,
-	_watchI18n,
 } from "../src/i18n.js";
-import { _disposeChildren, processTree } from "../src/registry.js";
+import { processTree } from "../src/registry.js";
 import "../src/directives/state.js";
 import "../src/directives/i18n.js";
 
@@ -618,7 +614,7 @@ describe("t-html sanitization integration", () => {
 		_i18n.locale = "en";
 		_i18n.locales = {
 			en: {
-				xssScript: "<b>Bold</b><script>alert(\"xss\")</script>",
+				xssScript: '<b>Bold</b><script>alert("xss")</script>',
 				xssOnerror: "<b>Bold</b><img src=x onerror=alert(1)>",
 			},
 		};

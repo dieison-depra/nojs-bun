@@ -55,20 +55,20 @@
  *     CSS does not actually define the animation class.
  */
 
-import { readFileSync } from "fs";
-import { resolve } from "path";
-import { createContext, _collectKeys } from "../src/context.js";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { _animateIn, _animateOut } from "../src/animations.js";
+import { _collectKeys, createContext } from "../src/context.js";
 import {
-	_stores,
-	_storeWatchers,
 	_notifyStoreWatchers,
-	_watchExpr,
 	_onDispose,
 	_setCurrentEl,
+	_stores,
+	_storeWatchers,
+	_watchExpr,
 } from "../src/globals.js";
-import { processTree, _disposeTree, _disposeChildren } from "../src/registry.js";
-import { _animateIn, _animateOut } from "../src/animations.js";
 import NoJS from "../src/index.js";
+import { _disposeTree, processTree } from "../src/registry.js";
 
 // ─── Setup ──────────────────────────────────────────────────────────────────
 
@@ -208,7 +208,7 @@ describe("[2] _watchExpr MutationObserver — both cleanup paths work correctly"
 	});
 
 	test("removing the MO would leave stale watchers after external DOM removal (regression guard)", async () => {
-		const ctx = createContext({});
+		const _ctx = createContext({});
 		const fn = jest.fn();
 		fn._el = null;
 
@@ -301,14 +301,20 @@ describe("[3] animations.js — fallback timeout behaviour", () => {
 		_animateIn(el, null, "fade"); // no durationMs → fallback = 1000 ms
 
 		// Classes are added synchronously
-		expect(el.firstElementChild.classList.contains("fade-enter-active")).toBe(true);
+		expect(el.firstElementChild.classList.contains("fade-enter-active")).toBe(
+			true,
+		);
 
 		// Run rAF (0 ms) + 1000 ms fallback timeout
 		jest.runAllTimers();
 
 		// After fallback fires, enter-active and enter-to must be removed
-		expect(el.firstElementChild.classList.contains("fade-enter-active")).toBe(false);
-		expect(el.firstElementChild.classList.contains("fade-enter-to")).toBe(false);
+		expect(el.firstElementChild.classList.contains("fade-enter-active")).toBe(
+			false,
+		);
+		expect(el.firstElementChild.classList.contains("fade-enter-to")).toBe(
+			false,
+		);
 	});
 
 	test("callback is NOT called twice if both animationend and timeout fire", () => {
@@ -416,7 +422,9 @@ describe("[T4] get directive — _disposeChildren precedes innerHTML= in all bra
 		const disposePositions = [...src.matchAll(/_disposeChildren\(el\)/g)].map(
 			(m) => m.index,
 		);
-		const clearPositions = [...src.matchAll(/el\.innerHTML\s*=\s*""/g)].map((m) => m.index);
+		const clearPositions = [...src.matchAll(/el\.innerHTML\s*=\s*""/g)].map(
+			(m) => m.index,
+		);
 
 		expect(disposePositions.length).toBeGreaterThan(0);
 		expect(clearPositions.length).toBe(disposePositions.length);

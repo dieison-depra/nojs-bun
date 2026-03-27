@@ -258,7 +258,7 @@ describe("Cache", () => {
 		});
 	});
 
-	describe("no-op for strategy \"none\"", () => {
+	describe('no-op for strategy "none"', () => {
 		test("cacheGet returns null", () => {
 			expect(_cacheGet("key", "none")).toBeNull();
 		});
@@ -358,7 +358,7 @@ describe("Cache", () => {
 
 describe("fetch.js — string body that is valid JSON", () => {
 	test("sends JSON string body with application/json content-type", async () => {
-		const jsonString = "{\"key\":\"value\"}";
+		const jsonString = '{"key":"value"}';
 		global.fetch = jest.fn().mockResolvedValue({
 			ok: true,
 			headers: { get: () => "application/json" },
@@ -578,7 +578,7 @@ describe("fetch.js — retry delay between attempts", () => {
 			}
 			return Promise.resolve({
 				ok: true,
-				text: () => Promise.resolve("{\"ok\":true}"),
+				text: () => Promise.resolve('{"ok":true}'),
 			});
 		});
 

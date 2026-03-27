@@ -418,8 +418,8 @@ describe("SVG Data URI Sanitization (DOMParser)", () => {
 		const img = bindSrc(uri);
 		const svg = getSrcSvg(img);
 		expect(svg).toContain("circle");
-		expect(svg).toContain("fill=\"red\"");
-		expect(svg).toContain("r=\"40\"");
+		expect(svg).toContain('fill="red"');
+		expect(svg).toContain('r="40"');
 	});
 
 	test("returns safe output for malformed SVG input", () => {
@@ -432,7 +432,7 @@ describe("SVG Data URI Sanitization (DOMParser)", () => {
 
 	test("sanitizes base64-encoded SVG data URIs", () => {
 		const svgContent =
-			"<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script><rect/></svg>";
+			'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><rect/></svg>';
 		const uri = "data:image/svg+xml;base64," + btoa(svgContent);
 		const img = bindSrc(uri);
 		const src = img.getAttribute("src");
@@ -2192,7 +2192,7 @@ describe("on:updated lifecycle hook", () => {
 	});
 
 	test("does not fire after element is removed from DOM externally", async () => {
-		const callCount = 0;
+		const _callCount = 0;
 		const parent = document.createElement("div");
 		parent.setAttribute("state", "{ count: 0 }");
 		const child = document.createElement("div");
@@ -2367,16 +2367,16 @@ describe("foreach with inline template (no external template)", () => {
 		// Track how many times the foreach directive initializes.
 		// With the bug, cloneNode preserves foreach/from on the clone,
 		// so processTree on the wrapper re-triggers the directive infinitely.
-		let foreachInitCount = 0;
-		const origProcessTree = processTree;
-		const observer = new MutationObserver(() => {
+		let _foreachInitCount = 0;
+		const _origProcessTree = processTree;
+		const _observer = new MutationObserver(() => {
 			// Count display:contents wrappers nested more than 1 level deep
 			// which would indicate recursive foreach initialization
 			const nestedWrappers = list.querySelectorAll(
 				'div[style*="contents"] div[style*="contents"]',
 			);
 			if (nestedWrappers.length > 0) {
-				foreachInitCount++;
+				_foreachInitCount++;
 			}
 		});
 
@@ -3070,13 +3070,11 @@ describe("bind-html — D1 dynamic expression warning", () => {
 	let warnSpy;
 
 	beforeEach(() => {
-		
 		_config.devtools = false;
 		warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 	});
 
 	afterEach(() => {
-		
 		_config.devtools = false;
 		warnSpy.mockRestore();
 	});
@@ -3120,7 +3118,6 @@ describe("bind-html — D1 dynamic expression warning", () => {
 	});
 
 	test("does not warn when expression is a string literal", () => {
-		
 		const parent = document.createElement("div");
 		parent.setAttribute("state", "{}");
 		const el = document.createElement("div");
@@ -3170,7 +3167,6 @@ describe("Validation listener disposal (H2)", () => {
 	});
 
 	test("should remove form-level event listeners (input, change, focusout) on dispose", () => {
-		
 		const parent = document.createElement("div");
 		parent.setAttribute("state", "{ }");
 		const form = document.createElement("form");
@@ -3188,14 +3184,16 @@ describe("Validation listener disposal (H2)", () => {
 		expect(form.__disposers).toBeDefined();
 		expect(form.__disposers.length).toBeGreaterThan(0);
 
-		const removeSpy = jest.spyOn(window.EventTarget.prototype, "removeEventListener");
+		const removeSpy = jest.spyOn(
+			window.EventTarget.prototype,
+			"removeEventListener",
+		);
 		_disposeTree(form);
 
 		// Verify removeEventListener was called for form-level events
 		if (_config.debug) {
 		}
-		const removedEvents = removeSpy.mock.calls
-			.map((c) => c[0]);
+		const removedEvents = removeSpy.mock.calls.map((c) => c[0]);
 		expect(removedEvents).toContain("input");
 		expect(removedEvents).toContain("change");
 		expect(removedEvents).toContain("focusout");

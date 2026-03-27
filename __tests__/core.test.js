@@ -6,8 +6,8 @@ import {
 } from "../src/context.js";
 import {
 	_execStatement,
-	_interpolate,
 	_exprCache,
+	_interpolate,
 	evaluate,
 	resolve,
 } from "../src/evaluate.js";
@@ -672,7 +672,9 @@ describe("Expression Evaluator", () => {
 
 		test("encodes spaces and special characters in interpolated values", () => {
 			const ctx = createContext({ q: "hello world" });
-			expect(_interpolate("/search?q={q}", ctx)).toBe("/search?q=hello%20world");
+			expect(_interpolate("/search?q={q}", ctx)).toBe(
+				"/search?q=hello%20world",
+			);
 		});
 
 		test("encodes slashes inside interpolated values", () => {
@@ -1208,6 +1210,7 @@ describe("Expression Parser", () => {
 		});
 
 		test("should evaluate template literals", () => {
+			// biome-ignore lint/suspicious/noTemplateCurlyInString: intentional — string passed to evaluate() to test template literal evaluation
 			expect(evaluate("`Hello ${name}`", ctx)).toBe("Hello NoJS");
 		});
 	});

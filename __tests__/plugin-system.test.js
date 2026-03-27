@@ -1,5 +1,5 @@
 import { createContext } from "../src/context.js";
-import { _execStatement, evaluate } from "../src/evaluate.js";
+import { evaluate } from "../src/evaluate.js";
 import { _doFetch } from "../src/fetch.js";
 import {
 	_CANCEL,
@@ -12,12 +12,9 @@ import {
 	_REPLACE,
 	_RESPOND,
 	_refs,
-	_routerInstance,
-	_SENSITIVE_HEADERS,
 	_setCurrentPluginName,
 	_setDisposing,
 	_stores,
-	setRouterInstance,
 } from "../src/globals.js";
 import NoJS from "../src/index.js";
 import { registerDirective } from "../src/registry.js";
@@ -390,7 +387,7 @@ describe("Interceptor Sentinels", () => {
 	// T7.16 — CANCEL — { [NoJS.CANCEL]: true } throws AbortError
 	test("T7.16 — CANCEL sentinel aborts the request", async () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-		_interceptors.request.push((url, opts) => ({ [_CANCEL]: true }));
+		_interceptors.request.push((_url, _opts) => ({ [_CANCEL]: true }));
 
 		await expect(_doFetch("/api/test")).rejects.toThrow();
 		expect(global.fetch).not.toHaveBeenCalled();
@@ -399,7 +396,7 @@ describe("Interceptor Sentinels", () => {
 
 	// T7.17 — RESPOND — returns data without fetch
 	test("T7.17 — RESPOND sentinel short-circuits the request", async () => {
-		_interceptors.request.push((url, opts) => ({
+		_interceptors.request.push((_url, _opts) => ({
 			[_RESPOND]: { cached: true, value: 99 },
 		}));
 
@@ -412,7 +409,7 @@ describe("Interceptor Sentinels", () => {
 	// T7.18 — async interceptors are awaited
 	test("T7.18 — async interceptors are awaited", async () => {
 		const order = [];
-		_interceptors.request.push(async (url, opts) => {
+		_interceptors.request.push(async (_url, opts) => {
 			await new Promise((r) => setTimeout(r, 10));
 			order.push("interceptor");
 			return opts;
@@ -426,7 +423,7 @@ describe("Interceptor Sentinels", () => {
 
 	// T7.19 — response REPLACE — replaces parsed response
 	test("T7.19 — response REPLACE sentinel replaces response", async () => {
-		_interceptors.response.push((response, url) => ({
+		_interceptors.response.push((_response, _url) => ({
 			[_REPLACE]: { replaced: true },
 		}));
 
@@ -442,7 +439,7 @@ describe("Interceptor Sentinels", () => {
 		const trustedPlugin = {
 			name: "trusted-logger",
 			install(api) {
-				api.interceptor("request", (url, opts) => {
+				api.interceptor("request", (_url, opts) => {
 					receivedHeaders = { ...opts.headers };
 					return opts;
 				});
@@ -462,7 +459,7 @@ describe("Interceptor Sentinels", () => {
 
 		// Self-declared trust (not via use()) should NOT get sensitive headers
 		_interceptors.request.push({
-			fn: (url, opts) => {
+			fn: (_url, opts) => {
 				receivedHeaders = { ...opts.headers };
 				return opts;
 			},
@@ -478,7 +475,7 @@ describe("Interceptor Sentinels", () => {
 	// T7.21 — backward compat — existing interceptor patterns still work
 	test("T7.21 — backward compat: plain function interceptors still work", async () => {
 		let intercepted = false;
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, opts) => {
 			intercepted = true;
 			return opts;
 		});
@@ -531,7 +528,7 @@ describe("Security", () => {
 	// T7.23 — header redaction: standard interceptor does NOT receive Authorization, Cookie, X-CSRF-Token
 	test("T7.23 — standard interceptor does not receive sensitive headers", async () => {
 		let receivedHeaders = null;
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, opts) => {
 			receivedHeaders = { ...opts.headers };
 			return opts;
 		});
@@ -558,7 +555,7 @@ describe("Security", () => {
 		const plugin = {
 			name: "trusted-interceptor",
 			install(api) {
-				api.interceptor("request", (url, opts) => {
+				api.interceptor("request", (_url, opts) => {
 					receivedHeaders = { ...opts.headers };
 					return opts;
 				});
@@ -704,13 +701,13 @@ describe("Security", () => {
 	test("T7.35 — interceptor re-entrancy guard prevents recursive interceptor calls", async () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 		let outerCallCount = 0;
-		let innerCallCount = 0;
+		let _innerCallCount = 0;
 
-		_interceptors.request.push(async (url, opts) => {
+		_interceptors.request.push(async (_url, opts) => {
 			outerCallCount++;
 			// Attempt nested fetch — the interceptor should be skipped due to depth guard
-			const innerResult = await _doFetch("/api/inner");
-			innerCallCount = global.fetch.mock.calls.length;
+			const _innerResult = await _doFetch("/api/inner");
+			_innerCallCount = global.fetch.mock.calls.length;
 			return opts;
 		});
 
@@ -831,7 +828,7 @@ describe("Security", () => {
 
 		// A request interceptor returning an object with string keys that look like sentinels
 		// should NOT trigger sentinel behavior — only Symbol-keyed properties do
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, opts) => {
 			return {
 				...opts,
 				__cancel: true,
@@ -850,7 +847,7 @@ describe("Security", () => {
 
 	// T7.41 — URL immutability — interceptor cannot change the URL used for actual fetch
 	test("T7.41 — interceptor cannot change the URL used for actual fetch", async () => {
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, opts) => {
 			// Attempt to change URL by returning modified opts
 			return { ...opts, url: "http://evil.com/hack" };
 		});
@@ -867,6 +864,7 @@ describe("Security", () => {
 	test("T7.42 — global(name, eval) is rejected", () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
+		// biome-ignore lint/security/noGlobalEval: intentional — testing that NoJS.global() rejects eval references
 		NoJS.global("evil", eval);
 
 		expect("evil" in _globals).toBe(false);
@@ -888,6 +886,7 @@ describe("Security", () => {
 	test("T7.44 — global with non-serializable object containing eval is rejected", () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
+		// biome-ignore lint/security/noGlobalEval: intentional — testing that NoJS.global() rejects objects containing eval
 		const obj = { fn: eval };
 		obj.self = obj; // circular — JSON.stringify will throw
 		NoJS.global("evil", obj);
@@ -904,7 +903,7 @@ describe("Security", () => {
 
 		// Register an UNTRUSTED plugin with a response interceptor
 		// (push directly without pluginName — untrusted by default)
-		_interceptors.response.push((response, url) => {
+		_interceptors.response.push((response, _url) => {
 			capturedResponse = response;
 			return response;
 		});
@@ -924,7 +923,7 @@ describe("Security", () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
 		// Untrusted interceptor tries to inject a sensitive header
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, _opts) => {
 			return { headers: { Authorization: "stolen", "X-Custom": "ok" } };
 		});
 
@@ -946,7 +945,7 @@ describe("Security", () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
 		// Interceptor tries to change method
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, _opts) => {
 			return { method: "DELETE", headers: {} };
 		});
 
@@ -962,7 +961,7 @@ describe("Security", () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
 		// Interceptor tries to change credentials
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, _opts) => {
 			return { credentials: "include", headers: {} };
 		});
 
@@ -993,7 +992,7 @@ describe("Security", () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 		let receivedHeaders = null;
 
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, opts) => {
 			receivedHeaders = { ...opts.headers };
 			return opts;
 		});
@@ -1014,7 +1013,7 @@ describe("Security", () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 		let receivedHeaders = null;
 
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, opts) => {
 			receivedHeaders = { ...opts.headers };
 			return opts;
 		});
@@ -1037,7 +1036,7 @@ describe("Security", () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
 		// Register an untrusted interceptor that mutates the opts object it receives
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, opts) => {
 			opts.method = "DELETE"; // mutation on the shallow copy
 			return opts;
 		});
@@ -1055,7 +1054,7 @@ describe("Security", () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
 		// Register an untrusted interceptor that tries to inject a body
-		_interceptors.request.push((url, opts) => {
+		_interceptors.request.push((_url, opts) => {
 			opts.body = '{"malicious":"payload"}';
 			return opts;
 		});
@@ -1075,7 +1074,7 @@ describe("Security", () => {
 		const plugin = {
 			name: "trusted-mutator",
 			install(api) {
-				api.interceptor("request", (url, opts) => {
+				api.interceptor("request", (_url, opts) => {
 					opts.method = "PUT";
 					opts.credentials = "include";
 					return opts;

@@ -46,7 +46,9 @@ function applyHeadAttrs(document) {
 		el.href = val;
 	}
 	function setJsonLd(json) {
-		let el = head.querySelector('script[type="application/ld+json"][data-nojs]');
+		let el = head.querySelector(
+			'script[type="application/ld+json"][data-nojs]',
+		);
 		if (!el) {
 			el = document.createElement("script");
 			el.type = "application/ld+json";
@@ -57,19 +59,27 @@ function applyHeadAttrs(document) {
 	}
 
 	// Body directives — exclude template[route] elements (handled separately below)
-	for (const el of document.querySelectorAll("[page-title]:not(template[route])")) {
+	for (const el of document.querySelectorAll(
+		"[page-title]:not(template[route])",
+	)) {
 		const val = extractLiteral(el.getAttribute("page-title"));
 		if (val != null) setTitle(val);
 	}
-	for (const el of document.querySelectorAll("[page-description]:not(template[route])")) {
+	for (const el of document.querySelectorAll(
+		"[page-description]:not(template[route])",
+	)) {
 		const val = extractLiteral(el.getAttribute("page-description"));
 		if (val != null) setDescription(val);
 	}
-	for (const el of document.querySelectorAll("[page-canonical]:not(template[route])")) {
+	for (const el of document.querySelectorAll(
+		"[page-canonical]:not(template[route])",
+	)) {
 		const val = extractLiteral(el.getAttribute("page-canonical"));
 		if (val != null) setCanonical(val);
 	}
-	for (const el of document.querySelectorAll("[page-jsonld]:not(template[route])")) {
+	for (const el of document.querySelectorAll(
+		"[page-jsonld]:not(template[route])",
+	)) {
 		const json = (el.textContent || el.innerHTML).trim();
 		if (json) setJsonLd(json);
 	}
@@ -77,7 +87,8 @@ function applyHeadAttrs(document) {
 	// Route template head attributes
 	const routeTemplates = [...document.querySelectorAll("template[route]")];
 	const defaultTpl =
-		routeTemplates.find((t) => t.getAttribute("route") === "/") || routeTemplates[0];
+		routeTemplates.find((t) => t.getAttribute("route") === "/") ||
+		routeTemplates[0];
 
 	for (const tpl of routeTemplates) {
 		const isSpaDefault = tpl === defaultTpl;
@@ -85,19 +96,31 @@ function applyHeadAttrs(document) {
 		if (!isSpaDefault && !isOnlyTemplate) continue;
 
 		const titleVal = extractLiteral(tpl.getAttribute("page-title"));
-		if (titleVal != null && !document.querySelector("[page-title]:not(template[route])"))
+		if (
+			titleVal != null &&
+			!document.querySelector("[page-title]:not(template[route])")
+		)
 			setTitle(titleVal);
 
 		const descVal = extractLiteral(tpl.getAttribute("page-description"));
-		if (descVal != null && !document.querySelector("[page-description]:not(template[route])"))
+		if (
+			descVal != null &&
+			!document.querySelector("[page-description]:not(template[route])")
+		)
 			setDescription(descVal);
 
 		const canonicalVal = extractLiteral(tpl.getAttribute("page-canonical"));
-		if (canonicalVal != null && !document.querySelector("[page-canonical]:not(template[route])"))
+		if (
+			canonicalVal != null &&
+			!document.querySelector("[page-canonical]:not(template[route])")
+		)
 			setCanonical(canonicalVal);
 
 		const jsonldAttr = tpl.getAttribute("page-jsonld");
-		if (jsonldAttr && !document.querySelector("[page-jsonld]:not(template[route])"))
+		if (
+			jsonldAttr &&
+			!document.querySelector("[page-jsonld]:not(template[route])")
+		)
 			setJsonLd(jsonldAttr);
 	}
 }
@@ -138,7 +161,9 @@ describe("inject-head-attrs — page-title", () => {
 	test("injects <title> from a static string literal", () => {
 		document.body.innerHTML = `<div hidden page-title="'About Us | Store'"></div>`;
 		applyHeadAttrs(document);
-		expect(document.querySelector("title").textContent).toBe("About Us | Store");
+		expect(document.querySelector("title").textContent).toBe(
+			"About Us | Store",
+		);
 	});
 
 	test("accepts double-quoted literal", () => {
@@ -234,7 +259,9 @@ describe("inject-head-attrs — page-jsonld", () => {
 	test("injects <script type=application/ld+json data-nojs>", () => {
 		document.body.innerHTML = `<div hidden page-jsonld>{"@type":"WebPage","name":"About"}</div>`;
 		applyHeadAttrs(document);
-		const script = document.querySelector('script[type="application/ld+json"][data-nojs]');
+		const script = document.querySelector(
+			'script[type="application/ld+json"][data-nojs]',
+		);
 		expect(script).not.toBeNull();
 		expect(script.textContent).toContain("WebPage");
 	});
@@ -247,7 +274,9 @@ describe("inject-head-attrs — page-jsonld", () => {
 		document.head.appendChild(existing);
 		document.body.innerHTML = `<div hidden page-jsonld>{"@type":"New"}</div>`;
 		applyHeadAttrs(document);
-		const scripts = document.querySelectorAll('script[type="application/ld+json"][data-nojs]');
+		const scripts = document.querySelectorAll(
+			'script[type="application/ld+json"][data-nojs]',
+		);
 		expect(scripts.length).toBe(1);
 		expect(scripts[0].textContent).toContain('"New"');
 	});
@@ -294,8 +323,12 @@ describe("inject-head-attrs — template[route] head attributes", () => {
 		expect(document.querySelector('meta[name="description"]').content).toBe(
 			"Welcome to our store",
 		);
-		expect(document.querySelector('link[rel="canonical"]').getAttribute("href")).toContain("/");
-		const script = document.querySelector('script[type="application/ld+json"][data-nojs]');
+		expect(
+			document.querySelector('link[rel="canonical"]').getAttribute("href"),
+		).toContain("/");
+		const script = document.querySelector(
+			'script[type="application/ld+json"][data-nojs]',
+		);
 		expect(script.textContent).toContain("WebSite");
 	});
 
@@ -326,6 +359,8 @@ describe("inject-head-attrs — template[route] head attributes", () => {
     `;
 		applyHeadAttrs(document);
 		expect(document.querySelector("title").textContent).toBe("Home");
-		expect(document.querySelector('meta[name="description"]').content).toBe("Home desc");
+		expect(document.querySelector('meta[name="description"]').content).toBe(
+			"Home desc",
+		);
 	});
 });

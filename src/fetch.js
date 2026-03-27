@@ -166,7 +166,7 @@ export async function _doFetch(
 					return undefined;
 				});
 
-				if (result && result[_CANCEL]) {
+				if (result?.[_CANCEL]) {
 					_log("Request cancelled by interceptor", i);
 					throw new DOMException(
 						"Request cancelled by interceptor",

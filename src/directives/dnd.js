@@ -5,7 +5,7 @@
 import { createContext } from "../context.js";
 import { findContext } from "../dom.js";
 import { _execStatement, evaluate, resolve } from "../evaluate.js";
-import { _config, _onDispose, _warn, _currentEl, _setCurrentEl } from "../globals.js";
+import { _currentEl, _onDispose, _setCurrentEl, _warn } from "../globals.js";
 import {
 	_disposeChildren,
 	processTree,
@@ -64,7 +64,7 @@ let _currentPlaceholder = null;
 function _insertPlaceholder(container, index, html, className) {
 	_removePlaceholder();
 	const div = document.createElement("div");
-	div.className = "nojs-drag-placeholder " + (className || "");
+	div.className = `nojs-drag-placeholder ${className || ""}`;
 	div.innerHTML = html;
 	if (index >= container.children.length) {
 		container.appendChild(div);
@@ -95,7 +95,7 @@ function _countVisibleChildren(el) {
 
 registerDirective("drag", {
 	priority: 15,
-	init(el, name, expr) {
+	init(el, _name, expr) {
 		_injectDndStyles();
 		const ctx = findContext(el);
 
@@ -302,7 +302,7 @@ registerDirective("drag", {
 
 registerDirective("drop", {
 	priority: 15,
-	init(el, name, expr) {
+	init(el, _name, expr) {
 		_injectDndStyles();
 		const ctx = findContext(el);
 
@@ -380,7 +380,7 @@ registerDirective("drop", {
 			}
 		};
 
-		const dragenterHandler = (e) => {
+		const dragenterHandler = (_e) => {
 			if (!_dndState.dragging) return;
 			if (disabledExpr && evaluate(disabledExpr, ctx)) return;
 
@@ -421,7 +421,7 @@ registerDirective("drop", {
 			}
 		};
 
-		const dragleaveHandler = (e) => {
+		const dragleaveHandler = (_e) => {
 			if (!_dndState.dragging) return;
 
 			_enterDepth--;
@@ -559,7 +559,7 @@ const _dragListRegistry = new Map(); // el → { listPath, ctx, el }
 
 registerDirective("drag-list", {
 	priority: 10,
-	init(el, name, listPath) {
+	init(el, _name, listPath) {
 		_injectDndStyles();
 		const ctx = findContext(el);
 
@@ -606,7 +606,7 @@ registerDirective("drag-list", {
 			// without rebuilding the DOM (preserves focus, input state, etc.)
 			if (list === _prevList && list.length > 0 && el.children.length > 0) {
 				for (const child of el.children) {
-					if (child.__ctx && child.__ctx.$notify) child.__ctx.$notify();
+					if (child.__ctx?.$notify) child.__ctx.$notify();
 				}
 				return;
 			}
@@ -726,7 +726,9 @@ registerDirective("drag-list", {
 						dragClass
 							.split(/\s+/)
 							.filter(Boolean)
-							.forEach((c) => dragEl.classList.add(c));
+							.forEach((c) => {
+								dragEl.classList.add(c);
+							});
 						dragEl.setAttribute("aria-grabbed", "true");
 					} else if (
 						e.key === "Escape" &&
@@ -737,7 +739,9 @@ registerDirective("drag-list", {
 						dragClass
 							.split(/\s+/)
 							.filter(Boolean)
-							.forEach((c) => dragEl.classList.remove(c));
+							.forEach((c) => {
+								dragEl.classList.remove(c);
+							});
 						dragEl.setAttribute("aria-grabbed", "false");
 						_dndState.dragging = null;
 						_removePlaceholder();
@@ -773,7 +777,9 @@ registerDirective("drag-list", {
 				wrapper.addEventListener("dragend", itemDragend);
 				wrapper.addEventListener("keydown", itemKeydown);
 
-				_onDispose(() => wrapper.removeEventListener("dragstart", itemDragstart));
+				_onDispose(() =>
+					wrapper.removeEventListener("dragstart", itemDragstart),
+				);
 				_onDispose(() => wrapper.removeEventListener("dragend", itemDragend));
 				_onDispose(() => wrapper.removeEventListener("keydown", itemKeydown));
 				_setCurrentEl(prevEl);
@@ -843,7 +849,7 @@ registerDirective("drag-list", {
 			}
 		};
 
-		const dragenterHandler = (e) => {
+		const dragenterHandler = (_e) => {
 			if (!_dndState.dragging) return;
 			if (disabledDropExpr && evaluate(disabledDropExpr, ctx)) return;
 
@@ -1135,7 +1141,7 @@ registerDirective("drag-list", {
 
 registerDirective("drag-multiple", {
 	priority: 16,
-	init(el, name) {
+	init(el, _name) {
 		const ctx = findContext(el);
 		const group = el.getAttribute("drag-group");
 		const selectClass =

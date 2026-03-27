@@ -1523,7 +1523,7 @@ function _execStmtNode(node, scope) {
 					!(name in _SAFE_GLOBALS) &&
 					!_BROWSER_GLOBALS.has(name)
 				) {
-					throw new ReferenceError(name + " is not defined");
+					throw new ReferenceError(`${name} is not defined`);
 				}
 			}
 			return _evalNode(node, scope);
@@ -1652,7 +1652,7 @@ export function evaluate(expr, ctx) {
 		if (!("$form" in scope)) scope.$form = ctx.$form || null;
 		// Inject plugin globals (cannot shadow local or core $ variables)
 		for (const gk in _globals) {
-			const key = "$" + gk;
+			const key = `$${gk}`;
 			if (!(key in scope)) scope[key] = _globals[gk];
 		}
 
@@ -1693,7 +1693,7 @@ export function _execStatement(expr, ctx, extraVars = {}) {
 		if (!("$refs" in scope)) scope.$refs = ctx.$refs;
 		// Inject plugin globals (before extraVars so $event etc. take priority)
 		for (const gk in _globals) {
-			const key = "$" + gk;
+			const key = `$${gk}`;
 			if (!(key in scope)) scope[key] = _globals[gk];
 		}
 		Object.assign(scope, extraVars);

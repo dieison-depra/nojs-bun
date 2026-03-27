@@ -507,7 +507,7 @@ registerDirective("validate", {
 				// Legacy behavior: form-level input, change, and focusout
 				const inputHandler = (e) => {
 					const target = e.target;
-					if (target && target.name) {
+					if (target?.name) {
 						dirtyFields.add(target.name);
 					}
 					formCtx.dirty = true;
@@ -518,7 +518,7 @@ registerDirective("validate", {
 				el.addEventListener("change", inputHandler);
 				_onDispose(() => el.removeEventListener("change", inputHandler));
 				const focusoutHandler = (e) => {
-					if (e.target && e.target.name) {
+					if (e.target?.name) {
 						touchedFields.add(e.target.name);
 					}
 					formCtx.touched = true;

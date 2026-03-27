@@ -1,6 +1,6 @@
+import { findContext } from "../src/dom.js";
 import { _stores } from "../src/globals.js";
 import { processTree } from "../src/registry.js";
-import { findContext } from "../src/dom.js";
 
 import "../src/filters.js";
 import "../src/directives/state.js";
@@ -91,12 +91,16 @@ describe("page-description directive", () => {
       </div>
     `;
 		processTree(document.body);
-		expect(document.querySelector('meta[name="description"]').content).toBe("First desc");
+		expect(document.querySelector('meta[name="description"]').content).toBe(
+			"First desc",
+		);
 
 		const ctx = findContext(document.querySelector("[state]"));
 		ctx.$set("desc", "Second desc");
 		await new Promise((r) => setTimeout(r, 10));
-		expect(document.querySelector('meta[name="description"]').content).toBe("Second desc");
+		expect(document.querySelector('meta[name="description"]').content).toBe(
+			"Second desc",
+		);
 	});
 });
 
@@ -131,7 +135,9 @@ describe("page-canonical directive", () => {
       </div>
     `;
 		processTree(document.body);
-		expect(document.querySelector('link[rel="canonical"]').href).toContain("/products/sneaker-x");
+		expect(document.querySelector('link[rel="canonical"]').href).toContain(
+			"/products/sneaker-x",
+		);
 	});
 });
 
@@ -147,7 +153,9 @@ describe("page-jsonld directive", () => {
       </div>
     `;
 		processTree(document.body);
-		const script = document.querySelector('script[type="application/ld+json"][data-nojs]');
+		const script = document.querySelector(
+			'script[type="application/ld+json"][data-nojs]',
+		);
 		expect(script).not.toBeNull();
 		expect(script.textContent).toContain("Sneaker X");
 		expect(script.textContent).toContain("299");
@@ -158,7 +166,9 @@ describe("page-jsonld directive", () => {
 		processTree(document.body);
 		document.body.innerHTML = `<div hidden page-jsonld>{"@type":"Thing","name":"Second"}</div>`;
 		processTree(document.body);
-		const scripts = document.querySelectorAll('script[type="application/ld+json"][data-nojs]');
+		const scripts = document.querySelectorAll(
+			'script[type="application/ld+json"][data-nojs]',
+		);
 		expect(scripts.length).toBe(1);
 		expect(scripts[0].textContent).toContain("Second");
 	});
@@ -172,7 +182,9 @@ describe("page-jsonld directive", () => {
 		document.body.innerHTML = `<div hidden page-jsonld>{"@type":"Product"}</div>`;
 		processTree(document.body);
 
-		const allScripts = document.querySelectorAll('script[type="application/ld+json"]');
+		const allScripts = document.querySelectorAll(
+			'script[type="application/ld+json"]',
+		);
 		expect(allScripts.length).toBe(2);
 		// Original untouched
 		expect(allScripts[0].textContent).toContain("WebSite");

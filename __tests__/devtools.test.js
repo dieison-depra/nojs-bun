@@ -1,4 +1,3 @@
-
 import { _resetCtxId, createContext } from "../src/context.js";
 import {
 	_ctxRegistry,
@@ -510,7 +509,7 @@ describe("initDevtools — hostname guard", () => {
 			["app.example.com", false],
 			["192.168.1.1", false],
 			["evil.com", false],
-		])("hostname \"%s\" → %s", (hostname, expected) => {
+		])('hostname "%s" → %s', (hostname, expected) => {
 			// Pass hostname directly — avoids JSDOM window.location mocking limitations
 			expect(_isLocalHostname(hostname)).toBe(expected);
 		});

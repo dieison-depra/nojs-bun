@@ -1,5 +1,5 @@
-import { processTree } from "../src/registry.js";
 import { _config } from "../src/globals.js";
+import { processTree } from "../src/registry.js";
 
 import "../src/filters.js";
 import "../src/directives/state.js";
@@ -129,7 +129,7 @@ describe("Drag Directive", () => {
 	});
 
 	test("5 — evaluates drag expression from context", () => {
-		const { parent, el } = setupDrag("item", {
+		const { parent: _parent, el } = setupDrag("item", {
 			state: '{ item: { id: 1, name: "Alpha" } }',
 		});
 		let capturedDetail = null;
@@ -902,7 +902,9 @@ describe("DnD Accessibility", () => {
 		expect(el.classList.contains("nojs-dragging")).toBe(true);
 		expect(detail).not.toBeNull();
 		// Cleanup
-		el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+		el.dispatchEvent(
+			new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+		);
 	});
 
 	test("56 — keyboard Escape cancels drag", async () => {
@@ -910,7 +912,9 @@ describe("DnD Accessibility", () => {
 		el.focus(); // Must be focused for keyboard events in JSDOM
 
 		// Ensure clean state from previous tests
-		el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+		el.dispatchEvent(
+			new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+		);
 
 		el.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
 		await new Promise((r) => setTimeout(r, 10)); // Allow internal state update

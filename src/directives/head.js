@@ -23,9 +23,9 @@
 //  whenever the reactive context changes.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { _watchExpr } from "../globals.js";
-import { evaluate } from "../evaluate.js";
 import { findContext } from "../dom.js";
+import { evaluate } from "../evaluate.js";
+import { _watchExpr } from "../globals.js";
 import { registerDirective } from "../registry.js";
 
 // Interpolate {key} placeholders in a string without URL-encoding.
@@ -47,7 +47,7 @@ function _interpolateRaw(str, ctx) {
 // Value is a No.JS expression: page-title="product.name + ' | Store'"
 registerDirective("page-title", {
 	priority: 1,
-	init(el, name, expr) {
+	init(el, _name, expr) {
 		const ctx = findContext(el);
 		function update() {
 			const val = evaluate(expr, ctx);
@@ -63,7 +63,7 @@ registerDirective("page-title", {
 // Value is a No.JS expression: page-description="product.description"
 registerDirective("page-description", {
 	priority: 1,
-	init(el, name, expr) {
+	init(el, _name, expr) {
 		const ctx = findContext(el);
 		function update() {
 			const val = evaluate(expr, ctx);
@@ -86,7 +86,7 @@ registerDirective("page-description", {
 // Value is a No.JS expression: page-canonical="'/products/' + product.slug"
 registerDirective("page-canonical", {
 	priority: 1,
-	init(el, name, expr) {
+	init(el, _name, expr) {
 		const ctx = findContext(el);
 		function update() {
 			const val = evaluate(expr, ctx);
@@ -114,7 +114,7 @@ registerDirective("page-canonical", {
 // JSON-LD the developer may have added, so they can coexist.
 registerDirective("page-jsonld", {
 	priority: 1,
-	init(el, name, expr) {
+	init(el, _name, _expr) {
 		const ctx = findContext(el);
 		// The JSON template lives in the element's text content (or innerHTML for
 		// elements like <div hidden>). The attribute value (expr) is intentionally

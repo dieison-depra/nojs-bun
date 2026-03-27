@@ -115,7 +115,7 @@ export function createContext(data = {}, parent = null) {
 				return _globals[key.slice(1)];
 			}
 			if (key in target) return target[key];
-			if (parent && parent.__isProxy) return parent[key];
+			if (parent?.__isProxy) return parent[key];
 			return undefined;
 		},
 		set(target, key, value) {
@@ -141,7 +141,7 @@ export function createContext(data = {}, parent = null) {
 				key.slice(1) in _globals
 			)
 				return true;
-			if (parent && parent.__isProxy) return key in parent;
+			if (parent?.__isProxy) return key in parent;
 			return false;
 		},
 	};
@@ -170,7 +170,7 @@ export function _collectKeys(ctx) {
 	const allKeys = new Set();
 	const allVals = {};
 	let c = ctx;
-	while (c && c.__isProxy) {
+	while (c?.__isProxy) {
 		const raw = c.__raw;
 		for (const k of Object.keys(raw)) {
 			if (!allKeys.has(k)) {

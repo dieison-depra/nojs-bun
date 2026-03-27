@@ -123,7 +123,7 @@ export function _watchExpr(expr, ctx, fn) {
 		fn._el = _currentEl;
 		// Self-cleanup when the element is removed without going through dispose
 		const el = _currentEl;
-		if (el && el.parentElement) {
+		if (el?.parentElement) {
 			const ro = new MutationObserver(() => {
 				if (!el.isConnected) {
 					_storeWatchers.delete(fn);
@@ -149,7 +149,9 @@ export function _onDispose(fn) {
 }
 
 export function _emitEvent(name, data) {
-	(_eventBus[name] || []).forEach((fn) => fn(data));
+	(_eventBus[name] || []).forEach((fn) => {
+		fn(data);
+	});
 }
 
 // ─── Plugin sentinel symbols ────────────────────────────────────────────────

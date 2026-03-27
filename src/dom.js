@@ -76,7 +76,7 @@ function _sanitizeSvgDataUri(str) {
 		const b64 = str.match(/^data:image\/svg\+xml;base64,(.+)$/i);
 		if (b64) {
 			const clean = _sanitizeSvgContent(atob(b64[1]));
-			return "data:image/svg+xml;base64," + btoa(clean);
+			return `data:image/svg+xml;base64,${btoa(clean)}`;
 		}
 		const comma = str.indexOf(",");
 		if (comma === -1) return "#";
@@ -265,7 +265,11 @@ export async function _loadRemoteTemplates(root) {
 				}
 			}
 		} catch (e) {
-			_warn("Failed to load template:", src, e?.message || e || "Unknown error");
+			_warn(
+				"Failed to load template:",
+				src,
+				e?.message || e || "Unknown error",
+			);
 		}
 	});
 	await Promise.all(promises);

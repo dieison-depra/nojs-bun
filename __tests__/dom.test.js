@@ -1,4 +1,3 @@
-
 import { createContext } from "../src/context.js";
 import {
 	_clearDeclared,
@@ -91,7 +90,7 @@ describe("DOM Helpers", () => {
 
 	describe("_sanitizeHtml", () => {
 		test("removes script tags", () => {
-			const html = "<p>Hello</p><script>alert(\"xss\")</script><p>World</p>";
+			const html = '<p>Hello</p><script>alert("xss")</script><p>World</p>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("<script");
 			expect(result).toContain("Hello");
@@ -99,20 +98,20 @@ describe("DOM Helpers", () => {
 		});
 
 		test("removes event handlers", () => {
-			const html = "<div onclick=\"alert(1)\" onmouseover=\"hack()\">content</div>";
+			const html = '<div onclick="alert(1)" onmouseover="hack()">content</div>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("onclick");
 			expect(result).not.toContain("onmouseover");
 		});
 
 		test("removes javascript: protocol", () => {
-			const html = "<a href=\"javascript:alert(1)\">Link</a>";
+			const html = '<a href="javascript:alert(1)">Link</a>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("javascript:");
 		});
 
 		test("passes through safe HTML", () => {
-			const html = "<p class=\"safe\">Hello <strong>World</strong></p>";
+			const html = '<p class="safe">Hello <strong>World</strong></p>';
 			expect(_sanitizeHtml(html)).toBe(html);
 		});
 
@@ -166,27 +165,27 @@ describe("DOM Helpers", () => {
 		test("removes onerror on img tag (regex-bypass vector)", () => {
 			// A naive `on\w+=` regex can be fooled by extra whitespace or newlines.
 			// DOMParser always parses the attribute properly before cleaning.
-			const html = "<img src=\"x\" onerror=\"alert(1)\">";
+			const html = '<img src="x" onerror="alert(1)">';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("onerror");
 		});
 
 		test("removes SVG event handlers (onbegin, onend, etc.)", () => {
-			const html = "<svg><animate onbegin=\"alert(1)\"></animate></svg>";
+			const html = '<svg><animate onbegin="alert(1)"></animate></svg>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("onbegin");
 		});
 
 		test("removes iframe tags (srcdoc nesting vector)", () => {
 			const html =
-				"<div>Safe<iframe srcdoc=\"<script>evil()</script>\"></iframe></div>";
+				'<div>Safe<iframe srcdoc="<script>evil()</script>"></iframe></div>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("iframe");
 			expect(result).toContain("Safe");
 		});
 
 		test("removes base tags (URL rewrite vector)", () => {
-			const html = "<base href=\"http://evil.com\"><p>Content</p>";
+			const html = '<base href="http://evil.com"><p>Content</p>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("<base");
 			expect(result).toContain("Content");
@@ -194,22 +193,22 @@ describe("DOM Helpers", () => {
 
 		test("removes HTML-entity-encoded javascript: href", () => {
 			// DOMParser resolves &#x6A;avascript: to javascript: before the walk.
-			const html = "<a href=\"&#x6A;avascript:alert(1)\">Link</a>";
+			const html = '<a href="&#x6A;avascript:alert(1)">Link</a>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("javascript:");
 		});
 
 		test("removes vbscript: protocol", () => {
-			const html = "<a href=\"vbscript:msgbox(1)\">Link</a>";
+			const html = '<a href="vbscript:msgbox(1)">Link</a>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("vbscript:");
 		});
 
 		test("preserves safe nested elements and class attributes", () => {
 			const html =
-				"<div class=\"card\"><h2>Title</h2><p>Body <strong>text</strong></p></div>";
+				'<div class="card"><h2>Title</h2><p>Body <strong>text</strong></p></div>';
 			const result = _sanitizeHtml(html);
-			expect(result).toContain("class=\"card\"");
+			expect(result).toContain('class="card"');
 			expect(result).toContain("<h2>Title</h2>");
 			expect(result).toContain("<strong>text</strong>");
 		});
@@ -236,20 +235,21 @@ describe("DOM Helpers", () => {
 		});
 
 		test("strips non-image data: URIs from href (e.g. data:text/html)", () => {
-			const html = "<a href=\"data:text/html,<script>alert(1)</script>\">Click</a>";
+			const html =
+				'<a href="data:text/html,<script>alert(1)</script>">Click</a>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("data:text/html");
 			expect(result).toContain("Click");
 		});
 
 		test("strips non-image data: URIs from src", () => {
-			const html = "<img src=\"data:text/javascript,alert(1)\">";
+			const html = '<img src="data:text/javascript,alert(1)">';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("data:text/javascript");
 		});
 
 		test("preserves safe image data: URIs in src", () => {
-			const html = "<img src=\"data:image/png;base64,abc123\" alt=\"pic\">";
+			const html = '<img src="data:image/png;base64,abc123" alt="pic">';
 			const result = _sanitizeHtml(html);
 			expect(result).toContain("data:image/png;base64,abc123");
 		});
@@ -257,29 +257,29 @@ describe("DOM Helpers", () => {
 		// ── H5: formaction, poster, data URL attrs + SVG data URI sanitization ──
 
 		test("strips javascript: from formaction attribute", () => {
-			const html = "<button formaction=\"javascript:alert(1)\">Submit</button>";
+			const html = '<button formaction="javascript:alert(1)">Submit</button>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("javascript:");
 			expect(result).toContain("Submit");
 		});
 
 		test("strips javascript: from poster attribute", () => {
-			const html = "<video poster=\"javascript:alert(1)\"></video>";
+			const html = '<video poster="javascript:alert(1)"></video>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("javascript:");
 		});
 
 		test("strips javascript: from data attribute", () => {
-			const html = "<object data=\"javascript:alert(1)\"></object>";
+			const html = '<object data="javascript:alert(1)"></object>';
 			const result = _sanitizeHtml(html);
 			expect(result).not.toContain("javascript:");
 		});
 
 		test("deep-sanitizes data:image/svg+xml URIs containing script tags", () => {
 			const maliciousSvg =
-				"<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script><rect width=\"10\" height=\"10\"/></svg>";
+				'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><rect width="10" height="10"/></svg>';
 			const dataUri = "data:image/svg+xml," + encodeURIComponent(maliciousSvg);
-			const html = "<img src=\"" + dataUri + "\">";
+			const html = '<img src="' + dataUri + '">';
 			const result = _sanitizeHtml(html);
 			// The sanitized result should still have the src with a data:image/svg+xml URI
 			expect(result).toContain("data:image/svg+xml");
@@ -293,13 +293,15 @@ describe("DOM Helpers", () => {
 
 		test("deep-sanitizes base64 data:image/svg+xml URIs containing onload attributes", () => {
 			const maliciousSvg =
-				"<svg xmlns=\"http://www.w3.org/2000/svg\" onload=\"alert(1)\"><rect width=\"10\" height=\"10\"/></svg>";
+				'<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><rect width="10" height="10"/></svg>';
 			const dataUri = "data:image/svg+xml;base64," + btoa(maliciousSvg);
-			const html = "<img src=\"" + dataUri + "\">";
+			const html = '<img src="' + dataUri + '">';
 			const result = _sanitizeHtml(html);
 			expect(result).toContain("data:image/svg+xml;base64,");
 			// Decode the base64 SVG and verify onload is stripped
-			const srcMatch = result.match(/src="data:image\/svg\+xml;base64,([^"]+)"/);
+			const srcMatch = result.match(
+				/src="data:image\/svg\+xml;base64,([^"]+)"/,
+			);
 			expect(srcMatch).not.toBeNull();
 			const decodedSvg = atob(srcMatch[1]);
 			expect(decodedSvg).not.toContain("onload");
@@ -308,10 +310,10 @@ describe("DOM Helpers", () => {
 
 		test("allows safe data:image/png URIs unchanged", () => {
 			const safeUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA";
-			const html = "<img src=\"" + safeUri + "\" alt=\"safe\">";
+			const html = '<img src="' + safeUri + '" alt="safe">';
 			const result = _sanitizeHtml(html);
 			expect(result).toContain(safeUri);
-			expect(result).toContain("alt=\"safe\"");
+			expect(result).toContain('alt="safe"');
 		});
 	});
 });
@@ -389,7 +391,7 @@ describe("_loadRemoteTemplates", () => {
 			.mockResolvedValueOnce({
 				ok: true,
 				text: () =>
-					Promise.resolve("<template src=\"./sidebar.tpl\"></template>"),
+					Promise.resolve('<template src="./sidebar.tpl"></template>'),
 			})
 			.mockResolvedValueOnce({
 				ok: true,
@@ -413,7 +415,7 @@ describe("_loadRemoteTemplates", () => {
 		global.fetch
 			.mockResolvedValueOnce({
 				ok: true,
-				text: () => Promise.resolve("<template src=\"./child.tpl\"></template>"),
+				text: () => Promise.resolve('<template src="./child.tpl"></template>'),
 			})
 			.mockResolvedValueOnce({
 				ok: true,
@@ -539,7 +541,7 @@ describe("dom.js — non-route template inline expansion (L95)", () => {
 	test("non-route template is replaced with its content inline", async () => {
 		global.fetch = jest.fn(() => ({
 			ok: true,
-			text: () => Promise.resolve("<span class=\"included\">hello</span>"),
+			text: () => Promise.resolve('<span class="included">hello</span>'),
 		}));
 
 		const wrapper = document.createElement("div");
@@ -557,7 +559,7 @@ describe("dom.js — non-route template inline expansion (L95)", () => {
 	test("route template is NOT replaced inline", async () => {
 		global.fetch = jest.fn(() => ({
 			ok: true,
-			text: () => Promise.resolve("<span class=\"route-content\">page</span>"),
+			text: () => Promise.resolve('<span class="route-content">page</span>'),
 		}));
 
 		const wrapper = document.createElement("div");
@@ -681,7 +683,7 @@ describe("_loadTemplateElement", () => {
 
 		const skeleton = document.createElement("template");
 		skeleton.id = "skl";
-		skeleton.innerHTML = "<div class=\"skeleton\">Loading...</div>";
+		skeleton.innerHTML = '<div class="skeleton">Loading...</div>';
 		document.body.appendChild(skeleton);
 
 		const wrapper = document.createElement("div");
@@ -707,7 +709,7 @@ describe("_loadTemplateElement", () => {
 
 		const skeleton = document.createElement("template");
 		skeleton.id = "err-skl";
-		skeleton.innerHTML = "<div class=\"err-skeleton\">Loading...</div>";
+		skeleton.innerHTML = '<div class="err-skeleton">Loading...</div>';
 		document.body.appendChild(skeleton);
 
 		const wrapper = document.createElement("div");
@@ -742,7 +744,7 @@ describe("_loadTemplateElement", () => {
 	test("route template does NOT recursively load nested <template src> in content", async () => {
 		global.fetch = jest.fn().mockResolvedValue({
 			ok: true,
-			text: () => Promise.resolve("<template src=\"./section.tpl\"></template>"),
+			text: () => Promise.resolve('<template src="./section.tpl"></template>'),
 		});
 
 		const wrapper = document.createElement("div");
@@ -760,7 +762,7 @@ describe("_loadTemplateElement", () => {
 		expect(global.fetch).toHaveBeenCalledWith("/page.tpl");
 
 		expect(
-			tpl.content.querySelector("template[src=\"./section.tpl\"]"),
+			tpl.content.querySelector('template[src="./section.tpl"]'),
 		).not.toBeNull();
 	});
 
@@ -827,7 +829,7 @@ describe("_processTemplateIncludes", () => {
 	test("replaces template[include] with a clone of the referenced template", () => {
 		const source = document.createElement("template");
 		source.id = "my-skeleton";
-		source.innerHTML = "<div class=\"skeleton\">Loading...</div>";
+		source.innerHTML = '<div class="skeleton">Loading...</div>';
 		document.body.appendChild(source);
 
 		const wrapper = document.createElement("div");
@@ -846,7 +848,7 @@ describe("_processTemplateIncludes", () => {
 	test("supports # prefix on include id", () => {
 		const source = document.createElement("template");
 		source.id = "hash-tpl";
-		source.innerHTML = "<span class=\"hash-content\">ok</span>";
+		source.innerHTML = '<span class="hash-content">ok</span>';
 		document.body.appendChild(source);
 
 		const wrapper = document.createElement("div");
@@ -875,7 +877,7 @@ describe("_processTemplateIncludes", () => {
 	test("clones independently — multiple includes of same template are separate nodes", () => {
 		const source = document.createElement("template");
 		source.id = "multi-tpl";
-		source.innerHTML = "<p class=\"item\">A</p>";
+		source.innerHTML = '<p class="item">A</p>';
 		document.body.appendChild(source);
 
 		const wrapper = document.createElement("div");
@@ -1057,7 +1059,7 @@ describe("_loadTemplateElement — subtemplate cache warming", () => {
 					ok: true,
 					text: () =>
 						Promise.resolve(
-							"<template src=\"./docs/sidebar.tpl\"></template><template src=\"./docs/getting-started.tpl\"></template>",
+							'<template src="./docs/sidebar.tpl"></template><template src="./docs/getting-started.tpl"></template>',
 						),
 				});
 			}
@@ -1102,7 +1104,7 @@ describe("_loadTemplateElement — subtemplate cache warming", () => {
 				return Promise.resolve({
 					ok: true,
 					text: () =>
-						Promise.resolve("<template src=\"./docs/sidebar.tpl\"></template>"),
+						Promise.resolve('<template src="./docs/sidebar.tpl"></template>'),
 				});
 			}
 			return Promise.resolve({ ok: true, text: () => Promise.resolve("") });
@@ -1318,7 +1320,7 @@ describe("Template integrity — insecure HTTP warning", () => {
 		);
 		expect(warnSpy).toHaveBeenCalledWith(
 			"[No.JS]",
-			"Template \"http://cdn.example.com/header.tpl\" is loaded over insecure HTTP from an HTTPS page. Use HTTPS to prevent tampering.",
+			'Template "http://cdn.example.com/header.tpl" is loaded over insecure HTTP from an HTTPS page. Use HTTPS to prevent tampering.',
 		);
 	});
 

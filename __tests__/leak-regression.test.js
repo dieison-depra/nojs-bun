@@ -38,9 +38,13 @@
  *     production memory leak.
  */
 
+import {
+	_notifyStoreWatchers,
+	_stores,
+	_storeWatchers,
+} from "../src/globals.js";
 import NoJS from "../src/index.js";
-import { _stores, _storeWatchers, _notifyStoreWatchers } from "../src/globals.js";
-import { processTree, _disposeTree, _disposeChildren } from "../src/registry.js";
+import { _disposeChildren, processTree } from "../src/registry.js";
 
 // ─── Setup / Teardown ───────────────────────────────────────────────────────
 

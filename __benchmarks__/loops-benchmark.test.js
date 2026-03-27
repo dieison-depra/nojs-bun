@@ -47,7 +47,9 @@ function makeComplexItems(n, offset = 0) {
 
 function setupDOM(items, keyed, complex = false) {
 	document.body.innerHTML = "";
-	Object.keys(_stores).forEach((k) => delete _stores[k]);
+	Object.keys(_stores).forEach((k) => {
+		delete _stores[k];
+	});
 
 	const tpl = document.createElement("template");
 	tpl.id = "bench-tpl";
@@ -140,8 +142,8 @@ function benchmark(fn, runs = 6) {
 }
 
 const fmt = {
-	ms: (v) => v.toFixed(2) + " ms",
-	kb: (v) => (v / 1024).toFixed(0) + " KB",
+	ms: (v) => `${v.toFixed(2)} ms`,
+	kb: (v) => `${(v / 1024).toFixed(0)} KB`,
 };
 
 // ─── List sizes ───────────────────────────────────────────────────────────────
@@ -336,13 +338,13 @@ describe("Benchmark: in-place update — same keys, new name values", () => {
 				const { list } = setupDOM(makeItems(size), keyed);
 				const domOps = measureDOMOps(() => {
 					list.parentElement.__ctx.items = list.parentElement.__ctx.items.map(
-						(it) => ({ ...it, name: it.name + "-v2" }),
+						(it) => ({ ...it, name: `${it.name}-v2` }),
 					);
 				});
 
 				const { avgTime, minTime, maxTime, avgHeap } = benchmark(() => {
 					const { ctx } = setupDOM(makeItems(size), keyed);
-					ctx.items = ctx.items.map((it) => ({ ...it, name: it.name + "-v2" }));
+					ctx.items = ctx.items.map((it) => ({ ...it, name: `${it.name}-v2` }));
 				}, RUNS);
 
 				results.push({

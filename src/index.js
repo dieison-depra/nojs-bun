@@ -29,7 +29,6 @@ import {
 	_plugins,
 	_REPLACE,
 	_RESPOND,
-	_refs,
 	_routerInstance,
 	_setCurrentPluginName,
 	_setDisposing,
@@ -107,7 +106,8 @@ const _RESERVED_GLOBAL_NAMES = new Set([
 
 const _DANGEROUS_REFS =
 	typeof window !== "undefined"
-		? new Set([eval, Function, window.eval, window.Function].filter(Boolean))
+		? // biome-ignore lint/security/noGlobalEval: intentional — building a set of forbidden references to detect eval/Function in plugin globals
+			new Set([eval, Function, window.eval, window.Function].filter(Boolean))
 		: new Set();
 
 function _isUnsafeGlobalValue(value) {
@@ -175,7 +175,7 @@ const NoJS = {
 			delete opts.csp;
 		}
 		if (opts.exprCacheSize !== undefined) {
-			const n = parseInt(opts.exprCacheSize);
+			const n = parseInt(opts.exprCacheSize, 10);
 			opts.exprCacheSize = Number.isFinite(n) && n > 0 ? n : 500;
 		}
 		Object.assign(_config, opts);
@@ -403,7 +403,7 @@ const NoJS = {
 			_interceptors.response.length = 0;
 
 			// Destroy router listeners
-			if (_routerInstance && _routerInstance.destroy) {
+			if (_routerInstance?.destroy) {
 				_routerInstance.destroy();
 			}
 			setRouterInstance(null);

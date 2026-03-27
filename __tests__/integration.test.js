@@ -268,9 +268,9 @@ describe("Event bus listener limits", () => {
 		expect(spy).toHaveBeenCalledTimes(1);
 		expect(spy).toHaveBeenCalledWith(
 			"[No.JS]",
-			"MaxListenersExceeded: event \"" +
+			'MaxListenersExceeded: event "' +
 				eventName +
-				"\" has 3 listeners (max 3). Possible memory leak.",
+				'" has 3 listeners (max 3). Possible memory leak.',
 		);
 
 		// 5th listener also triggers a warning

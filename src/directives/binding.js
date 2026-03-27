@@ -22,7 +22,7 @@ registerDirective("bind", {
 
 registerDirective("bind-html", {
 	priority: 20,
-	init(el, name, expr) {
+	init(el, _name, expr) {
 		const ctx = findContext(el);
 		if ((_config.debug || _config.devtools) && !/^['"`]/.test(expr.trim())) {
 			_warn(

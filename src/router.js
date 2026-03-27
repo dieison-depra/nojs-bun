@@ -96,7 +96,9 @@ function _applyRouteHeadAttrs(tpl, current) {
 	// Supports {placeholder} interpolation for dynamic values (e.g. $route.params.id).
 	const jsonldAttr = tpl.getAttribute("page-jsonld");
 	if (jsonldAttr) {
-		let script = document.querySelector('script[type="application/ld+json"][data-nojs]');
+		let script = document.querySelector(
+			'script[type="application/ld+json"][data-nojs]',
+		);
 		if (!script) {
 			script = document.createElement("script");
 			script.type = "application/ld+json";
@@ -653,7 +655,9 @@ export function _createRouter() {
 			_prefetchRoutes();
 		},
 		destroy() {
-			_globalHandlers.forEach((fn) => fn());
+			_globalHandlers.forEach((fn) => {
+				fn();
+			});
 			_globalHandlers.length = 0;
 			listeners.clear();
 		},

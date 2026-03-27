@@ -39,7 +39,7 @@ export function _animateIn(el, animName, transitionName, durationMs) {
 	if (animName) {
 		const target = el.firstElementChild || el;
 		target.classList.add(animName);
-		if (durationMs) target.style.animationDuration = durationMs + "ms";
+		if (durationMs) target.style.animationDuration = `${durationMs}ms`;
 		const done = () => target.classList.remove(animName);
 		target.addEventListener("animationend", done, { once: true });
 		// Fallback: remove the class on the next tick if animationend never fires
@@ -49,16 +49,16 @@ export function _animateIn(el, animName, transitionName, durationMs) {
 	if (transitionName) {
 		const target = el.firstElementChild || el;
 		target.classList.add(
-			transitionName + "-enter",
-			transitionName + "-enter-active",
+			`${transitionName}-enter`,
+			`${transitionName}-enter-active`,
 		);
 		requestAnimationFrame(() => {
-			target.classList.remove(transitionName + "-enter");
-			target.classList.add(transitionName + "-enter-to");
+			target.classList.remove(`${transitionName}-enter`);
+			target.classList.add(`${transitionName}-enter-to`);
 			const done = () => {
 				target.classList.remove(
-					transitionName + "-enter-active",
-					transitionName + "-enter-to",
+					`${transitionName}-enter-active`,
+					`${transitionName}-enter-to`,
 				);
 			};
 			target.addEventListener("transitionend", done, { once: true });
@@ -86,7 +86,7 @@ export function _animateOut(
 	if (animName) {
 		const target = el.firstElementChild || el;
 		target.classList.add(animName);
-		if (durationMs) target.style.animationDuration = durationMs + "ms";
+		if (durationMs) target.style.animationDuration = `${durationMs}ms`;
 		let called = false;
 		const done = () => {
 			if (called) return;
@@ -105,20 +105,20 @@ export function _animateOut(
 	if (transitionName) {
 		const target = el.firstElementChild || el;
 		target.classList.add(
-			transitionName + "-leave",
-			transitionName + "-leave-active",
+			`${transitionName}-leave`,
+			`${transitionName}-leave-active`,
 		);
 		let called = false;
 		let timerId;
 		const rafId = requestAnimationFrame(() => {
-			target.classList.remove(transitionName + "-leave");
-			target.classList.add(transitionName + "-leave-to");
+			target.classList.remove(`${transitionName}-leave`);
+			target.classList.add(`${transitionName}-leave-to`);
 			const done = () => {
 				if (called) return;
 				called = true;
 				target.classList.remove(
-					transitionName + "-leave-active",
-					transitionName + "-leave-to",
+					`${transitionName}-leave-active`,
+					`${transitionName}-leave-to`,
 				);
 				callback();
 			};
@@ -130,9 +130,9 @@ export function _animateOut(
 			cancelAnimationFrame(rafId);
 			clearTimeout(timerId);
 			target.classList.remove(
-				transitionName + "-leave",
-				transitionName + "-leave-active",
-				transitionName + "-leave-to",
+				`${transitionName}-leave`,
+				`${transitionName}-leave-active`,
+				`${transitionName}-leave-to`,
 			);
 		};
 	}

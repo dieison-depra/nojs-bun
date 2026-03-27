@@ -106,57 +106,55 @@ describe("Animations", () => {
 		});
 	});
 
-	describe("_animateOut", () =>
-{
-	test("adds animation class and calls callback after animationend", () => {
-		const el = document.createElement("div");
-		const child = document.createElement("span");
-		el.appendChild(child);
-		document.body.appendChild(el);
+	describe("_animateOut", () => {
+		test("adds animation class and calls callback after animationend", () => {
+			const el = document.createElement("div");
+			const child = document.createElement("span");
+			el.appendChild(child);
+			document.body.appendChild(el);
 
-		const callback = jest.fn();
-		_animateOut(el, "fadeOut", null, callback);
-		expect(child.classList.contains("fadeOut")).toBe(true);
+			const callback = jest.fn();
+			_animateOut(el, "fadeOut", null, callback);
+			expect(child.classList.contains("fadeOut")).toBe(true);
 
-		child.dispatchEvent(new Event("animationend"));
-		expect(child.classList.contains("fadeOut")).toBe(false);
-		expect(callback).toHaveBeenCalled();
+			child.dispatchEvent(new Event("animationend"));
+			expect(child.classList.contains("fadeOut")).toBe(false);
+			expect(callback).toHaveBeenCalled();
+		});
+
+		test("adds transition leave classes", () => {
+			const el = document.createElement("div");
+			const child = document.createElement("span");
+			el.appendChild(child);
+			document.body.appendChild(el);
+
+			const callback = jest.fn();
+			_animateOut(el, null, "slide", callback);
+			expect(child.classList.contains("slide-leave")).toBe(true);
+			expect(child.classList.contains("slide-leave-active")).toBe(true);
+		});
+
+		test("calls callback immediately when no animation specified", () => {
+			const el = document.createElement("div");
+			const child = document.createElement("span");
+			el.appendChild(child);
+			document.body.appendChild(el);
+
+			const callback = jest.fn();
+			_animateOut(el, null, null, callback);
+			expect(callback).toHaveBeenCalled();
+		});
+
+		test("calls callback immediately when element has no children", () => {
+			const el = document.createElement("div");
+			document.body.appendChild(el);
+
+			const callback = jest.fn();
+			_animateOut(el, "fadeOut", null, callback);
+			expect(callback).toHaveBeenCalled();
+		});
 	});
-
-	test("adds transition leave classes", () => {
-		const el = document.createElement("div");
-		const child = document.createElement("span");
-		el.appendChild(child);
-		document.body.appendChild(el);
-
-		const callback = jest.fn();
-		_animateOut(el, null, "slide", callback);
-		expect(child.classList.contains("slide-leave")).toBe(true);
-		expect(child.classList.contains("slide-leave-active")).toBe(true);
-	});
-
-	test("calls callback immediately when no animation specified", () => {
-		const el = document.createElement("div");
-		const child = document.createElement("span");
-		el.appendChild(child);
-		document.body.appendChild(el);
-
-		const callback = jest.fn();
-		_animateOut(el, null, null, callback);
-		expect(callback).toHaveBeenCalled();
-	});
-
-	test("calls callback immediately when element has no children", () => {
-		const el = document.createElement("div");
-		document.body.appendChild(el);
-
-		const callback = jest.fn();
-		_animateOut(el, "fadeOut", null, callback);
-		expect(callback).toHaveBeenCalled();
-	});
-}
-)
-})
+});
 
 describe("_animateIn with transition", () => {
 	test("adds transition-enter and transition-enter-active classes", () => {

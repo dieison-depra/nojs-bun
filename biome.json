@@ -1,5 +1,8 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.4.7/schema.json",
+	"files": {
+		"ignoreUnknown": true
+	},
 	"linter": {
 		"enabled": true,
 		"rules": {
@@ -20,6 +23,9 @@
 				"useButtonType": "off"
 			}
 		}
+	},
+	"formatter": {
+		"enabled": true
 	},
 	"overrides": [
 		{

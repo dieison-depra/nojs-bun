@@ -12,6 +12,7 @@ import {
 	processTree,
 	registerDirective,
 } from "../registry.js";
+import { getEngine } from "../wasm/loader.js";
 
 registerDirective("each", {
 	priority: 10,
@@ -102,12 +103,35 @@ registerDirective("each", {
 			// Evaluate the key for every item in the new list up-front.
 			const newOrder = list.map((item, i) => {
 				const tempCtx = createContext({ [itemName]: item, $index: i }, ctx);
-				return { key: evaluate(keyExpr, tempCtx), item, i };
+				return { key: String(evaluate(keyExpr, tempCtx)), item, i };
 			});
 
 			const nextKeySet = new Set(newOrder.map((e) => e.key));
+			const oldKeys = Array.from(keyMap.keys());
+			const newKeys = newOrder.map((e) => e.key);
 
-			// Remove wrappers whose keys are no longer in the list.
+			const engine = getEngine();
+			if (engine?.diff_keyed_list) {
+				try {
+					const patches = engine.diff_keyed_list(oldKeys, newKeys);
+					// Process patches from Rust
+					for (const patch of patches) {
+						if (patch.Remove) {
+							const wrapper = keyMap.get(patch.Remove.key);
+							if (wrapper) {
+								_disposeChildren(wrapper);
+								wrapper.remove();
+								keyMap.delete(patch.Remove.key);
+							}
+						}
+					}
+					// (Inserts and Moves are handled by the reorder loop below for simplicity in this MVP)
+				} catch (_e) {
+					// Fallback to JS diff
+				}
+			}
+
+			// Original fallback/cleanup for removals not handled by WASM
 			for (const [key, wrapper] of keyMap) {
 				if (!nextKeySet.has(key)) {
 					_disposeChildren(wrapper);

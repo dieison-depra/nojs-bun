@@ -5,6 +5,7 @@
 import { createContext } from "./context.js";
 import { resolveUrl } from "./fetch.js";
 import { _config, _log, _warn } from "./globals.js";
+import { getEngine } from "./wasm/loader.js";
 
 // ─── Template HTML cache: url → html string ────────────────────────────────
 // Avoids re-fetching the same .tpl file on repeat navigation.
@@ -116,6 +117,16 @@ export function _sanitizeHtml(html) {
 		);
 		return html;
 	}
+
+	const engine = getEngine();
+	if (engine?.sanitize_html) {
+		try {
+			return engine.sanitize_html(html);
+		} catch (_e) {
+			// Fallback to JS sanitizer
+		}
+	}
+
 	if (typeof _config.sanitizeHtml === "function")
 		return _config.sanitizeHtml(html);
 

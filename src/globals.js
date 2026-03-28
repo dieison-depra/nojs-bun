@@ -2,7 +2,7 @@
 //  SHARED STATE & UTILITIES
 // ═══════════════════════════════════════════════════════════════════════
 
-import { _withEffect } from "./context.js";
+import { _withEffect } from "./signals.js";
 
 export const _config = {
 	baseApiUrl: "",

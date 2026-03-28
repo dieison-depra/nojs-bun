@@ -1,0 +1,11 @@
+/Users/dieisondepra/workspace/playground/nojs-bun/src/wasm/target/release/deps/libbeef-a03420c1c18b0350.rmeta: /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/lib.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/traits.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/wide.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/generic.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/lean.rs
+
+/Users/dieisondepra/workspace/playground/nojs-bun/src/wasm/target/release/deps/libbeef-a03420c1c18b0350.rlib: /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/lib.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/traits.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/wide.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/generic.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/lean.rs
+
+/Users/dieisondepra/workspace/playground/nojs-bun/src/wasm/target/release/deps/beef-a03420c1c18b0350.d: /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/lib.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/traits.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/wide.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/generic.rs /Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/lean.rs
+
+/Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/lib.rs:
+/Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/traits.rs:
+/Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/wide.rs:
+/Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/generic.rs:
+/Users/dieisondepra/.cargo/registry/src/index.crates.io-6f17d22bba15001f/beef-0.5.2/src/lean.rs:

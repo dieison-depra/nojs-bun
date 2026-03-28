@@ -840,6 +840,7 @@ const _ALL_GLOBALS = { ..._SAFE_GLOBALS, ..._BROWSER_GLOBALS };
 export function evaluate(expr, ctx) {
 	if (expr == null || expr === "") return undefined;
 	try {
+		if (ctx == null) throw new TypeError("ctx is required");
 		const pipes = _parsePipes(expr);
 		const mainExpr = pipes[0];
 
@@ -938,8 +939,17 @@ function _execStmtNode(node, scope) {
 
 export function _execStatement(expr, ctx, extraVars = {}) {
 	try {
-		// Use proxy for statements too
-		const scope = Object.create(ctx);
+		const { vals } = _collectKeys(ctx);
+		const scope = { ...vals };
+		if (!("$store" in scope)) scope.$store = _stores;
+		if (!("$route" in scope)) scope.$route = _routerInstance?.current;
+		if (!("$router" in scope)) scope.$router = _routerInstance;
+		if (!("$i18n" in scope)) scope.$i18n = _i18n;
+		if (!("$refs" in scope)) scope.$refs = ctx.$refs;
+		for (const gk in _globals) {
+			const key = `$${gk}`;
+			if (!(key in scope)) scope[key] = _globals[gk];
+		}
 		Object.assign(scope, extraVars);
 
 		const chainKeys = new Set();

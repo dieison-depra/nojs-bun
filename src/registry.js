@@ -108,7 +108,13 @@ function _disposeElement(node) {
 			if (typeof fn === "function") fn();
 		});
 	}
-	if (ctxId) _ctxRegistry.delete(ctxId);
+	if (ctxId) {
+		_ctxRegistry.delete(ctxId);
+		_devtoolsEmit("ctx:disposed", {
+			id: ctxId,
+			elementTag: node.tagName?.toLowerCase(),
+		});
+	}
 	node.__declared = false;
 	node.__ctx = null;
 	node.__disposers = null;

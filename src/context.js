@@ -152,6 +152,15 @@ export function createContext(data = {}, parent = null) {
 					return () => {
 						const set = listeners.get(k);
 						if (set) set.delete(fn);
+						// Remove fn from every listener set it auto-subscribed to
+						// during _withEffect so that store listener sets don't keep fn
+						// (and its closed-over DOM element) alive after disposal.
+						if (fn._deps) {
+							for (const depSet of fn._deps) {
+								depSet.delete(fn);
+							}
+							fn._deps = null;
+						}
 					};
 				};
 
@@ -195,7 +204,17 @@ export function createContext(data = {}, parent = null) {
 			// Automatic dependency tracking
 			if (_activeEffect && typeof key === "string" && !key.startsWith("$")) {
 				if (!listeners.has(key)) listeners.set(key, new Set());
-				listeners.get(key).add(_activeEffect);
+				const _set = listeners.get(key);
+				if (!_set.has(_activeEffect)) {
+					_set.add(_activeEffect);
+					// Record the listener set on the effect so that unwatch() can
+					// remove fn from every set it was auto-registered in (not just
+					// the explicit "$watch(fn)" set). This prevents detached DOM
+					// elements from being kept alive via the fn → el closure while
+					// fn is still reachable from a store listener set.
+					if (!_activeEffect._deps) _activeEffect._deps = new Set();
+					_activeEffect._deps.add(_set);
+				}
 			}
 
 			if (key in target) return target[key];

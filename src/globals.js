@@ -118,6 +118,10 @@ export function _watchExpr(expr, ctx, fn) {
 	const unwatch = ctx.$watch(fn);
 	_onDispose(() => {
 		unwatch();
+		fn._el = null; // Break strong DOM ref so the element can be GC'd
+		// fn may still be referenced by store listener sets (auto-tracked via
+		// _withEffect); nulling _el ensures the DOM node is not anchored while
+		// fn waits for lazy removal on the next notify() pass.
 		_storeWatchers.delete(fn);
 	});
 	_withEffect(fn, fn); // Initial run with tracking
@@ -128,7 +132,8 @@ export function _watchExpr(expr, ctx, fn) {
 		const el = _currentEl;
 		if (el?.parentElement) {
 			const ro = new MutationObserver(() => {
-				if (!el.isConnected) {
+				const target = fn._elRef?.deref();
+				if (!target?.isConnected) {
 					_storeWatchers.delete(fn);
 					unwatch();
 					ro.disconnect();

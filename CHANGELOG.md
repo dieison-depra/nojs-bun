@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.1] — 2026-03-28
+
+### Fixed
+
+- **Deps tracking in `$watch` / `_watchExpr`** (`src/context.js`, `src/globals.js`): Automatic dependency tracking via `_withEffect` registered effect functions (`fn`) into store listener sets (e.g. `_stores.cart.__listeners.get("items")`) that the `unwatch()` returned by `ctx.$watch(fn)` never cleaned up. Because `fn` closes over the owning DOM element, this created a chain `store listeners → fn → el` that kept detached DOM nodes alive in V8 after disposal — bypassing both `_disposeAndClear` and `HeapProfiler.collectGarbage`. Fix: (1) the auto-tracking block in `createContext`'s get trap now records each listener `Set` in `fn._deps` (a `Set<Set>` on the effect) whenever a new subscription is created; (2) the `unwatch()` function iterates `fn._deps` and calls `depSet.delete(fn)` for each recorded set before clearing `fn._deps = null`. This ensures that on element disposal all listener registrations — both explicit (`$watch`) and auto-tracked (`_withEffect`) — are fully removed. (3) `_watchExpr`'s disposer also sets `fn._el = null` as a defence-in-depth measure to break the strong DOM ref immediately. Resolves E2E memory-leak regressions T1, T6, D3 and D2 (nodesDrift drops from 226/660/1090/839 → 0/0/0/6).
+
 ## [1.13.0] — 2026-03-28
 
 ### Added

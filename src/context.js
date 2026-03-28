@@ -18,6 +18,14 @@ const _batchQueue = new Set();
 let _ctxId = 0;
 let _ctxGeneration = 0;
 
+function _isEffectDead(fn) {
+	if (fn._elRef) {
+		const el = fn._elRef.deref();
+		return !el || !el.isConnected;
+	}
+	return fn._el ? !fn._el.isConnected : false;
+}
+
 // Global state for dependency tracking
 export let _activeEffect = null;
 
@@ -37,7 +45,7 @@ export function _endBatch() {
 		const fns = [..._batchQueue];
 		_batchQueue.clear();
 		fns.forEach((fn) => {
-			if (fn._el && !fn._el.isConnected) return;
+			if (_isEffectDead(fn)) return;
 			fn();
 		});
 	}
@@ -89,7 +97,7 @@ export function createContext(data = {}, parent = null) {
 			for (const set of setsToNotify) {
 				if (!set) continue;
 				for (const fn of set) {
-					if (fn._el && !fn._el.isConnected) {
+					if (_isEffectDead(fn)) {
 						set.delete(fn);
 						continue;
 					}
@@ -121,7 +129,14 @@ export function createContext(data = {}, parent = null) {
 						fn = maybeFn;
 					}
 
-					if (_currentEl) fn._el = _currentEl;
+					if (_currentEl) {
+						// Store element via WeakRef so the GC can reclaim it once the
+						// element is removed from the DOM and no other strong ref exists.
+						// fn._el is kept as a strong fallback for environments / callers
+						// that set it directly (e.g. directive internal registration).
+						fn._elRef = new WeakRef(_currentEl);
+						fn._el = _currentEl;
+					}
 
 					if (!listeners.has(k)) listeners.set(k, new Set());
 					listeners.get(k).add(fn);

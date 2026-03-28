@@ -142,3 +142,26 @@ export function _disposeChildren(parent) {
 	const walker = document.createTreeWalker(parent, NodeFilter.SHOW_ELEMENT);
 	while (walker.nextNode()) _disposeElement(walker.currentNode);
 }
+
+/**
+ * Detach all children of `parent` into an off-DOM DocumentFragment before
+ * running disposal. This prevents disposer callbacks (which may trigger DOM
+ * reads/writes) from causing browser layout recalculations while the subtree
+ * is still attached to the live document.
+ *
+ * After the call the parent is empty and all JS state (listeners, disposers,
+ * context refs) on the former children has been released.
+ *
+ * Use instead of the `_disposeChildren(el); el.innerHTML = ""` pattern
+ * wherever clearing a list is the primary goal (loops, http, conditionals).
+ */
+export function _disposeAndClear(parent) {
+	if (!parent) return;
+	// Detach all children in one batch — a single reflow instead of N.
+	const frag = document.createDocumentFragment();
+	while (parent.firstChild) frag.appendChild(parent.firstChild);
+	// Walk and dispose the now off-DOM subtree.
+	const walker = document.createTreeWalker(frag, NodeFilter.SHOW_ELEMENT);
+	while (walker.nextNode()) _disposeElement(walker.currentNode);
+	// frag goes out of scope → children are GC-eligible.
+}

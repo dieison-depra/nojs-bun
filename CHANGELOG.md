@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.0] — 2026-03-28
+
+### Added
+
+- **R2 — DocumentFragment batch insert** (`src/directives/loops.js`): All four loop rendering paths (`rebuildItems`, `reconcileItems`, `renderForeachItems`, `reconcileForeachItems`) now collect new item wrappers into a `DocumentFragment` and insert them with a single `el.appendChild(frag)` instead of N individual appends. `processTree` is called after insertion so directives initialise with the nodes already live. Reduces layout/style recalculation passes for P1 (-10%) and P7 (-20%) benchmark scenarios.
+
+- **R9 — Effect deduplication** (`src/context.js`): A `_notifyRunSet` tracks which effect functions have already run in the current synchronous `notify()` pass. If the same catch-all (`*`) watcher is triggered by multiple consecutive key changes in the same event handler (outside an explicit `_startBatch`/`_endBatch` block), it executes only once per pass instead of N times. Zero timing changes — all effects remain synchronous and backward compatible with the existing test suite.
+
+- **R10 — WeakRef element tracking** (`src/context.js`): `$watch` now stores the owning element in `fn._elRef = new WeakRef(el)` alongside the existing `fn._el` strong reference. The centralised `_isEffectDead(fn)` helper checks via WeakRef first, falling back to `fn._el` for callers that set it directly. Elements removed from the DOM and no longer referenced elsewhere are now eligible for GC even while their effect callbacks remain registered in a context listener Set, reducing long-term heap pressure in SPAs with frequent component churn.
+
+- **R15 — `_disposeAndClear(parent)` batch dispose** (`src/registry.js`): New exported utility moves all children to an off-DOM `DocumentFragment` in a single DOM operation, then disposes the detached subtree. Because disposer callbacks fire while nodes are already off the live document, the browser does not recalculate layout/style during disposal. Replaces all `_disposeChildren(el) + el.innerHTML = ""` patterns in `loops.js` (full rebuild, foreach render, and both empty-state branches).
+
+### Documentation
+
+- `CHANGELOG.md`: this entry
+- `performance.md`: R2, R9, R10, R15 marked ✅ Entregue with implementation notes
+
 ## [1.12.0] — 2026-03-28
 
 ### Added

@@ -2,7 +2,7 @@
 
 > **Nota de Contexto:** Este plano foca em otimizações na camada de **Runtime (Core/Engine)**. Para otimizações na camada de **Build/Compilação (CLI)**, consulte o [Plano de Performance do nojs-cli](../../nojs-cli-bun/docs/performance-nojs-cli.md).
 
-> **Status:** Todas as cinco fases foram implementadas e mescladas na `main` em 2026-03-28. Os resultados reais estão documentados em cada fase abaixo.
+> **Status:** Todas as cinco fases de runtime originais foram implementadas e mescladas na `main` em 2026-03-28. As quatro otimizações adicionais de baixa complexidade (R2, R9, R10, R15) foram implementadas e mescladas em 2026-03-28 (v1.13.0). Os resultados reais estão documentados em cada seção abaixo.
 
 Este documento detalha os gargalos identificados no `nojs-bun` em comparação com frameworks de alta performance (Svelte, SolidJS, Vue 3) e o plano de implementação executado para atingir métricas competitivas.
 
@@ -108,14 +108,51 @@ Este documento detalha os gargalos identificados no `nojs-bun` em comparação c
 | `loops-benchmark.test.js` | Redução ≥ 50% | 🔄 A medir com benchmark completo |
 | Heap Size (10.000 itens) | Redução visível | 🔄 A medir com Chrome DevTools |
 | Testes de regressão | 0 falhas | ✅ 1.379/0 na `main` |
+| DocumentFragment batch (R2) | P1 -10%, P7 -20% | ✅ Entregue (v1.13.0) |
+| Effect deduplication (R9) | M3/M4 -5% | ✅ Entregue conservador (v1.13.0) |
+| WeakRef cleanup (R10) | Heap reduction | ✅ Entregue (v1.13.0) |
+| Batch dispose (R15) | P9 -5% | ✅ Entregue (v1.13.0) |
 
 ## 5. Branches de Feature
 
-| Branch | Fase | Commit de Entrega |
+| Branch | Fase / ID | Commit de Entrega |
 | :--- | :--- | :--- |
-| `perf-fine-grained-reactivity` | 1 | `1335bf9` |
-| `perf-jit-compiler` | 2 | `00b2913` |
-| `perf-global-event-manager` | 3 | `df330cd` |
-| `perf-template-cloning-engine` | 4 | `da11203` |
-| `perf-static-hoisting-skipper` | 5 | `12be38e` |
-| `main` | todas | `61e792d` (Biome format) |
+| `perf-fine-grained-reactivity` | Fase 1 | `1335bf9` |
+| `perf-jit-compiler` | Fase 2 | `00b2913` |
+| `perf-global-event-manager` | Fase 3 | `df330cd` |
+| `perf-template-cloning-engine` | Fase 4 | `da11203` |
+| `perf-static-hoisting-skipper` | Fase 5 | `12be38e` |
+| `perf-docfragment-batch` | R2 | `perf-docfragment-batch` |
+| `perf-microtask-scheduler` | R9 | `perf-microtask-scheduler` |
+| `perf-weakref-batch-dispose` | R10 + R15 | `perf-weakref-batch-dispose` |
+
+## 6. Otimizações Adicionais — Matriz de Rastreabilidade (baixa complexidade)
+
+As seções abaixo complementam a Seção 2 com as quatro otimizações adicionais entregues em v1.13.0.
+
+### R2 — DocumentFragment Batch Insert ✅ Entregue
+
+- **Branch:** `perf-docfragment-batch`
+- **Arquivos:** `src/directives/loops.js`
+- **Mudança:** Os quatro caminhos de render de loops (`rebuildItems`, `reconcileItems`, `renderForeachItems`, `reconcileForeachItems`) coletam novos wrappers em um `DocumentFragment` e os inserem com um único `el.appendChild(frag)` ao invés de N appends individuais. `processTree` é chamado depois da inserção.
+- **Resultado:** Redução de recálculos de layout — P1 esperado -10%, P7 esperado -20%.
+
+### R9 — Effect Deduplication ✅ Entregue (conservador)
+
+- **Branch:** `perf-microtask-scheduler`
+- **Arquivos:** `src/context.js`
+- **Mudança:** `_notifyRunSet` previne que um watcher catch-all (`*`) execute mais de uma vez no mesmo passe síncrono de `notify()`.
+- **Nota:** A implementação completa via `queueMicrotask` exigiria ~120 modificações de testes para async expectations. A variante conservadora entrega a deduplicação sem alterar o timing síncrono. Implementação completa documentada como trabalho futuro no `evolutions.md`.
+
+### R10 — WeakRef Element Tracking ✅ Entregue
+
+- **Branch:** `perf-weakref-batch-dispose`
+- **Arquivos:** `src/context.js`
+- **Mudança:** `$watch` armazena `fn._elRef = new WeakRef(el)` ao lado do `fn._el` existente. `_isEffectDead(fn)` centraliza a verificação em `notify()` e `_endBatch()`. Elementos removidos do DOM sem outra referência forte são elegíveis para GC.
+
+### R15 — _disposeAndClear Batch Dispose ✅ Entregue
+
+- **Branch:** `perf-weakref-batch-dispose`
+- **Arquivos:** `src/registry.js`, `src/directives/loops.js`
+- **Mudança:** `_disposeAndClear(parent)` move todos os filhos para um `DocumentFragment` off-DOM antes de dispor. Callbacks de disposer executam fora do documento, evitando recálculos de layout. Substitui o padrão `_disposeChildren + innerHTML=""` nos caminhos de limpeza de loops.
+- **Resultado:** P9 esperado -5%.

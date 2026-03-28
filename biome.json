@@ -1,7 +1,8 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.4.7/schema.json",
 	"files": {
-		"ignoreUnknown": true
+		"ignoreUnknown": true,
+		"includes": ["src/**", "types/**", "docs/**", "__tests__/**", "build.js", "biome.json", "knip.json", "package.json"]
 	},
 	"linter": {
 		"enabled": true,

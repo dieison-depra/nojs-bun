@@ -13,7 +13,7 @@ describe("Signal System (R1)", () => {
 		expect(s.get()).toBe(20);
 	});
 
-	it("should trigger effect on change", () => {
+	it("should trigger effect on change", async () => {
 		const s = createSignal(10);
 		let count = 0;
 		createEffect(() => {
@@ -22,10 +22,11 @@ describe("Signal System (R1)", () => {
 		});
 		expect(count).toBe(1);
 		s.set(20);
+		await Promise.resolve();
 		expect(count).toBe(2);
 	});
 
-	it("should handle nested effects", () => {
+	it("should handle nested effects", async () => {
 		const s1 = createSignal(1);
 		const s2 = createSignal(10);
 		let out1 = 0;
@@ -44,15 +45,17 @@ describe("Signal System (R1)", () => {
 		expect(out2).toBe(1);
 
 		s2.set(11);
+		await Promise.resolve();
 		expect(out1).toBe(1);
 		expect(out2).toBe(2);
 
 		s1.set(2);
+		await Promise.resolve();
 		expect(out1).toBe(2);
 		expect(out2).toBe(3); // New effect created, old cleaned up
 	});
 
-	it("should create memoized values", () => {
+	it("should create memoized values", async () => {
 		const s = createSignal(10);
 		let calculations = 0;
 		const m = createMemo(() => {
@@ -60,13 +63,34 @@ describe("Signal System (R1)", () => {
 			return s.get() * 2;
 		});
 
-		expect(calculations).toBe(1); // Effect run initially
+		// Memo effect runs initially
+		await Promise.resolve();
+		expect(calculations).toBe(1); 
 		expect(m.get()).toBe(20);
 		expect(calculations).toBe(1); // Cached
 
 		s.set(20);
+		await Promise.resolve();
 		expect(m.get()).toBe(40);
 		expect(calculations).toBe(2);
+	});
+
+	it("should batch multiple updates (R9)", async () => {
+		const s1 = createSignal(1);
+		const s2 = createSignal(10);
+		let runs = 0;
+		createEffect(() => {
+			s1.get();
+			s2.get();
+			runs++;
+		});
+
+		expect(runs).toBe(1);
+		s1.set(2);
+		s2.set(11);
+		expect(runs).toBe(1); // Still 1 (batched)
+		await Promise.resolve();
+		expect(runs).toBe(2); // Updated once
 	});
 
 	it("should avoid diamond problem (glitch-free)", () => {

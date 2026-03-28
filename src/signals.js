@@ -4,6 +4,8 @@
 
 let activeEffect = null;
 const effectStack = [];
+const pendingEffects = new Set();
+let isBatching = false;
 
 /**
  * Creates a Signal (reactive atom)
@@ -24,16 +26,33 @@ export function createSignal(initialValue) {
 			if (value === newValue) return;
 			value = newValue;
 			
-			// Notify all subscribers
-			for (const effect of Array.from(subscribers)) {
-				effect.run();
+			// Schedule effects for next microtask
+			for (const effect of subscribers) {
+				pendingEffects.add(effect);
 			}
+			scheduleUpdate();
 		},
-		// Internal: get raw value without tracking
 		peek() {
 			return value;
 		}
 	};
+}
+
+function scheduleUpdate() {
+	if (isBatching) return;
+	isBatching = true;
+	queueMicrotask(flushEffects);
+}
+
+function flushEffects() {
+	isBatching = false;
+	const effects = Array.from(pendingEffects);
+	pendingEffects.clear();
+	
+	// Topological sort would happen here. For now, simple deduplicated run.
+	for (const effect of effects) {
+		effect.run();
+	}
 }
 
 /**

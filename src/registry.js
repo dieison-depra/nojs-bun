@@ -97,6 +97,7 @@ function _disposeElement(node) {
 			}
 		}
 		node.__ctx.__listeners.clear();
+		node.__ctx.__listeners.set("*", new Set());
 	}
 	if (node.__disposers) {
 		node.__disposers.forEach((fn) => {

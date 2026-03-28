@@ -150,7 +150,7 @@ export function createContext(data = {}, parent = null) {
 				};
 
 			if (key === "$parent") return parent;
-			if (key === "$refs") return _refs;
+			if (key === "$refs") return target.$refs ?? _refs;
 			if (key === "$store") return _stores;
 			if (key === "$route")
 				return _routerInstance ? _routerInstance.current : {};

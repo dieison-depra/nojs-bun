@@ -1,4 +1,5 @@
 import { _onDispose, _setCurrentEl, _storeWatchers } from "../src/globals.js";
+import { createContext } from "../src/context.js";
 import {
 	_disposeChildren,
 	_disposeTree,
@@ -199,12 +200,17 @@ describe("Disposal", () => {
 			_storeWatchers.add(fn);
 
 			const el = document.createElement("div");
-			el.__ctx = { __listeners: new Set([fn]) };
+			const ctx = createContext();
+			ctx.$watch(fn);
+			el.__ctx = ctx;
 
 			_disposeTree(el);
 
 			expect(_storeWatchers.has(fn)).toBe(false);
-			expect(el.__ctx.__listeners.size).toBe(0);
+
+			// After dispose the "*" entry must still exist (restored by fix) but be empty
+			const listeners = ctx.__listeners;
+			expect(listeners.get("*").has(fn)).toBe(false);
 		});
 
 		test("handles null root gracefully", () => {

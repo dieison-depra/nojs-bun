@@ -2753,7 +2753,10 @@ describe("Validation — $form.reset() resets form and rechecks validity", () =>
 		// Track the call via direct assignment instead.
 		let resetCalled = false;
 		const origReset = form.reset.bind(form);
-		form.reset = jest.fn(() => { resetCalled = true; origReset(); });
+		form.reset = jest.fn(() => {
+			resetCalled = true;
+			origReset();
+		});
 
 		ctx.$form.reset();
 

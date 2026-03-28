@@ -19,7 +19,8 @@ registerDirective("each", {
 		const match = expr.match(/^(\w+)\s+in\s+(\S+)$/);
 		if (!match) return;
 		const [, itemName, listPath] = match;
-		const tplId = el.getAttribute("data-nojs-template") || el.getAttribute("template");
+		const tplId =
+			el.getAttribute("data-nojs-template") || el.getAttribute("template");
 		const elseTpl = el.getAttribute("else");
 		const keyExpr = el.getAttribute("key");
 		const animEnter =
@@ -225,7 +226,8 @@ registerDirective("foreach", {
 		const sortProp = el.getAttribute("sort");
 		const limit = parseInt(el.getAttribute("limit"), 10) || Infinity;
 		const offset = parseInt(el.getAttribute("offset"), 10) || 0;
-		const tplId = el.getAttribute("data-nojs-template") || el.getAttribute("template");
+		const tplId =
+			el.getAttribute("data-nojs-template") || el.getAttribute("template");
 		const keyExpr = el.getAttribute("key");
 		const animEnter =
 			el.getAttribute("animate-enter") || el.getAttribute("animate");

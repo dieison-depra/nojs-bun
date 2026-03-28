@@ -58,11 +58,40 @@ const _KEYWORDS = new Set([
 const _FORBIDDEN = new Set(["__proto__", "constructor", "prototype"]);
 
 const _MULTI = [
-	"===", "!==", "...", "??", "?.", "==", "!=", ">=", "<=", "&&", "||",
-	"+=", "-=", "*=", "/=", "%=", "++", "--", "=>",
+	"===",
+	"!==",
+	"...",
+	"??",
+	"?.",
+	"==",
+	"!=",
+	">=",
+	"<=",
+	"&&",
+	"||",
+	"+=",
+	"-=",
+	"*=",
+	"/=",
+	"%=",
+	"++",
+	"--",
+	"=>",
 ];
 const _SINGLE_OPS = new Set(["+", "-", "*", "/", "%", ">", "<", "!", "=", "|"]);
-const _SINGLE_PUNC = new Set(["(", ")", "[", "]", "{", "}", ".", ",", ":", ";", "?"]);
+const _SINGLE_PUNC = new Set([
+	"(",
+	")",
+	"[",
+	"]",
+	"{",
+	"}",
+	".",
+	",",
+	":",
+	";",
+	"?",
+]);
 
 function _tokenize(expr) {
 	if (typeof expr !== "string") return [];
@@ -112,7 +141,11 @@ function _tokenize(expr) {
 					else if (esc === "r") seg += "\r";
 					else seg += esc;
 					pos += 2;
-				} else if (expr[pos] === "$" && pos + 1 < len && expr[pos + 1] === "{") {
+				} else if (
+					expr[pos] === "$" &&
+					pos + 1 < len &&
+					expr[pos + 1] === "{"
+				) {
 					parts.push(seg);
 					seg = "";
 					pos += 2;
@@ -123,7 +156,11 @@ function _tokenize(expr) {
 						else if (expr[pos] === "}") {
 							depth--;
 							if (depth === 0) break;
-						} else if (expr[pos] === "'" || expr[pos] === '"' || expr[pos] === "`") {
+						} else if (
+							expr[pos] === "'" ||
+							expr[pos] === '"' ||
+							expr[pos] === "`"
+						) {
 							const q = expr[pos];
 							inner += q;
 							pos++;
@@ -133,7 +170,10 @@ function _tokenize(expr) {
 									if (pos < len) inner += expr[pos++];
 								} else inner += expr[pos++];
 							}
-							if (pos < len) { inner += expr[pos]; pos++; }
+							if (pos < len) {
+								inner += expr[pos];
+								pos++;
+							}
 							continue;
 						}
 						inner += expr[pos++];
@@ -147,27 +187,49 @@ function _tokenize(expr) {
 			tokens.push({ type: "Template", parts, exprs, pos: start });
 			continue;
 		}
-		if ((ch >= "0" && ch <= "9") || (ch === "." && pos + 1 < len && expr[pos + 1] >= "0" && expr[pos + 1] <= "9")) {
+		if (
+			(ch >= "0" && ch <= "9") ||
+			(ch === "." &&
+				pos + 1 < len &&
+				expr[pos + 1] >= "0" &&
+				expr[pos + 1] <= "9")
+		) {
 			const start = pos;
 			let num = "";
-			while (pos < len && ((expr[pos] >= "0" && expr[pos] <= "9") || expr[pos] === ".")) {
+			while (
+				pos < len &&
+				((expr[pos] >= "0" && expr[pos] <= "9") || expr[pos] === ".")
+			) {
 				num += expr[pos++];
 			}
 			tokens.push({ type: "Number", value: num, pos: start });
 			continue;
 		}
-		if ((ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z") || ch === "_" || ch === "$") {
+		if (
+			(ch >= "a" && ch <= "z") ||
+			(ch >= "A" && ch <= "Z") ||
+			ch === "_" ||
+			ch === "$"
+		) {
 			const start = pos;
 			let id = "";
 			while (pos < len) {
 				const c = expr[pos];
-				if ((c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c === "_" || c === "$") {
+				if (
+					(c >= "a" && c <= "z") ||
+					(c >= "A" && c <= "Z") ||
+					(c >= "0" && c <= "9") ||
+					c === "_" ||
+					c === "$"
+				) {
 					id += c;
 					pos++;
 				} else break;
 			}
-			if (_FORBIDDEN.has(id)) tokens.push({ type: "Forbidden", value: id, pos: start });
-			else if (_KEYWORDS.has(id)) tokens.push({ type: "Keyword", value: id, pos: start });
+			if (_FORBIDDEN.has(id))
+				tokens.push({ type: "Forbidden", value: id, pos: start });
+			else if (_KEYWORDS.has(id))
+				tokens.push({ type: "Keyword", value: id, pos: start });
 			else tokens.push({ type: "Ident", value: id, pos: start });
 			continue;
 		}
@@ -201,10 +263,15 @@ function _tokenize(expr) {
 // ── Parser ─────────────────────────────────────────────────────────────
 
 function _parseExpr(tokens) {
-	if (!tokens || tokens.length === 0) return { type: "Literal", value: undefined };
+	if (!tokens || tokens.length === 0)
+		return { type: "Literal", value: undefined };
 	let pos = 0;
-	function peek() { return tokens[pos]; }
-	function next() { return tokens[pos++]; }
+	function peek() {
+		return tokens[pos];
+	}
+	function next() {
+		return tokens[pos++];
+	}
 	function match(type, value) {
 		const t = tokens[pos];
 		if (!t) return false;
@@ -220,7 +287,9 @@ function _parseExpr(tokens) {
 		return null;
 	}
 
-	function parseExpression() { return parseTernary(); }
+	function parseExpression() {
+		return parseTernary();
+	}
 	function parseTernary() {
 		let node = parseNullishOr();
 		if (match("Punc", "?")) {
@@ -261,7 +330,12 @@ function _parseExpr(tokens) {
 	}
 	function parseBitwiseOr() {
 		let node = parseComparison();
-		while (peek() && peek().type === "Op" && peek().value === "|" && (!tokens[pos + 1] || tokens[pos + 1].value !== "|")) {
+		while (
+			peek() &&
+			peek().type === "Op" &&
+			peek().value === "|" &&
+			(!tokens[pos + 1] || tokens[pos + 1].value !== "|")
+		) {
 			next();
 			const right = parseComparison();
 			node = { type: "BinaryExpr", op: "|", left: node, right };
@@ -273,7 +347,10 @@ function _parseExpr(tokens) {
 		const t = peek();
 		if (!t) return node;
 		const compOps = ["===", "!==", "==", "!=", ">=", "<=", ">", "<"];
-		if ((t.type === "Op" && compOps.indexOf(t.value) !== -1) || (t.type === "Keyword" && (t.value === "in" || t.value === "instanceof"))) {
+		if (
+			(t.type === "Op" && compOps.indexOf(t.value) !== -1) ||
+			(t.type === "Keyword" && (t.value === "in" || t.value === "instanceof"))
+		) {
 			const op = next().value;
 			const right = parseAddition();
 			node = { type: "BinaryExpr", op, left: node, right };
@@ -282,7 +359,11 @@ function _parseExpr(tokens) {
 	}
 	function parseAddition() {
 		let node = parseMultiplication();
-		while (peek() && peek().type === "Op" && (peek().value === "+" || peek().value === "-")) {
+		while (
+			peek() &&
+			peek().type === "Op" &&
+			(peek().value === "+" || peek().value === "-")
+		) {
 			const op = next().value;
 			const right = parseMultiplication();
 			node = { type: "BinaryExpr", op, left: node, right };
@@ -291,7 +372,11 @@ function _parseExpr(tokens) {
 	}
 	function parseMultiplication() {
 		let node = parseUnary();
-		while (peek() && peek().type === "Op" && (peek().value === "*" || peek().value === "/" || peek().value === "%")) {
+		while (
+			peek() &&
+			peek().type === "Op" &&
+			(peek().value === "*" || peek().value === "/" || peek().value === "%")
+		) {
 			const op = next().value;
 			const right = parseUnary();
 			node = { type: "BinaryExpr", op, left: node, right };
@@ -305,13 +390,21 @@ function _parseExpr(tokens) {
 			next();
 			return { type: "UnaryExpr", op: "typeof", argument: parseUnary() };
 		}
-		if (t.type === "Op" && (t.value === "!" || t.value === "-" || t.value === "+")) {
+		if (
+			t.type === "Op" &&
+			(t.value === "!" || t.value === "-" || t.value === "+")
+		) {
 			next();
 			return { type: "UnaryExpr", op: t.value, argument: parseUnary() };
 		}
 		if (t.type === "Op" && (t.value === "++" || t.value === "--")) {
 			next();
-			return { type: "UnaryExpr", op: t.value, argument: parseUnary(), prefix: true };
+			return {
+				type: "UnaryExpr",
+				op: t.value,
+				argument: parseUnary(),
+				prefix: true,
+			};
 		}
 		return parsePostfix();
 	}
@@ -334,7 +427,12 @@ function _parseExpr(tokens) {
 				const prop = peek();
 				if (prop && (prop.type === "Ident" || prop.type === "Keyword")) {
 					next();
-					node = { type: "MemberExpr", object: node, property: { type: "Identifier", name: prop.value }, computed: false };
+					node = {
+						type: "MemberExpr",
+						object: node,
+						property: { type: "Identifier", name: prop.value },
+						computed: false,
+					};
 				} else if (prop && prop.type === "Forbidden") {
 					next();
 					node = { type: "Forbidden" };
@@ -351,12 +449,22 @@ function _parseExpr(tokens) {
 					node = { type: "OptionalCallExpr", callee: node, args };
 				} else if (nt && (nt.type === "Ident" || nt.type === "Keyword")) {
 					next();
-					node = { type: "OptionalMemberExpr", object: node, property: { type: "Identifier", name: nt.value }, computed: false };
+					node = {
+						type: "OptionalMemberExpr",
+						object: node,
+						property: { type: "Identifier", name: nt.value },
+						computed: false,
+					};
 				} else if (nt && nt.type === "Punc" && nt.value === "[") {
 					next();
 					const prop = parseExpression();
 					expect("Punc", "]");
-					node = { type: "OptionalMemberExpr", object: node, property: prop, computed: true };
+					node = {
+						type: "OptionalMemberExpr",
+						object: node,
+						property: prop,
+						computed: true,
+					};
 				} else break;
 				continue;
 			}
@@ -364,7 +472,12 @@ function _parseExpr(tokens) {
 				next();
 				const prop = parseExpression();
 				expect("Punc", "]");
-				node = { type: "MemberExpr", object: node, property: prop, computed: true };
+				node = {
+					type: "MemberExpr",
+					object: node,
+					property: prop,
+					computed: true,
+				};
 				continue;
 			}
 			if (t.type === "Punc" && t.value === "(") {
@@ -400,34 +513,52 @@ function _parseExpr(tokens) {
 		const saved = pos;
 		if (match("Punc", ")")) {
 			const after = tokens[pos + 1];
-			if (after && after.type === "Op" && after.value === "=>") { pos = saved; return true; }
-			pos = saved; return false;
+			if (after && after.type === "Op" && after.value === "=>") {
+				pos = saved;
+				return true;
+			}
+			pos = saved;
+			return false;
 		}
 		while (pos < tokens.length) {
 			const t = peek();
 			if (!t) break;
 			if (t.type === "Ident") {
 				next();
-				if (match("Punc", ",")) { next(); continue; }
+				if (match("Punc", ",")) {
+					next();
+					continue;
+				}
 				if (match("Punc", ")")) {
 					const after = tokens[pos + 1];
-					if (after && after.type === "Op" && after.value === "=>") { pos = saved; return true; }
-					pos = saved; return false;
+					if (after && after.type === "Op" && after.value === "=>") {
+						pos = saved;
+						return true;
+					}
+					pos = saved;
+					return false;
 				}
-				pos = saved; return false;
+				pos = saved;
+				return false;
 			}
 			if (t.type === "Punc" && t.value === "...") {
 				next();
 				if (match("Ident")) next();
 				if (match("Punc", ")")) {
 					const after = tokens[pos + 1];
-					if (after && after.type === "Op" && after.value === "=>") { pos = saved; return true; }
+					if (after && after.type === "Op" && after.value === "=>") {
+						pos = saved;
+						return true;
+					}
 				}
-				pos = saved; return false;
+				pos = saved;
+				return false;
 			}
-			pos = saved; return false;
+			pos = saved;
+			return false;
 		}
-		pos = saved; return false;
+		pos = saved;
+		return false;
 	}
 	function parseArrowParams() {
 		const params = [];
@@ -449,18 +580,43 @@ function _parseExpr(tokens) {
 	function parsePrimary() {
 		const t = peek();
 		if (!t) return { type: "Literal", value: undefined };
-		if (t.type === "Forbidden") { next(); return { type: "Forbidden" }; }
-		if (t.type === "Number") { next(); return { type: "Literal", value: Number(t.value) }; }
-		if (t.type === "String") { next(); return { type: "Literal", value: t.value }; }
+		if (t.type === "Forbidden") {
+			next();
+			return { type: "Forbidden" };
+		}
+		if (t.type === "Number") {
+			next();
+			return { type: "Literal", value: Number(t.value) };
+		}
+		if (t.type === "String") {
+			next();
+			return { type: "Literal", value: t.value };
+		}
 		if (t.type === "Template") {
 			next();
-			return { type: "TemplateLiteral", parts: t.parts, expressions: t.exprs.map(e => _parseExpr(e)) };
+			return {
+				type: "TemplateLiteral",
+				parts: t.parts,
+				expressions: t.exprs.map((e) => _parseExpr(e)),
+			};
 		}
 		if (t.type === "Keyword") {
-			if (t.value === "true") { next(); return { type: "Literal", value: true }; }
-			if (t.value === "false") { next(); return { type: "Literal", value: false }; }
-			if (t.value === "null") { next(); return { type: "Literal", value: null }; }
-			if (t.value === "undefined") { next(); return { type: "Literal", value: undefined }; }
+			if (t.value === "true") {
+				next();
+				return { type: "Literal", value: true };
+			}
+			if (t.value === "false") {
+				next();
+				return { type: "Literal", value: false };
+			}
+			if (t.value === "null") {
+				next();
+				return { type: "Literal", value: null };
+			}
+			if (t.value === "undefined") {
+				next();
+				return { type: "Literal", value: undefined };
+			}
 		}
 		if (t.type === "Punc" && t.value === "[") {
 			next();
@@ -489,7 +645,11 @@ function _parseExpr(tokens) {
 			next();
 			if (match("Op", "=>")) {
 				next();
-				return { type: "ArrowFunction", params: [t.value], body: parseExpression() };
+				return {
+					type: "ArrowFunction",
+					params: [t.value],
+					body: parseExpression(),
+				};
 			}
 			return { type: "Identifier", name: t.value };
 		}
@@ -511,7 +671,12 @@ function _parseExpr(tokens) {
 				const keyExpr = parseExpression();
 				expect("Punc", "]");
 				expect("Punc", ":");
-				properties.push({ key: keyExpr, value: parseExpression(), computed: true, spread: false });
+				properties.push({
+					key: keyExpr,
+					value: parseExpression(),
+					computed: true,
+					spread: false,
+				});
 				if (match("Punc", ",")) next();
 				continue;
 			}
@@ -519,7 +684,12 @@ function _parseExpr(tokens) {
 				const keyToken = next();
 				if (match("Punc", ":")) {
 					next();
-					properties.push({ key: keyToken.value, value: parseExpression(), computed: false, spread: false });
+					properties.push({
+						key: keyToken.value,
+						value: parseExpression(),
+						computed: false,
+						spread: false,
+					});
 				}
 				if (match("Punc", ",")) next();
 				continue;
@@ -528,9 +698,19 @@ function _parseExpr(tokens) {
 				const keyToken = next();
 				if (match("Punc", ":")) {
 					next();
-					properties.push({ key: keyToken.value, value: parseExpression(), computed: false, spread: false });
+					properties.push({
+						key: keyToken.value,
+						value: parseExpression(),
+						computed: false,
+						spread: false,
+					});
 				} else {
-					properties.push({ key: keyToken.value, value: { type: "Identifier", name: keyToken.value }, computed: false, spread: false });
+					properties.push({
+						key: keyToken.value,
+						value: { type: "Identifier", name: keyToken.value },
+						computed: false,
+						spread: false,
+					});
 				}
 				if (match("Punc", ",")) next();
 				continue;
@@ -539,7 +719,12 @@ function _parseExpr(tokens) {
 				const keyToken = next();
 				if (match("Punc", ":")) {
 					next();
-					properties.push({ key: keyToken.value, value: parseExpression(), computed: false, spread: false });
+					properties.push({
+						key: keyToken.value,
+						value: parseExpression(),
+						computed: false,
+						spread: false,
+					});
 				}
 				if (match("Punc", ",")) next();
 				continue;
@@ -552,7 +737,16 @@ function _parseExpr(tokens) {
 	function parseTopLevel() {
 		const expr = parseExpression();
 		const t = peek();
-		if (t && t.type === "Op" && (t.value === "=" || t.value === "+=" || t.value === "-=" || t.value === "*=" || t.value === "/=" || t.value === "%=")) {
+		if (
+			t &&
+			t.type === "Op" &&
+			(t.value === "=" ||
+				t.value === "+=" ||
+				t.value === "-=" ||
+				t.value === "*=" ||
+				t.value === "/=" ||
+				t.value === "%=")
+		) {
 			const op = next().value;
 			return { type: "AssignExpr", op, left: expr, right: parseExpression() };
 		}
@@ -566,89 +760,164 @@ function _parseExpr(tokens) {
 const _FORBIDDEN_PROPS = { __proto__: 1, constructor: 1, prototype: 1 };
 
 const _SAFE_GLOBALS = {
-	Array, Object, String, Number, Boolean, Math, Date, RegExp, Map, Set, JSON,
-	parseInt, parseFloat, isNaN, isFinite, Infinity, NaN, undefined, Error, Symbol, console,
+	Array,
+	Object,
+	String,
+	Number,
+	Boolean,
+	Math,
+	Date,
+	RegExp,
+	Map,
+	Set,
+	JSON,
+	parseInt,
+	parseFloat,
+	isNaN,
+	isFinite,
+	Infinity,
+	NaN,
+	undefined,
+	Error,
+	Symbol,
+	console,
 };
 
 const _BLOCKED_WINDOW_PROPS = new Set([
-	"fetch", "XMLHttpRequest", "localStorage", "sessionStorage", "WebSocket", "indexedDB",
-	"eval", "Function", "importScripts", "open", "postMessage",
+	"fetch",
+	"XMLHttpRequest",
+	"localStorage",
+	"sessionStorage",
+	"WebSocket",
+	"indexedDB",
+	"eval",
+	"Function",
+	"importScripts",
+	"open",
+	"postMessage",
 ]);
 const _WINDOW_PROXY_OVERRIDES = {};
 
-const _BLOCKED_DOCUMENT_PROPS = new Set(["cookie", "domain", "write", "writeln", "execCommand"]);
+const _BLOCKED_DOCUMENT_PROPS = new Set([
+	"cookie",
+	"domain",
+	"write",
+	"writeln",
+	"execCommand",
+]);
 
-const _safeWindow = typeof globalThis !== "undefined" && typeof globalThis.window !== "undefined"
-	? new Proxy(globalThis.window, {
-		get(target, prop, receiver) {
-			if (typeof prop === "string" && _BLOCKED_WINDOW_PROPS.has(prop)) return undefined;
-			if (typeof prop === "string" && prop in _WINDOW_PROXY_OVERRIDES) return _WINDOW_PROXY_OVERRIDES[prop];
-			return Reflect.get(target, prop, receiver);
-		},
-		set(target, prop, value) {
-			if (typeof prop === "string" && _BLOCKED_WINDOW_PROPS.has(prop)) return true;
-			if (prop === "name" || prop === "status") return true;
-			target[prop] = value;
-			return true;
-		},
-	}) : undefined;
+const _safeWindow =
+	typeof globalThis !== "undefined" && typeof globalThis.window !== "undefined"
+		? new Proxy(globalThis.window, {
+				get(target, prop, receiver) {
+					if (typeof prop === "string" && _BLOCKED_WINDOW_PROPS.has(prop))
+						return undefined;
+					if (typeof prop === "string" && prop in _WINDOW_PROXY_OVERRIDES)
+						return _WINDOW_PROXY_OVERRIDES[prop];
+					return Reflect.get(target, prop, receiver);
+				},
+				set(target, prop, value) {
+					if (typeof prop === "string" && _BLOCKED_WINDOW_PROPS.has(prop))
+						return true;
+					if (prop === "name" || prop === "status") return true;
+					target[prop] = value;
+					return true;
+				},
+			})
+		: undefined;
 
-const _safeDocument = typeof globalThis !== "undefined" && typeof globalThis.document !== "undefined"
-	? new Proxy(globalThis.document, {
-		get(target, prop, receiver) {
-			if (typeof prop === "string" && _BLOCKED_DOCUMENT_PROPS.has(prop)) return undefined;
-			if (prop === "defaultView") return _safeWindow;
-			return Reflect.get(target, prop, receiver);
-		},
-		set(target, prop, value) {
-			if (typeof prop === "string" && _BLOCKED_DOCUMENT_PROPS.has(prop)) return true;
-			target[prop] = value;
-			return true;
-		},
-	}) : undefined;
+const _safeDocument =
+	typeof globalThis !== "undefined" &&
+	typeof globalThis.document !== "undefined"
+		? new Proxy(globalThis.document, {
+				get(target, prop, receiver) {
+					if (typeof prop === "string" && _BLOCKED_DOCUMENT_PROPS.has(prop))
+						return undefined;
+					if (prop === "defaultView") return _safeWindow;
+					return Reflect.get(target, prop, receiver);
+				},
+				set(target, prop, value) {
+					if (typeof prop === "string" && _BLOCKED_DOCUMENT_PROPS.has(prop))
+						return true;
+					target[prop] = value;
+					return true;
+				},
+			})
+		: undefined;
 
-const _LOCATION_READ_PROPS = ["href", "pathname", "search", "hash", "origin", "hostname", "port", "protocol", "host"];
+const _LOCATION_READ_PROPS = [
+	"href",
+	"pathname",
+	"search",
+	"hash",
+	"origin",
+	"hostname",
+	"port",
+	"protocol",
+	"host",
+];
 const _locationNoop = () => {};
-const _safeLocation = typeof globalThis !== "undefined" && typeof globalThis.location !== "undefined"
-	? (() => {
-		const loc = {};
-		for (const prop of _LOCATION_READ_PROPS) {
-			Object.defineProperty(loc, prop, {
-				get() { return globalThis.location[prop]; },
-				set() {},
-				enumerable: true,
-				configurable: false,
-			});
-		}
-		loc.assign = _locationNoop; loc.replace = _locationNoop; loc.reload = _locationNoop;
-		loc.toString = () => globalThis.location.href;
-		return Object.freeze(loc);
-	})() : undefined;
+const _safeLocation =
+	typeof globalThis !== "undefined" &&
+	typeof globalThis.location !== "undefined"
+		? (() => {
+				const loc = {};
+				for (const prop of _LOCATION_READ_PROPS) {
+					Object.defineProperty(loc, prop, {
+						get() {
+							return globalThis.location[prop];
+						},
+						set() {},
+						enumerable: true,
+						configurable: false,
+					});
+				}
+				loc.assign = _locationNoop;
+				loc.replace = _locationNoop;
+				loc.reload = _locationNoop;
+				loc.toString = () => globalThis.location.href;
+				return Object.freeze(loc);
+			})()
+		: undefined;
 
 const _HISTORY_READ_PROPS = ["length", "state", "scrollRestoration"];
-const _safeHistory = typeof globalThis !== "undefined" && typeof globalThis.history !== "undefined"
-	? (() => {
-		const h = {};
-		for (const prop of _HISTORY_READ_PROPS) {
-			Object.defineProperty(h, prop, {
-				get() { return globalThis.history[prop]; },
-				enumerable: true,
-				configurable: false,
-			});
-		}
-		h.pushState = _locationNoop; h.replaceState = _locationNoop; h.back = _locationNoop; h.forward = _locationNoop; h.go = _locationNoop;
-		return Object.freeze(h);
-	})() : undefined;
+const _safeHistory =
+	typeof globalThis !== "undefined" && typeof globalThis.history !== "undefined"
+		? (() => {
+				const h = {};
+				for (const prop of _HISTORY_READ_PROPS) {
+					Object.defineProperty(h, prop, {
+						get() {
+							return globalThis.history[prop];
+						},
+						enumerable: true,
+						configurable: false,
+					});
+				}
+				h.pushState = _locationNoop;
+				h.replaceState = _locationNoop;
+				h.back = _locationNoop;
+				h.forward = _locationNoop;
+				h.go = _locationNoop;
+				return Object.freeze(h);
+			})()
+		: undefined;
 
 const _BLOCKED_NAVIGATOR_PROPS = new Set(["sendBeacon", "credentials"]);
-const _safeNavigator = typeof globalThis !== "undefined" && typeof globalThis.navigator !== "undefined"
-	? new Proxy(globalThis.navigator, {
-		get(target, prop, receiver) {
-			if (typeof prop === "string" && _BLOCKED_NAVIGATOR_PROPS.has(prop)) return undefined;
-			return Reflect.get(target, prop, receiver);
-		},
-		set() { return true; },
-	}) : undefined;
+const _safeNavigator =
+	typeof globalThis !== "undefined" &&
+	typeof globalThis.navigator !== "undefined"
+		? new Proxy(globalThis.navigator, {
+				get(target, prop, receiver) {
+					if (typeof prop === "string" && _BLOCKED_NAVIGATOR_PROPS.has(prop))
+						return undefined;
+					return Reflect.get(target, prop, receiver);
+				},
+				set() {
+					return true;
+				},
+			})
+		: undefined;
 
 if (_safeLocation) _WINDOW_PROXY_OVERRIDES.location = _safeLocation;
 if (_safeDocument) _WINDOW_PROXY_OVERRIDES.document = _safeDocument;
@@ -668,57 +937,126 @@ function g(name) {
 	if (name === "clearInterval") return clearInterval;
 	if (typeof globalThis === "undefined") return undefined;
 	try {
-		switch(name) {
-			case "performance": return typeof performance !== "undefined" ? performance : undefined;
-			case "crypto": return typeof crypto !== "undefined" ? crypto : undefined;
-			case "requestAnimationFrame": return typeof requestAnimationFrame !== "undefined" ? requestAnimationFrame : undefined;
-			case "cancelAnimationFrame": return typeof cancelAnimationFrame !== "undefined" ? cancelAnimationFrame : undefined;
-			case "alert": return typeof alert !== "undefined" ? alert : undefined;
-			case "confirm": return typeof confirm !== "undefined" ? confirm : undefined;
-			case "prompt": return typeof prompt !== "undefined" ? prompt : undefined;
-			case "CustomEvent": return typeof CustomEvent !== "undefined" ? CustomEvent : undefined;
-			case "Event": return typeof Event !== "undefined" ? Event : undefined;
-			case "URL": return typeof URL !== "undefined" ? URL : undefined;
-			case "URLSearchParams": return typeof URLSearchParams !== "undefined" ? URLSearchParams : undefined;
-			case "FormData": return typeof FormData !== "undefined" ? FormData : undefined;
-			case "FileReader": return typeof FileReader !== "undefined" ? FileReader : undefined;
-			case "Blob": return typeof Blob !== "undefined" ? Blob : undefined;
-			case "Promise": return typeof Promise !== "undefined" ? Promise : undefined;
+		switch (name) {
+			case "performance":
+				return typeof performance !== "undefined" ? performance : undefined;
+			case "crypto":
+				return typeof crypto !== "undefined" ? crypto : undefined;
+			case "requestAnimationFrame":
+				return typeof requestAnimationFrame !== "undefined"
+					? requestAnimationFrame
+					: undefined;
+			case "cancelAnimationFrame":
+				return typeof cancelAnimationFrame !== "undefined"
+					? cancelAnimationFrame
+					: undefined;
+			case "alert":
+				return typeof alert !== "undefined" ? alert : undefined;
+			case "confirm":
+				return typeof confirm !== "undefined" ? confirm : undefined;
+			case "prompt":
+				return typeof prompt !== "undefined" ? prompt : undefined;
+			case "CustomEvent":
+				return typeof CustomEvent !== "undefined" ? CustomEvent : undefined;
+			case "Event":
+				return typeof Event !== "undefined" ? Event : undefined;
+			case "URL":
+				return typeof URL !== "undefined" ? URL : undefined;
+			case "URLSearchParams":
+				return typeof URLSearchParams !== "undefined"
+					? URLSearchParams
+					: undefined;
+			case "FormData":
+				return typeof FormData !== "undefined" ? FormData : undefined;
+			case "FileReader":
+				return typeof FileReader !== "undefined" ? FileReader : undefined;
+			case "Blob":
+				return typeof Blob !== "undefined" ? Blob : undefined;
+			case "Promise":
+				return typeof Promise !== "undefined" ? Promise : undefined;
 		}
-	} catch(e) { return undefined; }
+	} catch (e) {
+		return undefined;
+	}
 	return globalThis[name];
 }
 
 const _BROWSER_GLOBALS = {
-	window: _safeWindow, document: _safeDocument, console, location: _safeLocation, history: _safeHistory,
-	navigator: _safeNavigator, 
-	get screen() { return g("screen"); },
-	get performance() { return g("performance"); },
-	get crypto() { return g("crypto"); },
-	get setTimeout() { return g("setTimeout"); },
-	get clearTimeout() { return g("clearTimeout"); },
-	get setInterval() { return g("setInterval"); },
-	get clearInterval() { return g("clearInterval"); },
-	get requestAnimationFrame() { return g("requestAnimationFrame"); },
-	get cancelAnimationFrame() { return g("cancelAnimationFrame"); },
-	get alert() { return g("alert"); },
-	get confirm() { return g("confirm"); },
-	get prompt() { return g("prompt"); },
-	get CustomEvent() { return g("CustomEvent"); },
-	get Event() { return g("Event"); },
-	get URL() { return g("URL"); },
-	get URLSearchParams() { return g("URLSearchParams"); },
-	get FormData() { return g("FormData"); },
-	get FileReader() { return g("FileReader"); },
-	get Blob() { return g("Blob"); },
-	get Promise() { return g("Promise"); },
+	window: _safeWindow,
+	document: _safeDocument,
+	console,
+	location: _safeLocation,
+	history: _safeHistory,
+	navigator: _safeNavigator,
+	get screen() {
+		return g("screen");
+	},
+	get performance() {
+		return g("performance");
+	},
+	get crypto() {
+		return g("crypto");
+	},
+	get setTimeout() {
+		return g("setTimeout");
+	},
+	get clearTimeout() {
+		return g("clearTimeout");
+	},
+	get setInterval() {
+		return g("setInterval");
+	},
+	get clearInterval() {
+		return g("clearInterval");
+	},
+	get requestAnimationFrame() {
+		return g("requestAnimationFrame");
+	},
+	get cancelAnimationFrame() {
+		return g("cancelAnimationFrame");
+	},
+	get alert() {
+		return g("alert");
+	},
+	get confirm() {
+		return g("confirm");
+	},
+	get prompt() {
+		return g("prompt");
+	},
+	get CustomEvent() {
+		return g("CustomEvent");
+	},
+	get Event() {
+		return g("Event");
+	},
+	get URL() {
+		return g("URL");
+	},
+	get URLSearchParams() {
+		return g("URLSearchParams");
+	},
+	get FormData() {
+		return g("FormData");
+	},
+	get FileReader() {
+		return g("FileReader");
+	},
+	get Blob() {
+		return g("Blob");
+	},
+	get Promise() {
+		return g("Promise");
+	},
 };
 
 function _compileAST(node) {
 	if (!node) return "undefined";
 	switch (node.type) {
-		case "Literal": return JSON.stringify(node.value);
-		case "Identifier": return `(("${node.name}" in scope) ? scope["${node.name}"] : (("${node.name}" in globals) ? globals["${node.name}"] : undefined))`;
+		case "Literal":
+			return JSON.stringify(node.value);
+		case "Identifier":
+			return `(("${node.name}" in scope) ? scope["${node.name}"] : (("${node.name}" in globals) ? globals["${node.name}"] : undefined))`;
 		case "BinaryExpr": {
 			const l = _compileAST(node.left);
 			const r = _compileAST(node.right);
@@ -734,48 +1072,60 @@ function _compileAST(node) {
 			}
 			return `(${node.op}${arg})`;
 		}
-		case "ConditionalExpr": return `(${_compileAST(node.test)} ? ${_compileAST(node.consequent)} : ${_compileAST(node.alternate)})`;
+		case "ConditionalExpr":
+			return `(${_compileAST(node.test)} ? ${_compileAST(node.consequent)} : ${_compileAST(node.alternate)})`;
 		case "MemberExpr":
 		case "OptionalMemberExpr": {
 			const obj = _compileAST(node.object);
-			const prop = node.computed ? _compileAST(node.property) : JSON.stringify(node.property.name || node.property.value);
+			const prop = node.computed
+				? _compileAST(node.property)
+				: JSON.stringify(node.property.name || node.property.value);
 			const op = node.type === "OptionalMemberExpr" ? "?." : "";
 			return `(function(o, p){ if(o==null) return undefined; if(p === "__proto__" || p === "constructor" || p === "prototype") return undefined; return o${op}[p]; })(${obj}, ${prop})`;
 		}
 		case "CallExpr":
 		case "OptionalCallExpr": {
-			const args = `[${node.args.map(a => a.type === "SpreadElement" ? `...${_compileAST(a.argument)}` : _compileAST(a)).join(", ")}]`;
-			if (node.callee.type === "MemberExpr" || node.callee.type === "OptionalMemberExpr") {
+			const args = `[${node.args.map((a) => (a.type === "SpreadElement" ? `...${_compileAST(a.argument)}` : _compileAST(a))).join(", ")}]`;
+			if (
+				node.callee.type === "MemberExpr" ||
+				node.callee.type === "OptionalMemberExpr"
+			) {
 				const obj = _compileAST(node.callee.object);
-				const prop = node.callee.computed ? _compileAST(node.callee.property) : JSON.stringify(node.callee.property.name);
+				const prop = node.callee.computed
+					? _compileAST(node.callee.property)
+					: JSON.stringify(node.callee.property.name);
 				const op = node.type === "OptionalCallExpr" ? "?." : "";
 				return `(function(o, p, a){ if(o==null) return undefined; if(p === "__proto__" || p === "constructor" || p === "prototype") return undefined; const f = o[p]; if(typeof f !== "function") return undefined; return f.apply(o, a); })(${obj}, ${prop}, ${args})`;
 			}
 			const fn = _compileAST(node.callee);
 			return `(function(f, a){ if(typeof f !== "function") return undefined; return f.apply(undefined, a); })(${fn}, ${args})`;
 		}
-		case "ArrayExpr": return `[${node.elements.map(e => e.type === "SpreadElement" ? `...${_compileAST(e.argument)}` : _compileAST(e)).join(", ")}]`;
+		case "ArrayExpr":
+			return `[${node.elements.map((e) => (e.type === "SpreadElement" ? `...${_compileAST(e.argument)}` : _compileAST(e))).join(", ")}]`;
 		case "ObjectExpr": {
-			const props = node.properties.map(p => {
-				if (p.spread) return `...${_compileAST(p.value)}`;
-				const key = p.computed ? _compileAST(p.key) : JSON.stringify(p.key);
-				return `[${key}]: ${_compileAST(p.value)}`;
-			}).join(", ");
+			const props = node.properties
+				.map((p) => {
+					if (p.spread) return `...${_compileAST(p.value)}`;
+					const key = p.computed ? _compileAST(p.key) : JSON.stringify(p.key);
+					return `[${key}]: ${_compileAST(p.value)}`;
+				})
+				.join(", ");
 			return `(function(){ const o = {${props}}; delete o.__proto__; delete o.constructor; delete o.prototype; return o; })()`;
 		}
 		case "ArrowFunction": {
 			const params = node.params.join(", ");
 			const body = _compileAST(node.body);
-			return `((${params}) => { const childScope = Object.create(scope); ${node.params.map(p => `childScope["${p.replace('...', '')}"] = ${p.replace('...', '')};`).join(" ")} return (function(scope){ return ${body}; })(childScope); })`;
+			return `((${params}) => { const childScope = Object.create(scope); ${node.params.map((p) => `childScope["${p.replace("...", "")}"] = ${p.replace("...", "")};`).join(" ")} return (function(scope){ return ${body}; })(childScope); })`;
 		}
 		case "TemplateLiteral": {
 			let res = JSON.stringify(node.parts[0]);
 			for (let i = 0; i < node.expressions.length; i++) {
-				res += ` + String(${_compileAST(node.expressions[i])}) + ${JSON.stringify(node.parts[i+1])}`;
+				res += ` + String(${_compileAST(node.expressions[i])}) + ${JSON.stringify(node.parts[i + 1])}`;
 			}
 			return `(${res})`;
 		}
-		default: return "undefined";
+		default:
+			return "undefined";
 	}
 }
 
@@ -792,10 +1142,28 @@ function _parsePipes(exprStr) {
 			if (ch === strChar && exprStr[i - 1] !== "\\") inStr = false;
 			continue;
 		}
-		if (ch === "'" || ch === '"' || ch === "`") { inStr = true; strChar = ch; current += ch; continue; }
-		if (ch === "(" || ch === "[" || ch === "{") { depth++; current += ch; continue; }
-		if (ch === ")" || ch === "]" || ch === "}") { depth--; current += ch; continue; }
-		if (ch === "|" && depth === 0 && exprStr[i + 1] !== "|" && exprStr[i - 1] !== "|") {
+		if (ch === "'" || ch === '"' || ch === "`") {
+			inStr = true;
+			strChar = ch;
+			current += ch;
+			continue;
+		}
+		if (ch === "(" || ch === "[" || ch === "{") {
+			depth++;
+			current += ch;
+			continue;
+		}
+		if (ch === ")" || ch === "]" || ch === "}") {
+			depth--;
+			current += ch;
+			continue;
+		}
+		if (
+			ch === "|" &&
+			depth === 0 &&
+			exprStr[i + 1] !== "|" &&
+			exprStr[i - 1] !== "|"
+		) {
 			parts.push(current.trim());
 			current = "";
 			continue;
@@ -809,10 +1177,18 @@ function _parsePipes(exprStr) {
 function _applyFilter(value, filterStr) {
 	const colonIdx = filterStr.indexOf(":");
 	let name, argStr;
-	if (colonIdx === -1) { name = filterStr.trim(); argStr = null; }
-	else { name = filterStr.substring(0, colonIdx).trim(); argStr = filterStr.substring(colonIdx + 1).trim(); }
+	if (colonIdx === -1) {
+		name = filterStr.trim();
+		argStr = null;
+	} else {
+		name = filterStr.substring(0, colonIdx).trim();
+		argStr = filterStr.substring(colonIdx + 1).trim();
+	}
 	const fn = _filters[name];
-	if (!fn) { _warn(`Unknown filter: ${name}`); return value; }
+	if (!fn) {
+		_warn(`Unknown filter: ${name}`);
+		return value;
+	}
 	const args = argStr ? _parseFilterArgs(argStr) : [];
 	return fn(value, ...args);
 }
@@ -823,9 +1199,24 @@ function _parseFilterArgs(str) {
 	let inStr = false;
 	let strChar = "";
 	for (const ch of str) {
-		if (inStr) { if (ch === strChar) { inStr = false; continue; } current += ch; continue; }
-		if (ch === "'" || ch === '"') { inStr = true; strChar = ch; continue; }
-		if (ch === ",") { args.push(current.trim()); current = ""; continue; }
+		if (inStr) {
+			if (ch === strChar) {
+				inStr = false;
+				continue;
+			}
+			current += ch;
+			continue;
+		}
+		if (ch === "'" || ch === '"') {
+			inStr = true;
+			strChar = ch;
+			continue;
+		}
+		if (ch === ",") {
+			args.push(current.trim());
+			current = "";
+			continue;
+		}
 		current += ch;
 	}
 	if (current.trim()) args.push(current.trim());
@@ -848,7 +1239,11 @@ export function evaluate(expr, ctx) {
 		if (!jit) {
 			const ast = _parseExpr(_tokenize(mainExpr));
 			const code = _compileAST(ast);
-			jit = new Function("scope", "globals", `try { return ${code}; } catch(e) { return undefined; }`);
+			jit = new Function(
+				"scope",
+				"globals",
+				`try { return ${code}; } catch(e) { return undefined; }`,
+			);
 			_exprCache.set(mainExpr, jit);
 		}
 
@@ -871,7 +1266,10 @@ function _parseStatements(expr) {
 	const stmts = [];
 	let start = 0;
 	for (let i = 0; i <= tokens.length; i++) {
-		if (i === tokens.length || (tokens[i].type === "Punc" && tokens[i].value === ";")) {
+		if (
+			i === tokens.length ||
+			(tokens[i].type === "Punc" && tokens[i].value === ";")
+		) {
 			const chunk = tokens.slice(start, i);
 			if (chunk.length > 0) stmts.push(_parseExpr(chunk));
 			start = i + 1;
@@ -882,16 +1280,25 @@ function _parseStatements(expr) {
 }
 
 function _evalNode(node, scope) {
-    return new Function("scope", "globals", `try { return ${_compileAST(node)}; } catch(e) { return undefined; }`)(scope, _ALL_GLOBALS);
+	return new Function(
+		"scope",
+		"globals",
+		`try { return ${_compileAST(node)}; } catch(e) { return undefined; }`,
+	)(scope, _ALL_GLOBALS);
 }
 
 function _assignToTarget(target, value, scope) {
 	if (target.type === "Identifier") {
 		scope[target.name] = value;
-	} else if (target.type === "MemberExpr" || target.type === "OptionalMemberExpr") {
+	} else if (
+		target.type === "MemberExpr" ||
+		target.type === "OptionalMemberExpr"
+	) {
 		const obj = _evalNode(target.object, scope);
 		if (obj == null) return;
-		const prop = target.computed ? _evalNode(target.property, scope) : target.property.name || target.property.value;
+		const prop = target.computed
+			? _evalNode(target.property, scope)
+			: target.property.name || target.property.value;
 		if (_FORBIDDEN_PROPS[prop]) return;
 		obj[prop] = value;
 	}
@@ -907,12 +1314,23 @@ function _execStmtNode(node, scope) {
 			else {
 				const lhs = _evalNode(node.left, scope);
 				switch (node.op) {
-					case "+=": value = lhs + rhs; break;
-					case "-=": value = lhs - rhs; break;
-					case "*=": value = lhs * rhs; break;
-					case "/=": value = lhs / rhs; break;
-					case "%=": value = lhs % rhs; break;
-					default: value = rhs;
+					case "+=":
+						value = lhs + rhs;
+						break;
+					case "-=":
+						value = lhs - rhs;
+						break;
+					case "*=":
+						value = lhs * rhs;
+						break;
+					case "/=":
+						value = lhs / rhs;
+						break;
+					case "%=":
+						value = lhs % rhs;
+						break;
+					default:
+						value = rhs;
 				}
 			}
 			_assignToTarget(node.left, value, scope);
@@ -933,7 +1351,8 @@ function _execStmtNode(node, scope) {
 			}
 			return _evalNode(node, scope);
 		}
-		default: return _evalNode(node, scope);
+		default:
+			return _evalNode(node, scope);
 	}
 }
 
@@ -974,13 +1393,19 @@ export function _execStatement(expr, ctx, extraVars = {}) {
 			if (newVal !== oldVal) {
 				let c = ctx;
 				while (c?.__isProxy) {
-					if (k in c.__raw) { c.$set(k, newVal); break; }
+					if (k in c.__raw) {
+						c.$set(k, newVal);
+						break;
+					}
 					c = c.$parent;
 				}
 			} else if (typeof newVal === "object" && newVal !== null) {
 				let c = ctx;
 				while (c?.__isProxy) {
-					if (k in c.__raw) { c.$notify(); break; }
+					if (k in c.__raw) {
+						c.$notify();
+						break;
+					}
 					c = c.$parent;
 				}
 			}
@@ -995,7 +1420,12 @@ export function _execStatement(expr, ctx, extraVars = {}) {
 	} catch (e) {
 		_warn("Expression error:", expr, e.message);
 		if (extraVars.$el) {
-			extraVars.$el.dispatchEvent(new CustomEvent("nojs:error", { bubbles: true, detail: { message: e.message, error: e } }));
+			extraVars.$el.dispatchEvent(
+				new CustomEvent("nojs:error", {
+					bubbles: true,
+					detail: { message: e.message, error: e },
+				}),
+			);
 		}
 	}
 }

@@ -36,7 +36,7 @@ function _matchDirective(attrName) {
 		const prefix = p.replace("*", "");
 		// Special case: bind is exact match, bind-* is pattern
 		if (p === "bind-*" && attrName === "bind") continue;
-		
+
 		if (attrName.startsWith(prefix) && _directives.has(p)) {
 			return { directive: _directives.get(p), match: p };
 		}
@@ -85,8 +85,10 @@ export function processTree(root) {
 	}
 	const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
 		acceptNode(node) {
-			if (node.hasAttribute("data-nojs-static")) return NodeFilter.FILTER_REJECT;
-			if (node.tagName === "TEMPLATE" || node.tagName === "SCRIPT") return NodeFilter.FILTER_SKIP;
+			if (node.hasAttribute("data-nojs-static"))
+				return NodeFilter.FILTER_REJECT;
+			if (node.tagName === "TEMPLATE" || node.tagName === "SCRIPT")
+				return NodeFilter.FILTER_SKIP;
 			return NodeFilter.FILTER_ACCEPT;
 		},
 	});

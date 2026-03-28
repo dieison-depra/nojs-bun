@@ -71,7 +71,7 @@ export function createContext(data = {}, parent = null) {
 		const sets = [];
 		const globalSet = listeners.get("*");
 		if (globalSet) sets.push(globalSet);
-		
+
 		if (key && key !== "*") {
 			const specific = listeners.get(key);
 			if (specific) sets.push(specific);
@@ -83,9 +83,8 @@ export function createContext(data = {}, parent = null) {
 		if (notifying) return;
 		notifying = true;
 		try {
-			const setsToNotify = key === "*" 
-				? Array.from(listeners.values())
-				: getListenersForKey(key);
+			const setsToNotify =
+				key === "*" ? Array.from(listeners.values()) : getListenersForKey(key);
 
 			for (const set of setsToNotify) {
 				if (!set) continue;
@@ -111,22 +110,22 @@ export function createContext(data = {}, parent = null) {
 			if (key === "__isProxy") return true;
 			if (key === "__raw") return target;
 			if (key === "__listeners") return listeners;
-			
+
 			if (key === "$watch")
 				return (keyOrFn, maybeFn) => {
 					let k = "*";
 					let fn = keyOrFn;
-					
+
 					if (typeof keyOrFn === "string" && typeof maybeFn === "function") {
 						k = keyOrFn;
 						fn = maybeFn;
 					}
 
 					if (_currentEl) fn._el = _currentEl;
-					
+
 					if (!listeners.has(k)) listeners.set(k, new Set());
 					listeners.get(k).add(fn);
-					
+
 					return () => {
 						const set = listeners.get(k);
 						if (set) set.delete(fn);
@@ -134,7 +133,7 @@ export function createContext(data = {}, parent = null) {
 				};
 
 			if (key === "$notify") return notify;
-			
+
 			if (key === "$set")
 				return (k, v) => {
 					const parts = k.split(".");
@@ -161,8 +160,12 @@ export function createContext(data = {}, parent = null) {
 			if (key === "$router") return _routerInstance;
 			if (key === "$i18n") return _i18n;
 			if (key === "$form") return target.$form || null;
-			
-			if (typeof key === "string" && key.startsWith("$") && key.slice(1) in _globals) {
+
+			if (
+				typeof key === "string" &&
+				key.startsWith("$") &&
+				key.slice(1) in _globals
+			) {
 				return _globals[key.slice(1)];
 			}
 
@@ -183,7 +186,7 @@ export function createContext(data = {}, parent = null) {
 				_ctxGeneration++;
 				if (typeof key === "string") notify(key);
 				else notify("*");
-				
+
 				_devtoolsEmit("ctx:updated", {
 					id: target.__devtoolsId,
 					key,
@@ -197,8 +200,16 @@ export function createContext(data = {}, parent = null) {
 			if (key in target) return true;
 			if (typeof key === "string" && key.startsWith("$")) {
 				const builtins = new Set([
-					"$watch", "$notify", "$set", "$parent", "$refs",
-					"$store", "$route", "$router", "$i18n", "$form",
+					"$watch",
+					"$notify",
+					"$set",
+					"$parent",
+					"$refs",
+					"$store",
+					"$route",
+					"$router",
+					"$i18n",
+					"$form",
 				]);
 				if (builtins.has(key)) return true;
 				if (key.slice(1) in _globals) return true;

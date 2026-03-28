@@ -1,5 +1,5 @@
-import { _onDispose, _setCurrentEl, _storeWatchers } from "../src/globals.js";
 import { createContext } from "../src/context.js";
+import { _onDispose, _setCurrentEl, _storeWatchers } from "../src/globals.js";
 import {
 	_disposeChildren,
 	_disposeTree,

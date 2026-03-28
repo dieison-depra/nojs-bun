@@ -828,6 +828,13 @@ describe("Integration: on:init lifecycle", () => {
 });
 
 describe("Integration: router setup", () => {
+	afterAll(async () => {
+		// Full dispose so that the router's window/document listeners don't leak
+		// into subsequent test files (e.g. router.test.js).
+		await NoJS.dispose();
+		document.body.innerHTML = "";
+	});
+
 	test("creates router when route-view exists", async () => {
 		document.body.innerHTML = `
       <div route-view></div>

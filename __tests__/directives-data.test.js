@@ -2749,18 +2749,20 @@ describe("Validation — $form.reset() resets form and rechecks validity", () =>
 		input.dispatchEvent(new Event("input", { bubbles: true }));
 		expect(ctx.$form.errors.email).toBe("Invalid email");
 
-		const resetSpy = jest.spyOn(form, "reset");
+		// happy-dom's native reset() is non-configurable so jest.spyOn cannot intercept it.
+		// Track the call via direct assignment instead.
+		let resetCalled = false;
+		const origReset = form.reset.bind(form);
+		form.reset = jest.fn(() => { resetCalled = true; origReset(); });
 
 		ctx.$form.reset();
 
-		expect(resetSpy).toHaveBeenCalled();
+		expect(resetCalled).toBe(true);
 
 		// After reset, field is pristine so $form.errors is empty,
 		// but $form.fields still reflects real validation state
 		expect(ctx.$form.errors.email).toBeUndefined();
 		expect(ctx.$form.fields.email.error).toBe("Invalid email");
-
-		resetSpy.mockRestore();
 	});
 
 	test("form reset clears errors when default values are valid", async () => {

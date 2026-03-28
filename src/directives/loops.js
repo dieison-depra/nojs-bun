@@ -7,6 +7,7 @@ import { _cloneTemplate, findContext } from "../dom.js";
 import { evaluate, resolve } from "../evaluate.js";
 import { _watchExpr } from "../globals.js";
 import {
+	_disposeAndClear,
 	_disposeChildren,
 	processTree,
 	registerDirective,
@@ -52,9 +53,8 @@ registerDirective("each", {
 			if (list.length === 0 && elseTpl) {
 				const clone = _cloneTemplate(elseTpl);
 				if (clone) {
-					_disposeChildren(el);
+					_disposeAndClear(el);
 					keyMap.clear();
-					el.innerHTML = "";
 					el.appendChild(clone);
 					processTree(el);
 				}
@@ -180,8 +180,7 @@ registerDirective("each", {
 		// Used when no `key` attribute is set (backward-compatible behaviour).
 		function rebuildItems(tpl, list) {
 			const count = list.length;
-			_disposeChildren(el);
-			el.innerHTML = "";
+			_disposeAndClear(el);
 
 			// Batch all new wrappers into a DocumentFragment before inserting into
 			// the live DOM. A single el.appendChild(frag) replaces N individual
@@ -319,9 +318,8 @@ registerDirective("foreach", {
 			if (list.length === 0 && elseTpl) {
 				const clone = _cloneTemplate(elseTpl);
 				if (clone) {
-					_disposeChildren(el);
+					_disposeAndClear(el);
 					keyMap.clear();
-					el.innerHTML = "";
 					el.appendChild(clone);
 					processTree(el);
 				}
@@ -337,12 +335,10 @@ registerDirective("foreach", {
 			}
 
 			function renderForeachItems() {
-				_disposeChildren(el);
-				el.innerHTML = "";
+				_disposeAndClear(el);
 
 				const frag = document.createDocumentFragment();
 				const wrappers = [];
-
 				list.forEach((item, i) => {
 					const childData = {
 						[itemName]: item,

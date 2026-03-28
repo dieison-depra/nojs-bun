@@ -8,6 +8,7 @@ import { findContext } from "../dom.js";
 import { _execStatement, evaluate } from "../evaluate.js";
 import { _log, _onDispose, _stores, _warn, _watchExpr } from "../globals.js";
 import { registerDirective } from "../registry.js";
+import { createMemo } from "../signals.js";
 
 registerDirective("state", {
 	priority: 0,
@@ -141,12 +142,15 @@ registerDirective("computed", {
 		const expr = el.getAttribute("expr");
 		if (!computedName || !expr) return;
 		const ctx = findContext(el);
-		function update() {
-			const val = evaluate(expr, ctx);
-			ctx.$set(computedName, val);
-		}
-		_watchExpr(expr, ctx, update);
-		update();
+
+		const memo = createMemo(() => evaluate(expr, ctx));
+
+		// Expose memo to context. It recalculates only when dependencies change.
+		Object.defineProperty(ctx.__raw, computedName, {
+			get: () => memo.get(),
+			enumerable: true,
+			configurable: true,
+		});
 	},
 });
 

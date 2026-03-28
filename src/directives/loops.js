@@ -35,20 +35,122 @@ registerDirective("each", {
 		// key → wrapper div; only populated when the `key` attribute is set.
 		const keyMap = new Map();
 
+		const isVirtual = el.hasAttribute("virtual");
+		const itemHeight = parseInt(el.getAttribute("virtual-height"), 10) || 40;
+		const buffer = 5; // extra items to render above/below viewport
+
+		// Internal state for virtualization
+		let virtualScrollTop = 0;
+		let virtualViewportHeight = 0;
+		let virtualObserver = null;
+
+		function setupVirtual() {
+			if (!isVirtual || virtualObserver) return;
+
+			el.style.position = "relative";
+			el.style.overflowY = "auto";
+			el.style.minHeight = "100px"; // Default if not set
+
+			virtualObserver = new IntersectionObserver((entries) => {
+				if (entries[0].isIntersecting) {
+					virtualViewportHeight = el.clientHeight;
+					renderVirtual();
+				}
+			});
+			virtualObserver.observe(el);
+
+			el.addEventListener("scroll", () => {
+				virtualScrollTop = el.scrollTop;
+				renderVirtual();
+			}, { passive: true });
+		}
+
+		function renderVirtual() {
+			if (!prevList) return;
+			const list = prevList;
+			const total = list.length;
+			const startIndex = Math.max(0, Math.floor(virtualScrollTop / itemHeight) - buffer);
+			const endIndex = Math.min(total, Math.ceil((virtualScrollTop + virtualViewportHeight) / itemHeight) + buffer);
+
+			const visibleList = list.slice(startIndex, endIndex);
+			
+			// Adjust el style to show full height
+			const totalHeight = total * itemHeight;
+			// We use a padding-based spacer strategy
+			el.style.paddingTop = `${startIndex * itemHeight}px`;
+			el.style.paddingBottom = `${(total - endIndex) * itemHeight}px`;
+
+			// Render visible slice
+			const tpl = tplId ? document.getElementById(tplId) : null;
+			if (!tpl) return;
+
+			// Virtual lists ALWAYS use key-based reconciliation for performance
+			// We create a temporary sub-list for reconciliation
+			const visibleOrder = visibleList.map((item, i) => {
+				const realIndex = startIndex + i;
+				const tempCtx = createContext({ [itemName]: item, $index: realIndex }, ctx);
+				const key = keyExpr ? String(evaluate(keyExpr, tempCtx)) : `v-${realIndex}`;
+				return { key, item, i: realIndex };
+			});
+
+			// Standard reconciliation but only for visible nodes
+			const nextKeySet = new Set(visibleOrder.map(e => e.key));
+			for (const [key, wrapper] of keyMap) {
+				if (!nextKeySet.has(key)) {
+					_disposeChildren(wrapper);
+					wrapper.remove();
+					keyMap.delete(key);
+				}
+			}
+
+			visibleOrder.forEach(({ key, item, i }) => {
+				const childData = {
+					[itemName]: item,
+					$index: i,
+					$count: total,
+					$first: i === 0,
+					$last: i === total - 1,
+					$even: i % 2 === 0,
+					$odd: i % 2 !== 0,
+				};
+
+				if (!keyMap.has(key)) {
+					const clone = tpl.content.cloneNode(true);
+					const wrapper = document.createElement("div");
+					wrapper.style.display = "contents";
+					wrapper.__ctx = createContext(childData, ctx);
+					wrapper.appendChild(clone);
+					keyMap.set(key, wrapper);
+					el.appendChild(wrapper);
+					processTree(wrapper);
+				} else {
+					Object.assign(keyMap.get(key).__ctx.__raw, childData);
+					keyMap.get(key).__ctx.$notify();
+				}
+			});
+
+			// Reorder visible items
+			for (let i = 0; i < visibleOrder.length; i++) {
+				const wrapper = keyMap.get(visibleOrder[i].key);
+				if (wrapper !== el.children[i]) {
+					el.insertBefore(wrapper, el.children[i] ?? null);
+				}
+			}
+		}
+
 		function update() {
 			const list = /[[\]()\s+\-*/!?:&|]/.test(listPath)
 				? evaluate(listPath, ctx)
 				: resolve(listPath, ctx);
 			if (!Array.isArray(list)) return;
 
-			// Same-reference optimisation: propagate to children without DOM rebuild.
-			if (list === prevList && list.length > 0 && el.children.length > 0) {
-				for (const child of el.children) {
-					if (child.__ctx?.$notify) child.__ctx.$notify();
-				}
+			prevList = list;
+
+			if (isVirtual) {
+				setupVirtual();
+				renderVirtual();
 				return;
 			}
-			prevList = list;
 
 			// Empty state
 			if (list.length === 0 && elseTpl) {
@@ -305,8 +407,103 @@ registerDirective("foreach", {
 			templateContent.removeAttribute("animate-duration");
 		}
 
-		// key → wrapper div; only populated when the `key` attribute is set.
-		const keyMap = new Map();
+		const isVirtual = el.hasAttribute("virtual");
+		const itemHeight = parseInt(el.getAttribute("virtual-height"), 10) || 40;
+		const buffer = 5;
+
+		// Internal state for virtualization
+		let virtualScrollTop = 0;
+		let virtualViewportHeight = 0;
+		let virtualObserver = null;
+		let lastList = null;
+
+		function setupForeachVirtual() {
+			if (!isVirtual || virtualObserver) return;
+			el.style.position = "relative";
+			el.style.overflowY = "auto";
+			el.style.minHeight = "100px";
+
+			virtualObserver = new IntersectionObserver((entries) => {
+				if (entries[0].isIntersecting) {
+					virtualViewportHeight = el.clientHeight;
+					renderForeachVirtual();
+				}
+			});
+			virtualObserver.observe(el);
+
+			el.addEventListener("scroll", () => {
+				virtualScrollTop = el.scrollTop;
+				renderForeachVirtual();
+			}, { passive: true });
+		}
+
+		function renderForeachVirtual() {
+			if (!lastList) return;
+			const list = lastList;
+			const total = list.length;
+			const startIndex = Math.max(0, Math.floor(virtualScrollTop / itemHeight) - buffer);
+			const endIndex = Math.min(total, Math.ceil((virtualScrollTop + virtualViewportHeight) / itemHeight) + buffer);
+
+			const visibleList = list.slice(startIndex, endIndex);
+			el.style.paddingTop = `${startIndex * itemHeight}px`;
+			el.style.paddingBottom = `${(total - endIndex) * itemHeight}px`;
+
+			const tpl = tplId ? document.getElementById(tplId) : null;
+			const visibleOrder = visibleList.map((item, i) => {
+				const realIndex = startIndex + i;
+				const tempCtx = createContext({ [itemName]: item, [indexName]: realIndex }, ctx);
+				const key = keyExpr ? String(evaluate(keyExpr, tempCtx)) : `v-${realIndex}`;
+				return { key, item, i: realIndex };
+			});
+
+			const nextKeySet = new Set(visibleOrder.map(e => e.key));
+			for (const [key, wrapper] of keyMap) {
+				if (!nextKeySet.has(key)) {
+					_disposeChildren(wrapper);
+					wrapper.remove();
+					keyMap.delete(key);
+				}
+			}
+
+			visibleOrder.forEach(({ key, item, i }) => {
+				const childData = {
+					[itemName]: item,
+					[indexName]: i,
+					$index: i,
+					$count: total,
+					$first: i === 0,
+					$last: i === total - 1,
+					$even: i % 2 === 0,
+					$odd: i % 2 !== 0,
+				};
+
+				if (!keyMap.has(key)) {
+					let clone;
+					if (tpl) {
+						clone = tpl.content.cloneNode(true);
+					} else {
+						clone = templateContent.cloneNode(true);
+					}
+					const wrapper = document.createElement("div");
+					wrapper.style.display = "contents";
+					wrapper.__ctx = createContext(childData, ctx);
+					wrapper.appendChild(clone);
+					keyMap.set(key, wrapper);
+					el.appendChild(wrapper);
+					processTree(wrapper);
+				} else {
+					Object.assign(keyMap.get(key).__ctx.__raw, childData);
+					keyMap.get(key).__ctx.$notify();
+				}
+			});
+
+			for (let i = 0; i < visibleOrder.length; i++) {
+				const wrapper = keyMap.get(visibleOrder[i].key);
+				if (wrapper !== el.children[i]) {
+					el.insertBefore(wrapper, el.children[i] ?? null);
+				}
+			}
+		}
 
 		function update() {
 			let list = resolve(fromPath, ctx);
@@ -337,6 +534,13 @@ registerDirective("foreach", {
 
 			// Offset and limit
 			list = list.slice(offset, offset + limit);
+			lastList = list;
+
+			if (isVirtual) {
+				setupForeachVirtual();
+				renderForeachVirtual();
+				return;
+			}
 
 			// Empty
 			if (list.length === 0 && elseTpl) {

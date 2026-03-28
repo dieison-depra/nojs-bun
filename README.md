@@ -150,7 +150,9 @@ Plugins have access to the full API: `directive()`, `filter()`, `validator()`, `
 
 ## Performance Architecture
 
-This fork ships five runtime optimizations targeting CPU, memory, and DOM-walk cost. All five phases are implemented and active.
+This fork ships nine runtime optimizations across five phases targeting CPU, memory, and DOM-walk cost. All optimizations are implemented and active.
+
+#### Phase Optimizations (v1.12.0)
 
 | Phase | Optimization | Benefit |
 |-------|-------------|---------|
@@ -159,6 +161,15 @@ This fork ships five runtime optimizations targeting CPU, memory, and DOM-walk c
 | **3 — Global Event Manager** | Single `document.body` listener dispatches `click`/`input`/`change` to directives via `closest()` | Significant memory savings on large lists — one listener replaces N per-element listeners |
 | **4 — Template Cloning Engine** | Loop reconciliation skips `$index`/`$first`/`$last` metadata updates for items whose position did not change | Faster "swap rows" and "remove item" operations in benchmark scenarios |
 | **5 — Static Hoisting Skipper** | Elements marked `data-nojs-static` (and their entire subtrees) are skipped by `processTree` | Zero-cost DOM walks over server-rendered or pre-built islands |
+
+#### Additional Optimizations (v1.13.0)
+
+| ID | Optimization | Benefit |
+|----|-------------|---------|
+| **R2 — DocumentFragment batch insert** | All loop render paths collect new wrappers in a `DocumentFragment` and insert via a single `el.appendChild(frag)` | Reduces layout/style recalculation passes — P1 benchmark -10%, P7 -20% |
+| **R9 — Effect deduplication** | `_notifyRunSet` prevents a catch-all (`*`) watcher from running more than once in the same synchronous `notify()` pass | Eliminates redundant effect executions when multiple keys change in a single event handler |
+| **R10 — WeakRef element tracking** | `$watch` stores effect bindings as `WeakRef(el)`; `_isEffectDead()` centralises dead-element detection in `notify()` and `_endBatch()` | DOM nodes removed and no longer referenced are eligible for GC even while effects remain in listener Sets — reduces long-term heap pressure in SPAs |
+| **R15 — `_disposeAndClear` batch dispose** | New `_disposeAndClear(parent)` moves children to an off-DOM `DocumentFragment` before running disposers | Disposer callbacks fire off the live document — zero browser layout recalcs during list teardown |
 
 ### Using Static Hoisting
 
@@ -211,10 +222,11 @@ Full documentation is available in the [docs/](docs/) folder:
 
 1. **Parse** — On `DOMContentLoaded`, No.JS walks the DOM for known attributes; `data-nojs-static` subtrees are skipped entirely
 2. **Resolve** — Each attribute maps to a directive, executed by priority
-3. **React** — Data lives in Proxy-backed reactive contexts with key-level subscriptions; only bound directives re-run on change
+3. **React** — Data lives in Proxy-backed reactive contexts with key-level subscriptions; only bound directives re-run on change; duplicate effect executions within the same synchronous pass are deduplicated
 4. **Evaluate** — Expressions are compiled once into native JS functions by the JIT compiler and cached for subsequent calls
 5. **Scope** — Contexts inherit from parents, like lexical scoping; `$store`, `$route`, `$refs` and other special variables are visible anywhere in the chain
-6. **Secure** — Expressions run in a sandboxed evaluator (no eval, no Function); HTML is sanitized via DOMParser
+6. **Dispose** — When list items or components are removed, `_disposeAndClear` detaches the subtree off-DOM before running disposers; effect callbacks holding `WeakRef(el)` become GC-eligible once the element has no other references
+7. **Secure** — Expressions run in a sandboxed evaluator (no eval, no Function); HTML is sanitized via DOMParser
 
 ---
 
@@ -242,6 +254,9 @@ Full documentation is available in the [docs/](docs/) folder:
 | Reactivity | Fine-grained (key-level) | Coarse-grained (context-level) |
 | Expressions | JIT-compiled functions | AST walk per evaluation |
 | Static islands | `data-nojs-static` skip | Full tree walk |
+| Loop inserts | `DocumentFragment` batched | N individual DOM appends |
+| List teardown | `_disposeAndClear` (off-DOM) | `_disposeChildren` + `innerHTML=""` |
+| Memory (effects) | `WeakRef` element tracking | Strong `_el` reference only |
 
 ## Credits
 

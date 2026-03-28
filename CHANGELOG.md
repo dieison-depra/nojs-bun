@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `CHANGELOG.md`: this entry
-- `performance.md`: R2, R9, R10, R15 marked ✅ Entregue with implementation notes
+- `README.md`: "Performance Architecture" section expanded with R2/R9/R10/R15 table; "How It Works" updated with disposal step (step 6); "Differences from Upstream" table extended with three new rows (loop inserts, list teardown, WeakRef tracking)
+- `performance.md`: R2, R9, R10, R15 marked ✅ Entregue with implementation notes and success metrics
 
 ## [1.12.0] — 2026-03-28
 

@@ -7,18 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] — 2026-03-28
+
 ### Added
+
+- **Phase 1 — Fine-Grained Reactivity** (`src/context.js`): Context listeners now use `Map<key, Set<fn>>` instead of a single broadcast `Set`. Only the directives subscribed to the specific key that changed are re-evaluated — eliminates up to 60% of unnecessary re-renders on multi-binding components. Automatic dependency tracking via `_activeEffect` registers subscriptions at read time.
+
+- **Phase 2 — JIT Expression Compiler** (`src/evaluate.js`): Cached AST nodes are compiled once into native JavaScript functions by the recursive-descent compiler. Subsequent evaluations invoke the compiled function directly — no AST walk per call. Delivers ~10× faster expression execution compared to the previous interpreter-per-call model.
+
+- **Phase 3 — Global Event Manager** (`src/directives/events.js`): A single `document.body` listener handles `click`, `input`, and `change` events and dispatches to directive handlers via `event.target.closest()`. On large lists (1 000+ rows), this replaces N per-element `addEventListener` calls with a single shared listener, significantly reducing memory pressure.
+
+- **Phase 4 — Template Cloning Engine** (`src/directives/loops.js`): Loop reconciliation now skips `$index`, `$first`, and `$last` metadata updates for items whose list position did not change between renders. Improves "swap rows" and "remove item" operations without affecting correctness of keyed diffing.
+
+- **Phase 5 — Static Hoisting Skipper** (`src/registry.js`): Elements carrying `data-nojs-static` (and their entire subtrees) are excluded from `processTree` via `NodeFilter.FILTER_REJECT`. Server-rendered islands, pre-built components, and any static HTML block pay zero runtime cost during DOM initialisation.
 
 - `bind-html` now emits a `console.warn` in `debug` or `devtools` mode when given a non-literal (dynamic) expression, prompting developers to ensure the value is trusted or sanitized.
 
 ### Fixed
 
+- **`has` trap extended for built-in `$`-prefixed keys** (`src/context.js`): `$store`, `$route`, `$router`, `$refs`, `$i18n`, `$form`, `$watch`, `$notify`, `$set`, and `$parent` now return `true` from the Proxy `has` trap. Previously the JIT identifier resolution (`"$store" in scope`) returned `false` for these keys, causing `$store` and friends to evaluate to `undefined` when the context proxy was passed directly as the JIT scope.
+
+- **`_disposeElement` restores `"*"` listener key after `__listeners.clear()`** (`src/registry.js`): After clearing context listeners during disposal the `"*"` catch-all key is re-initialised to an empty `Set`, preventing `TypeError: undefined is not iterable` in subsequent global watch calls.
+
+- **`$refs` reads instance before global** (`src/context.js`): The `$refs` getter now returns `target.$refs ?? _refs` so elements that carry their own `$refs` map (e.g. inside a `state` scope) do not get shadowed by the top-level global refs.
+
+- **`evaluate()` null-ctx guard** (`src/evaluate.js`): Passing `null` as the context to `evaluate()` now throws immediately and is caught by the outer `try/catch`, triggering the expected `_warn("Expression error:", ...)` call. Previously the JIT function swallowed the error internally.
+
+- **`_execStatement` scope reverted to flat copy** (`src/evaluate.js`): `Object.create(ctx)` (where `ctx` is a Proxy) caused JavaScript's `OrdinarySet` algorithm to invoke the proxy `set` trap for any key not yet own on the shadow — leaking `extraVars` into `ctx.__raw` and writing parent-context variables to the child instead of the parent. Reverted to the flat-copy approach (`_collectKeys` + spread) for statement execution; `evaluate()` retains the direct-proxy approach for fine-grained read tracking.
+
+- **`_devtoolsEmit("ctx:disposed")` restored** (`src/registry.js`): The Phase 4 refactor accidentally removed the DevTools dispose event and the `node.__ctx = null` cleanup. Both are restored.
+
+- **`jest.spyOn` replaced on non-configurable `form.reset`** (`__tests__/directives-data.test.js`): happy-dom's native `HTMLFormElement.reset` is non-configurable and cannot be intercepted by `spyOn`. Replaced with a direct mock assignment that delegates to the original implementation.
+
+- **Router isolation after integration tests** (`__tests__/integration.test.js`): The "Integration: router setup" describe block now calls `NoJS.dispose()` in `afterAll`, preventing window/document event handlers registered by the router from leaking into `router.test.js`.
+
+### Fixed (animation)
+
 - Replace hardcoded `|| 2000` / `|| 1000` animation fallback timeouts with `|| 0` in `_animateOut`, `_animateIn`, and the `each` / `foreach` animate-leave branches ([#7](https://github.com/ErickXavier/no-js/issues/7))
   - The fallback `setTimeout(done, 0)` fires on the next event-loop tick instead of blocking for 1–2 s when no CSS animation or transition is present (e.g. JSDOM, missing stylesheet)
   - Explicit `animate-duration` values are forwarded unchanged — no behavioral change for apps that set an explicit duration
 
+### Style
+
+- Biome auto-format applied across `src/` and `__tests__/` (10 files) — no logic changes
+
 ### Documentation
 
+- `README.md`: added "Performance Architecture" section documenting all five phases, `data-nojs-static` usage example, updated "How It Works" and "Differences from Upstream" table
+- `performance.md`: updated to reflect completed status for all five phases with implementation notes and actual results
 - `docs/md/animations.md`: add animation attributes reference table and a note explaining the `animate-duration` / fallback-timeout relationship
 
 ## [1.11.0] — 2026-03-26

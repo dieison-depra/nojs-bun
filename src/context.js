@@ -15,6 +15,10 @@ import { _i18n } from "./i18n.js";
 
 let _batchDepth = 0;
 const _batchQueue = new Set();
+// Dedup set for the current synchronous notify pass: prevents a catch-all
+// ("*") watcher from running more than once when several keys change in the
+// same event handler outside an explicit _startBatch/_endBatch block.
+const _notifyRunSet = new Set();
 let _ctxId = 0;
 let _ctxGeneration = 0;
 
@@ -82,6 +86,7 @@ export function createContext(data = {}, parent = null) {
 	function notify(key = "*") {
 		if (notifying) return;
 		notifying = true;
+		const isTopLevel = _notifyRunSet.size === 0;
 		try {
 			const setsToNotify =
 				key === "*" ? Array.from(listeners.values()) : getListenersForKey(key);
@@ -95,13 +100,16 @@ export function createContext(data = {}, parent = null) {
 					}
 					if (_batchDepth > 0) {
 						_batchQueue.add(fn);
+					} else if (_notifyRunSet.has(fn)) {
 					} else {
+						_notifyRunSet.add(fn);
 						fn();
 					}
 				}
 			}
 		} finally {
 			notifying = false;
+			if (isTopLevel) _notifyRunSet.clear();
 		}
 	}
 

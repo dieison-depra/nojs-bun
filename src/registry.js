@@ -79,11 +79,19 @@ export function processElement(el) {
 
 export function processTree(root) {
 	if (!root) return;
-	if (root.nodeType === 1 && !root.__declared) processElement(root);
-	const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+	if (root.nodeType === 1 && !root.__declared) {
+		if (root.hasAttribute?.("data-nojs-static")) return;
+		processElement(root);
+	}
+	const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+		acceptNode(node) {
+			if (node.hasAttribute("data-nojs-static")) return NodeFilter.FILTER_REJECT;
+			if (node.tagName === "TEMPLATE" || node.tagName === "SCRIPT") return NodeFilter.FILTER_SKIP;
+			return NodeFilter.FILTER_ACCEPT;
+		},
+	});
 	while (walker.nextNode()) {
 		const node = walker.currentNode;
-		if (node.tagName === "TEMPLATE" || node.tagName === "SCRIPT") continue;
 		if (!node.__declared) processElement(node);
 	}
 }

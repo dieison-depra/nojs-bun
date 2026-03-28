@@ -1056,7 +1056,7 @@ function _compileAST(node) {
 		case "Literal":
 			return JSON.stringify(node.value);
 		case "Identifier":
-			return `(("${node.name}" in scope) ? scope["${node.name}"] : (("${node.name}" in globals) ? globals["${node.name}"] : undefined))`;
+			return `(("${node.name}" in scope) ? scope["${node.name}"] : (("${node.name}" in globals) ? globals["${node.name}"] : (typeof window !== "undefined" && "${node.name}" in window ? window["${node.name}"] : undefined)))`;
 		case "BinaryExpr": {
 			const l = _compileAST(node.left);
 			const r = _compileAST(node.right);
@@ -1068,7 +1068,7 @@ function _compileAST(node) {
 		case "UnaryExpr": {
 			const arg = _compileAST(node.argument);
 			if (node.op === "typeof" && node.argument.type === "Identifier") {
-				return `(("${node.argument.name}" in scope) ? typeof scope["${node.argument.name}"] : (("${node.argument.name}" in globals) ? typeof globals["${node.argument.name}"] : "undefined"))`;
+				return `(("${node.argument.name}" in scope) ? typeof scope["${node.argument.name}"] : (("${node.argument.name}" in globals) ? typeof globals["${node.argument.name}"] : (typeof window !== "undefined" && "${node.argument.name}" in window ? typeof window["${node.argument.name}"] : "undefined")))`;
 			}
 			return `(${node.op}${arg})`;
 		}

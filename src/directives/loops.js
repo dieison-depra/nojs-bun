@@ -117,6 +117,10 @@ registerDirective("each", {
 			}
 
 			// Create new wrappers and update existing ones.
+			// Collect genuinely new wrappers in a fragment; insert in one batch.
+			const newFrag = document.createDocumentFragment();
+			const newWrappers = [];
+
 			newOrder.forEach(({ key, item, i }) => {
 				const childData = {
 					[itemName]: item,
@@ -135,9 +139,20 @@ registerDirective("each", {
 					wrapper.__ctx = createContext(childData, ctx);
 					wrapper.appendChild(clone);
 					keyMap.set(key, wrapper);
-					el.appendChild(wrapper); // placed at end; reordered below
-					processTree(wrapper);
+					newFrag.appendChild(wrapper); // batch — not yet in live DOM
+					newWrappers.push({ wrapper, i });
+				} else {
+					// Existing item: update positional metadata and notify watchers.
+					Object.assign(keyMap.get(key).__ctx.__raw, childData);
+					keyMap.get(key).__ctx.$notify();
+				}
+			});
 
+			// Insert all new wrappers in a single DOM operation, then process.
+			if (newWrappers.length > 0) {
+				el.appendChild(newFrag); // placed at end; reordered below
+				newWrappers.forEach(({ wrapper, i }) => {
+					processTree(wrapper);
 					if (animEnter) {
 						const firstChild = wrapper.firstElementChild;
 						if (firstChild) {
@@ -150,12 +165,8 @@ registerDirective("each", {
 							if (stagger) firstChild.style.animationDelay = `${i * stagger}ms`;
 						}
 					}
-				} else {
-					// Existing item: update positional metadata and notify watchers.
-					Object.assign(keyMap.get(key).__ctx.__raw, childData);
-					keyMap.get(key).__ctx.$notify();
-				}
-			});
+				});
+			}
 
 			// Reorder DOM to match the new list using a single forward pass.
 			for (let i = 0; i < newOrder.length; i++) {
@@ -171,6 +182,12 @@ registerDirective("each", {
 			const count = list.length;
 			_disposeChildren(el);
 			el.innerHTML = "";
+
+			// Batch all new wrappers into a DocumentFragment before inserting into
+			// the live DOM. A single el.appendChild(frag) replaces N individual
+			// appends, reducing layout/style recalculations to one pass.
+			const frag = document.createDocumentFragment();
+			const wrappers = [];
 
 			list.forEach((item, i) => {
 				const childData = {
@@ -189,7 +206,13 @@ registerDirective("each", {
 				wrapper.style.display = "contents";
 				wrapper.__ctx = childCtx;
 				wrapper.appendChild(clone);
-				el.appendChild(wrapper);
+				frag.appendChild(wrapper);
+				wrappers.push(wrapper);
+			});
+
+			el.appendChild(frag); // single DOM mutation
+
+			wrappers.forEach((wrapper, i) => {
 				processTree(wrapper);
 
 				if (animEnter) {
@@ -201,7 +224,6 @@ registerDirective("each", {
 							() => firstChild.classList.remove(animEnter),
 							{ once: true },
 						);
-						// Stagger animation — delay must be on the child, not the wrapper
 						if (stagger) {
 							firstChild.style.animationDelay = `${i * stagger}ms`;
 						}
@@ -317,6 +339,10 @@ registerDirective("foreach", {
 			function renderForeachItems() {
 				_disposeChildren(el);
 				el.innerHTML = "";
+
+				const frag = document.createDocumentFragment();
+				const wrappers = [];
+
 				list.forEach((item, i) => {
 					const childData = {
 						[itemName]: item,
@@ -346,7 +372,13 @@ registerDirective("foreach", {
 					wrapper.style.display = "contents";
 					wrapper.__ctx = childCtx;
 					wrapper.appendChild(clone);
-					el.appendChild(wrapper);
+					frag.appendChild(wrapper);
+					wrappers.push(wrapper);
+				});
+
+				el.appendChild(frag); // single DOM mutation
+
+				wrappers.forEach((wrapper, i) => {
 					processTree(wrapper);
 
 					if (animEnter) {
@@ -414,6 +446,9 @@ registerDirective("foreach", {
 				}
 			}
 
+			const foreachNewFrag = document.createDocumentFragment();
+			const foreachNewWrappers = [];
+
 			newOrder.forEach(({ key, item, i }) => {
 				const childData = {
 					[itemName]: item,
@@ -438,9 +473,18 @@ registerDirective("foreach", {
 					wrapper.__ctx = createContext(childData, ctx);
 					wrapper.appendChild(clone);
 					keyMap.set(key, wrapper);
-					el.appendChild(wrapper);
-					processTree(wrapper);
+					foreachNewFrag.appendChild(wrapper); // batch — not yet in live DOM
+					foreachNewWrappers.push({ wrapper, i });
+				} else {
+					Object.assign(keyMap.get(key).__ctx.__raw, childData);
+					keyMap.get(key).__ctx.$notify();
+				}
+			});
 
+			if (foreachNewWrappers.length > 0) {
+				el.appendChild(foreachNewFrag); // single DOM mutation
+				foreachNewWrappers.forEach(({ wrapper, i }) => {
+					processTree(wrapper);
 					if (animEnter) {
 						const firstChild = wrapper.firstElementChild;
 						if (firstChild) {
@@ -453,11 +497,8 @@ registerDirective("foreach", {
 							if (stagger) firstChild.style.animationDelay = `${i * stagger}ms`;
 						}
 					}
-				} else {
-					Object.assign(keyMap.get(key).__ctx.__raw, childData);
-					keyMap.get(key).__ctx.$notify();
-				}
-			});
+				});
+			}
 
 			for (let i = 0; i < newOrder.length; i++) {
 				const wrapper = keyMap.get(newOrder[i].key);

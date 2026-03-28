@@ -190,12 +190,14 @@ export function createContext(data = {}, parent = null) {
 		},
 		has(target, key) {
 			if (key in target) return true;
-			if (
-				typeof key === "string" &&
-				key.startsWith("$") &&
-				key.slice(1) in _globals
-			)
-				return true;
+			if (typeof key === "string" && key.startsWith("$")) {
+				const builtins = new Set([
+					"$watch", "$notify", "$set", "$parent", "$refs",
+					"$store", "$route", "$router", "$i18n", "$form",
+				]);
+				if (builtins.has(key)) return true;
+				if (key.slice(1) in _globals) return true;
+			}
 			if (parent?.__isProxy) return key in parent;
 			return false;
 		},

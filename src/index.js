@@ -12,7 +12,6 @@ import {
 	findContext,
 } from "./dom.js";
 import { _execStatement, evaluate, resolve } from "./evaluate.js";
-// Core modules
 import {
 	_CANCEL,
 	_config,
@@ -40,6 +39,7 @@ import {
 import { _i18n, _loadI18nForLocale } from "./i18n.js";
 import { processTree, registerDirective } from "./registry.js";
 import { _createRouter } from "./router.js";
+import { _initWasm } from "./wasm/loader.js";
 
 // Side-effect imports: register built-in filters
 import "./filters.js";
@@ -425,6 +425,9 @@ const NoJS = {
 		_initPromise = (async () => {
 			root = root || document.body;
 			_log("Initializing...");
+
+			// Trigger WASM loading in parallel
+			_initWasm();
 
 			// Load external locale files (blocking — translations must be available for first paint)
 			if (_config.i18n.loadPath) {

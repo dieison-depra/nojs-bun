@@ -1,0 +1,24 @@
+[package]
+name = "nojs-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["No.JS Team"]
+description = "High-performance native engine for No.JS Framework"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.4"
+
+# Parser Engine
+logos = "0.14" # Ultra-fast tokenizer
+
+[profile.release]
+opt-level = "s" # Optimize for size
+lto = true
+codegen-units = 1
+panic = "abort"

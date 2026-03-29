@@ -13,6 +13,7 @@ import {
 	_warn,
 } from "./globals.js";
 import { _i18n } from "./i18n.js";
+import { getEngine } from "./wasm/loader.js";
 
 function _makeCache() {
 	const map = new Map();
@@ -95,6 +96,16 @@ const _SINGLE_PUNC = new Set([
 
 function _tokenize(expr) {
 	if (typeof expr !== "string") return [];
+
+	const engine = getEngine();
+	if (engine?.tokenize_expression) {
+		try {
+			return engine.tokenize_expression(expr);
+		} catch (_e) {
+			// Fallback to JS tokenizer
+		}
+	}
+
 	const tokens = [];
 	const len = expr.length;
 	let pos = 0;
@@ -975,9 +986,10 @@ function g(name) {
 			case "Promise":
 				return typeof Promise !== "undefined" ? Promise : undefined;
 		}
-	} catch (e) {
+	} catch (_e) {
 		return undefined;
 	}
+
 	return globalThis[name];
 }
 
@@ -1094,7 +1106,7 @@ function _compileAST(node) {
 				const prop = node.callee.computed
 					? _compileAST(node.callee.property)
 					: JSON.stringify(node.callee.property.name);
-				const op = node.type === "OptionalCallExpr" ? "?." : "";
+				const _op = node.type === "OptionalCallExpr" ? "?." : "";
 				return `(function(o, p, a){ if(o==null) return undefined; if(p === "__proto__" || p === "constructor" || p === "prototype") return undefined; const f = o[p]; if(typeof f !== "function") return undefined; return f.apply(o, a); })(${obj}, ${prop}, ${args})`;
 			}
 			const fn = _compileAST(node.callee);

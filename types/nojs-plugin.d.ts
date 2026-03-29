@@ -74,7 +74,7 @@ export type RequestInterceptorFn = (
 	| RequestInterceptorResult
 	| RespondInterceptorResult
 	| Promise<
-			void | RequestInit | RequestInterceptorResult | RespondInterceptorResult
+			undefined | RequestInit | RequestInterceptorResult | RespondInterceptorResult
 	  >;
 
 export type ResponseInterceptorFn = (
@@ -92,7 +92,7 @@ export type ResponseInterceptorFn = (
 	| void
 	| Response
 	| ReplaceInterceptorResult
-	| Promise<void | Response | ReplaceInterceptorResult>;
+	| Promise<undefined | Response | ReplaceInterceptorResult>;
 
 export interface NoJSInstance {
 	// ─── Plugin System ────────────────────────────────────────────────

@@ -12,13 +12,10 @@ import {
 	_stores,
 } from "./globals.js";
 import { _i18n } from "./i18n.js";
+import { createEffect, createSignal } from "./signals.js";
 
 let _batchDepth = 0;
 const _batchQueue = new Set();
-// Dedup set for the current synchronous notify pass: prevents a catch-all
-// ("*") watcher from running more than once when several keys change in the
-// same event handler outside an explicit _startBatch/_endBatch block.
-const _notifyRunSet = new Set();
 let _ctxId = 0;
 let _ctxGeneration = 0;
 
@@ -29,9 +26,6 @@ function _isEffectDead(fn) {
 	}
 	return fn._el ? !fn._el.isConnected : false;
 }
-
-// Global state for dependency tracking
-export let _activeEffect = null;
 
 export function _resetCtxId() {
 	_ctxId = 0;
@@ -57,75 +51,39 @@ export function _endBatch() {
 
 /**
  * Execute a function and track which reactive keys it accesses.
+ * Now a bridge to Signals.
  */
-export function _withEffect(fn, effect) {
-	const prev = _activeEffect;
-	_activeEffect = effect;
-	try {
+export function _withEffect(fn, effectFn) {
+	return createEffect(() => {
+		if (_isEffectDead(effectFn)) return;
 		return fn();
-	} finally {
-		_activeEffect = prev;
-	}
+	});
 }
 
 export function createContext(data = {}, parent = null) {
-	// listeners: Map<key, Set<fn>>
-	// key '*' is for global listeners (catch-all)
-	const listeners = new Map();
-	listeners.set("*", new Set());
-
+	// Map<key, Signal>
+	const signals = new Map();
 	const raw = {};
-	Object.assign(raw, data);
+	
 	if (_config.devtools) raw.__devtoolsId = ++_ctxId;
-	let notifying = false;
 
-	function getListenersForKey(key) {
-		const sets = [];
-		const globalSet = listeners.get("*");
-		if (globalSet) sets.push(globalSet);
-
-		if (key && key !== "*") {
-			const specific = listeners.get(key);
-			if (specific) sets.push(specific);
+	function getOrCreateSignal(key, initialValue) {
+		if (!signals.has(key)) {
+			signals.set(key, createSignal(initialValue));
 		}
-		return sets;
+		return signals.get(key);
 	}
 
-	function notify(key = "*") {
-		if (notifying) return;
-		notifying = true;
-		const isTopLevel = _notifyRunSet.size === 0;
-		try {
-			const setsToNotify =
-				key === "*" ? Array.from(listeners.values()) : getListenersForKey(key);
-
-			for (const set of setsToNotify) {
-				if (!set) continue;
-				for (const fn of set) {
-					if (_isEffectDead(fn)) {
-						set.delete(fn);
-						continue;
-					}
-					if (_batchDepth > 0) {
-						_batchQueue.add(fn);
-					} else if (_notifyRunSet.has(fn)) {
-					} else {
-						_notifyRunSet.add(fn);
-						fn();
-					}
-				}
-			}
-		} finally {
-			notifying = false;
-			if (isTopLevel) _notifyRunSet.clear();
-		}
+	// Initialize signals for provided data
+	for (const key of Object.keys(data)) {
+		getOrCreateSignal(key, data[key]);
 	}
 
 	const handler = {
 		get(target, key) {
 			if (key === "__isProxy") return true;
 			if (key === "__raw") return target;
-			if (key === "__listeners") return listeners;
+			if (key === "__signals") return signals;
 
 			if (key === "$watch")
 				return (keyOrFn, maybeFn) => {
@@ -138,33 +96,31 @@ export function createContext(data = {}, parent = null) {
 					}
 
 					if (_currentEl) {
-						// Store element via WeakRef so the GC can reclaim it once the
-						// element is removed from the DOM and no other strong ref exists.
-						// fn._el is kept as a strong fallback for environments / callers
-						// that set it directly (e.g. directive internal registration).
 						fn._elRef = new WeakRef(_currentEl);
 						fn._el = _currentEl;
 					}
 
-					if (!listeners.has(k)) listeners.set(k, new Set());
-					listeners.get(k).add(fn);
-
-					return () => {
-						const set = listeners.get(k);
-						if (set) set.delete(fn);
-						// Remove fn from every listener set it auto-subscribed to
-						// during _withEffect so that store listener sets don't keep fn
-						// (and its closed-over DOM element) alive after disposal.
-						if (fn._deps) {
-							for (const depSet of fn._deps) {
-								depSet.delete(fn);
-							}
-							fn._deps = null;
+					// Watch is now an effect that peeks or gets signals
+					return createEffect(() => {
+						if (_isEffectDead(fn)) return;
+						if (k === "*") {
+							// Global watch: touch all existing signals
+							for (const s of signals.values()) s.get();
+						} else {
+							getOrCreateSignal(k).get();
 						}
-					};
+						fn();
+					});
 				};
 
-			if (key === "$notify") return notify;
+			if (key === "$notify") return (k = "*") => {
+				if (k === "*") {
+					for (const s of signals.values()) s.set(s.peek());
+				} else {
+					const s = signals.get(k);
+					if (s) s.set(s.peek());
+				}
+			};
 
 			if (key === "$set")
 				return (k, v) => {
@@ -178,9 +134,7 @@ export function createContext(data = {}, parent = null) {
 							if (obj == null) return;
 						}
 						const lastKey = parts[parts.length - 1];
-						const old = obj[lastKey];
 						obj[lastKey] = v;
-						if (old !== v) notify(parts[0]);
 					}
 				};
 
@@ -201,34 +155,25 @@ export function createContext(data = {}, parent = null) {
 				return _globals[key.slice(1)];
 			}
 
-			// Automatic dependency tracking
-			if (_activeEffect && typeof key === "string" && !key.startsWith("$")) {
-				if (!listeners.has(key)) listeners.set(key, new Set());
-				const _set = listeners.get(key);
-				if (!_set.has(_activeEffect)) {
-					_set.add(_activeEffect);
-					// Record the listener set on the effect so that unwatch() can
-					// remove fn from every set it was auto-registered in (not just
-					// the explicit "$watch(fn)" set). This prevents detached DOM
-					// elements from being kept alive via the fn → el closure while
-					// fn is still reachable from a store listener set.
-					if (!_activeEffect._deps) _activeEffect._deps = new Set();
-					_activeEffect._deps.add(_set);
+			if (typeof key === "string" && !key.startsWith("$")) {
+				if (key in target || signals.has(key)) {
+					return getOrCreateSignal(key, target[key]).get();
 				}
 			}
 
-			if (key in target) return target[key];
 			if (parent?.__isProxy) return parent[key];
-			return undefined;
+			return target[key];
 		},
 		set(target, key, value) {
 			const old = target[key];
 			target[key] = value;
+			
+			if (typeof key === "string" && !key.startsWith("$")) {
+				getOrCreateSignal(key, value).set(value);
+			}
+
 			if (old !== value) {
 				_ctxGeneration++;
-				if (typeof key === "string") notify(key);
-				else notify("*");
-
 				_devtoolsEmit("ctx:updated", {
 					id: target.__devtoolsId,
 					key,
@@ -239,7 +184,7 @@ export function createContext(data = {}, parent = null) {
 			return true;
 		},
 		has(target, key) {
-			if (key in target) return true;
+			if (key in target || signals.has(key)) return true;
 			if (typeof key === "string" && key.startsWith("$")) {
 				const builtins = new Set([
 					"$watch",

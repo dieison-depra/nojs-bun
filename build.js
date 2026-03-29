@@ -1,6 +1,8 @@
 /**
  * No.JS Build Script — Bun Native
  */
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import pkg from "./package.json";
 
 const banner = `/**
@@ -13,9 +15,38 @@ const banner = `/**
  */`;
 
 async function build() {
+	console.log("🚀 Starting build...");
+
+	let wasmBase64 = "";
+	const wasmPath = join(import.meta.dir, "src/wasm");
+	const wasmOut = join(wasmPath, "pkg/nojs_core_bg.wasm");
+
+	if (existsSync(join(wasmPath, "Cargo.toml"))) {
+		console.log("🦀 Compiling Rust to WASM...");
+		try {
+			const result = Bun.spawnSync(["wasm-pack", "build", "--target", "web", "--release"], {
+				cwd: wasmPath,
+			});
+
+			if (result.success && existsSync(wasmOut)) {
+				const wasmBuffer = readFileSync(wasmOut);
+				wasmBase64 = wasmBuffer.toString("base64");
+				console.log(`✅ WASM compiled and encoded (${(wasmBuffer.length / 1024).toFixed(1)} KB)`);
+			} else {
+				console.warn("⚠️ WASM build failed or wasm-pack not found. Skipping native engine.");
+				console.error(result.stderr?.toString());
+			}
+		} catch (e) {
+			console.warn("⚠️ Failed to run wasm-pack. Skipping native engine.", e.message);
+		}
+	}
+
 	const shared = {
 		minify: true,
 		sourcemap: "external",
+		define: {
+			NATIVE_BIN: wasmBase64 ? JSON.stringify(wasmBase64) : "undefined",
+		},
 	};
 
 	// ── CDN (IIFE/UMD fallback via direct bundle) ─────────────────────

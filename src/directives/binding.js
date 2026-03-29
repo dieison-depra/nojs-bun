@@ -11,8 +11,11 @@ registerDirective("bind", {
 	priority: 20,
 	init(el, _name, expr) {
 		const ctx = findContext(el);
+		let lastVal = undefined;
 		function update() {
 			const val = evaluate(expr, ctx);
+			if (val === lastVal) return;
+			lastVal = val;
 			el.textContent = val !== undefined && val !== null ? String(val) : "";
 		}
 		_watchExpr(expr, ctx, update);
@@ -146,8 +149,12 @@ registerDirective("bind-*", {
 			_onDispose(() => el.removeEventListener("input", inputHandler));
 		}
 
+		let lastVal = undefined;
 		function update() {
 			const val = evaluate(expr, ctx);
+			if (val === lastVal) return;
+			lastVal = val;
+
 			// Boolean attributes
 			if (
 				[

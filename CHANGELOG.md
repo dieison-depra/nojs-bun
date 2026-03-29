@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.0] — 2026-03-28
+
+### Added
+
+- **R5+R12: Virtual Listing Support** (`src/directives/loops.js`): Introduced `virtual` and `virtual-height` attributes to `each` and `foreach` directives. Uses `IntersectionObserver` for high-performance windowing, rendering only visible items. This allows the framework to handle 10,000+ items with O(viewport) DOM nodes and constant memory overhead.
+- **R13: Granular DOM Patching (Dirty Checking)** (`src/directives/binding.js`): Implemented strict equality checks in `bind` and `bind-*` directives. The framework now caches the last value and skips DOM text/attribute updates if the value remains the same, significantly reducing layout thrashing and V8-to-Native overhead.
+- **Hybrid Rust/Wasm Engine** (`src/wasm/`): Integrated a native core written in Rust for performance-critical tasks.
+    - **Native Tokenizer**: High-speed expression parsing using the `logos` crate.
+    - **Native Keyed-Diffing**: Optimized algorithm for list reconciliation.
+    - **Zero-Latency Delivery**: The `.wasm` binary is embedded directly into `no.min.js` as Base64, requiring no additional network requests.
+    - **Resilient Fallback**: Automatic, transparent fallback to pure JS implementation if Wasm is unavailable.
+
+### Fixed
+
+- **Memory Leak Stability**: Refined context and observer disposal to achieve 0-drift in intensive application cycles.
+- **CLI Compatibility**: Fixed `hoist-static-content` plugin to correctly identify dynamic templates, preventing incorrect static marking of factories.
+
 ## [1.13.1] — 2026-03-28
 
 ### Fixed

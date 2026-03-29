@@ -27,9 +27,10 @@ No build step. No virtual DOM. No transpiler. No JSX. Just HTML.
 ## Features
 
 - **Declarative HTTP** — `get`, `post`, `put`, `patch`, `delete` as HTML attributes
-- **Reactive Binding** — `bind`, `bind-*`, `model` for one/two-way data binding
-- **Conditionals & Loops** — `if`, `else-if`, `show`, `hide`, `each`, `foreach`, `switch`
+- **Reactive Binding** — `bind`, `bind-*`, `model` with granular dirty-checking
+- **Conditionals & Loops** — `if`, `else-if`, `show`, `hide`, `each`, `foreach`, `switch` (with `virtual` support)
 - **State Management** — `state` (local), `store` (global), `computed`, `watch`, `notify()`
+- **Hybrid Engine** — Native Rust/Wasm core for expression evaluation and diffing
 - **SPA Routing** — `route`, `route-view`, guards, params, nested routes, wildcard catch-all
 - **Forms & Validation** — Built-in + custom validators, per-rule errors, async support, `$form` context
 - **Plugin System** — Extend with reusable packages: interceptors, globals, directives, lifecycle hooks

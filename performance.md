@@ -156,3 +156,17 @@ As seções abaixo complementam a Seção 2 com as quatro otimizações adiciona
 - **Arquivos:** `src/registry.js`, `src/directives/loops.js`
 - **Mudança:** `_disposeAndClear(parent)` move todos os filhos para um `DocumentFragment` off-DOM antes de dispor. Callbacks de disposer executam fora do documento, evitando recálculos de layout. Substitui o padrão `_disposeChildren + innerHTML=""` nos caminhos de limpeza de loops.
 - **Resultado:** P9 esperado -5%.
+
+### Fase 6: Engine Híbrida e Otimizações de Loop (v1.14.0) ✅ Entregue
+
+- **Arquivos:** `src/wasm/`, `src/directives/loops.js`, `src/directives/binding.js`
+- **Mudança principal:** 
+  - **Native Wasm Engine**: Migração do tokenizer e do algoritmo de keyed-diffing para Rust. O binário é embutido no bundle para evitar latência.
+  - **R5+R12 (Virtual List)**: Implementação de windowing para listas longas. Apenas itens visíveis são mantidos no DOM, reduzindo drasticamente o custo de P7/P8.
+  - **R13 (Dirty Checking)**: Bindings agora realizam comparação estrita antes de tocar no DOM.
+- **Resultado (Benchmark Krausest):**
+  - **Create 1,000 rows**: ~318ms (-13% vs baseline)
+  - **Create 10,000 rows**: ~1650ms (-8% vs baseline)
+  - **Partial Update**: ~102ms (-7% vs baseline)
+  - **Remove Row**: ~117ms (-12% vs baseline)
+  - **Memory Drift**: 0 nodes (Estabilidade total em ciclos repetitivos)

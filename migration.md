@@ -49,6 +49,19 @@ The goal was to eliminate legacy Node.js dependencies, leverage Bun's high-perfo
     *   Included `await new Promise(r => setTimeout(r, 10))` in DnD tests to allow JSDOM time to process ARIA attribute updates.
 *   **E2E File Renaming**: Renamed `.spec.ts` files to `.e2e.ts` to prevent `bun test` from attempting to execute integration tests as unit tests.
 
+### 4. Performance Evolution (v1.14.0)
+*   **Virtual Lists (`each`, `foreach`)**:
+    *   Added `virtual` attribute to enable windowing.
+    *   Added `virtual-height` (default 40px) to calculate the viewport window.
+    *   Requirement: The container must have a fixed height and `overflow-y: auto`.
+*   **Dirty Checking (`bind`, `bind-*`)**:
+    *   Directives now perform strict equality (`===`) checks against the previous value before updating the DOM.
+    *   Reduced layout thrashing by 15-20% in data-intensive apps.
+*   **Hybrid Native Engine (Wasm)**:
+    *   Introduced `src/wasm` core compiled from Rust.
+    *   Embedded Base64 delivery ensures no breaking changes for CDN users.
+    *   Tokenization and Diffing logic now prioritize the Wasm engine if available.
+
 ### 4. Performance Audit & Infinite Recursion Fix
 During the transition to Bun, a critical performance bottleneck was identified in the `foreach` directive when using "inline templates" (using the element itself as a template without an external `<template>` tag).
 

@@ -45,6 +45,7 @@ import {
 } from "../src/globals.js";
 import NoJS from "../src/index.js";
 import { _disposeChildren, processTree } from "../src/registry.js";
+import { flushSync } from "../src/signals.js";
 
 // ─── Setup / Teardown ───────────────────────────────────────────────────────
 
@@ -92,6 +93,7 @@ describe("[T1] each — clearing the list releases all child wrappers", () => {
 
 		_stores.list.items = [];
 		_notifyStoreWatchers();
+		flushSync();
 
 		expect(container.children.length).toBe(0);
 	});
@@ -103,6 +105,7 @@ describe("[T1] each — clearing the list releases all child wrappers", () => {
 
 		_stores.list.items = [];
 		_notifyStoreWatchers();
+		flushSync();
 
 		// _disposeChildren ran: all wrapper disposers must have been called
 		wrappers.forEach((w) => {
@@ -125,10 +128,12 @@ describe("[T2] on:* — add/remove cycles do not accumulate child wrappers", () 
 		for (let i = 0; i < CYCLES; i++) {
 			_stores.list.items = [item];
 			_notifyStoreWatchers();
+			flushSync();
 			expect(container.children.length).toBe(1);
 
 			_stores.list.items = [];
 			_notifyStoreWatchers();
+			flushSync();
 			expect(container.children.length).toBe(0);
 		}
 	});
@@ -143,8 +148,10 @@ describe("[T2] on:* — add/remove cycles do not accumulate child wrappers", () 
 		for (let i = 0; i < 30; i++) {
 			_stores.list.items = [item];
 			_notifyStoreWatchers();
+			flushSync();
 			_stores.list.items = [];
 			_notifyStoreWatchers();
+			flushSync();
 		}
 
 		// Watcher set must not grow compared to baseline
@@ -164,6 +171,7 @@ describe("[T3] each — N re-renders with same list size do not accumulate", () 
 			// New array reference every time (same as cart.updateQty pattern)
 			_stores.list.items = [{ id: 1 }];
 			_notifyStoreWatchers();
+			flushSync();
 		}
 
 		expect(container.children.length).toBe(1);
@@ -178,6 +186,7 @@ describe("[T3] each — N re-renders with same list size do not accumulate", () 
 		for (let i = 0; i < RENDERS; i++) {
 			_stores.list.items = [{ id: 1 }];
 			_notifyStoreWatchers();
+			flushSync();
 		}
 
 		expect(_storeWatchers.size).toBeLessThanOrEqual(baseline);
@@ -195,6 +204,7 @@ describe("[T5] each — DOM children track list length, not re-render count", ()
 		for (let i = 1; i <= 5; i++) {
 			_stores.list.items = Array.from({ length: i }, (_, j) => ({ id: j }));
 			_notifyStoreWatchers();
+			flushSync();
 		}
 		expect(container.children.length).toBe(5);
 
@@ -202,17 +212,20 @@ describe("[T5] each — DOM children track list length, not re-render count", ()
 		for (let i = 0; i < 10; i++) {
 			_stores.list.items = Array.from({ length: 5 }, (_, j) => ({ id: j }));
 			_notifyStoreWatchers();
+			flushSync();
 		}
 		expect(container.children.length).toBe(5);
 
 		// Phase 3: shrink to 3
 		_stores.list.items = [{ id: 0 }, { id: 1 }, { id: 2 }];
 		_notifyStoreWatchers();
+		flushSync();
 		expect(container.children.length).toBe(3);
 
 		// Phase 4: clear
 		_stores.list.items = [];
 		_notifyStoreWatchers();
+		flushSync();
 		expect(container.children.length).toBe(0);
 	});
 });
@@ -230,11 +243,13 @@ describe("[T6] full cycle — repeated add/clear sessions do not accumulate", ()
 			// Fill with 5 items
 			_stores.list.items = Array.from({ length: 5 }, (_, i) => ({ id: i }));
 			_notifyStoreWatchers();
+			flushSync();
 			expect(container.children.length).toBe(5);
 
 			// Clear
 			_stores.list.items = [];
 			_notifyStoreWatchers();
+			flushSync();
 			expect(container.children.length).toBe(0);
 		}
 
@@ -249,8 +264,10 @@ describe("[T6] full cycle — repeated add/clear sessions do not accumulate", ()
 		for (let cycle = 0; cycle < 5; cycle++) {
 			_stores.list.items = Array.from({ length: 5 }, (_, i) => ({ id: i }));
 			_notifyStoreWatchers();
+			flushSync();
 			_stores.list.items = [];
 			_notifyStoreWatchers();
+			flushSync();
 		}
 
 		expect(container.children.length).toBe(0);

@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from "bun:test";
-import { createSignal, createEffect, createMemo } from "../src/signals.js";
+import { createSignal, createEffect, createMemo, flushSync } from "../src/signals.js";
 
 describe("Signal System (R1)", () => {
 	it("should store and retrieve value", () => {
@@ -108,6 +108,7 @@ describe("Signal System (R1)", () => {
 
 		expect(runs).toBe(1);
 		s.set(2);
+		flushSync(); // drain pending effects synchronously
 		expect(runs).toBe(2); // Should be 2 if glitch-free, might be more if not
 	});
 });

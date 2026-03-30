@@ -1,5 +1,6 @@
 import { _config } from "../src/globals.js";
 import { processTree } from "../src/registry.js";
+import { flushSync } from "../src/signals.js";
 
 import "../src/filters.js";
 import "../src/directives/state.js";
@@ -189,9 +190,11 @@ describe("Drag Directive", () => {
 
 		// Toggle disabled via context
 		parent.__ctx.$set("locked", true);
+		flushSync();
 		expect(el.draggable).toBe(false);
 
 		parent.__ctx.$set("locked", false);
+		flushSync();
 		expect(el.draggable).toBe(true);
 	});
 
@@ -552,6 +555,7 @@ describe("Drag-List Directive", () => {
 
 	test("31 — provides loop variables ($index, $count)", () => {
 		const { el } = setupDragList("tasks", ["A", "B", "C"]);
+		flushSync();
 		const wrappers = el.querySelectorAll('[role="option"]');
 		expect(wrappers[0].__ctx.$index).toBe(0);
 		expect(wrappers[0].__ctx.$count).toBe(3);
@@ -561,9 +565,11 @@ describe("Drag-List Directive", () => {
 
 	test("32 — re-renders when state changes", () => {
 		const { el, ctx } = setupDragList("tasks", ["A", "B"]);
+		flushSync();
 		expect(el.querySelectorAll(".dl-item").length).toBe(2);
 
 		ctx.$set("tasks", ["A", "B", "C", "D"]);
+		flushSync();
 		expect(el.querySelectorAll(".dl-item").length).toBe(4);
 	});
 

@@ -12,7 +12,13 @@ import {
 	_stores,
 } from "./globals.js";
 import { _i18n } from "./i18n.js";
-import { createEffect, createSignal } from "./signals.js";
+import {
+	createEffect,
+	createSignal,
+	flushSync,
+	_startSignalBatch,
+	_endSignalBatch,
+} from "./signals.js";
 
 let _batchDepth = 0;
 const _batchQueue = new Set();
@@ -33,38 +39,54 @@ export function _resetCtxId() {
 
 export function _startBatch() {
 	_batchDepth++;
+	_startSignalBatch();
 	_devtoolsEmit("batch:start", { depth: _batchDepth });
 }
 
 export function _endBatch() {
 	_batchDepth--;
-	if (_batchDepth === 0 && _batchQueue.size > 0) {
+	if (_batchDepth === 0) {
 		_devtoolsEmit("batch:end", { depth: 0, queueSize: _batchQueue.size });
-		const fns = [..._batchQueue];
-		_batchQueue.clear();
-		fns.forEach((fn) => {
-			if (_isEffectDead(fn)) return;
-			fn();
-		});
+		if (_batchQueue.size > 0) {
+			const fns = [..._batchQueue];
+			_batchQueue.clear();
+			fns.forEach((fn) => {
+				if (_isEffectDead(fn)) return;
+				fn();
+			});
+		}
 	}
+	_endSignalBatch(); // flushes synchronously when depth reaches 0
 }
 
 /**
  * Execute a function and track which reactive keys it accesses.
- * Now a bridge to Signals.
+ * Bridge to the Signal system — kept for backward-compat with directives.
+ * @deprecated Use createEffect directly where possible.
  */
 export function _withEffect(fn, effectFn) {
 	return createEffect(() => {
-		if (_isEffectDead(effectFn)) return;
-		return fn();
+		if (effectFn && _isEffectDead(effectFn)) return;
+		fn();
 	});
 }
 
 export function createContext(data = {}, parent = null) {
 	// Map<key, Signal>
 	const signals = new Map();
+	// Backward-compat listener map for registry.js disposal (Map<key, Set<fn>>).
+	// The signal system handles reactivity; this map only tracks raw watcher fns
+	// so _disposeElement can clean up _storeWatchers / _i18nListeners entries.
+	const listenerMap = new Map([["*", new Set()]]);
+	// raw is the proxy target; initial data is written here so that __raw.x
+	// returns the initial value and _collectKeys can read from it.
 	const raw = {};
-	
+
+	// Write initial data both to raw and to the signals map.
+	for (const key of Object.keys(data)) {
+		raw[key] = data[key];
+	}
+
 	if (_config.devtools) raw.__devtoolsId = ++_ctxId;
 
 	function getOrCreateSignal(key, initialValue) {
@@ -74,10 +96,15 @@ export function createContext(data = {}, parent = null) {
 		return signals.get(key);
 	}
 
-	// Initialize signals for provided data
+	// Initialize signals for provided data (raw already populated above).
 	for (const key of Object.keys(data)) {
 		getOrCreateSignal(key, data[key]);
 	}
+
+	// Pre-create the notify counter so $watch() always subscribes to it,
+	// even on contexts that start empty.  This ensures ctx.$notify() always
+	// reaches global watchers regardless of when they registered.
+	getOrCreateSignal("$__notify__", 0);
 
 	const handler = {
 		get(target, key) {
@@ -100,27 +127,52 @@ export function createContext(data = {}, parent = null) {
 						fn._el = _currentEl;
 					}
 
-					// Watch is now an effect that peeks or gets signals
-					return createEffect(() => {
+					// Track fn in the backward-compat listenerMap for registry disposal.
+					if (!listenerMap.has(k)) listenerMap.set(k, new Set());
+					listenerMap.get(k).add(fn);
+
+					// Skip the initial subscription run — the watcher should only fire
+					// when the value *changes*, matching the legacy context contract.
+					let initialized = false;
+					const cleanupEffect = createEffect(() => {
 						if (_isEffectDead(fn)) return;
 						if (k === "*") {
-							// Global watch: touch all existing signals
+							// Global watch: subscribe to every existing signal (including
+							// the $__notify__ counter so explicit $notify() triggers this).
 							for (const s of signals.values()) s.get();
 						} else {
 							getOrCreateSignal(k).get();
 						}
-						fn();
+						if (initialized) fn();
+						initialized = true;
 					});
+					return () => {
+						cleanupEffect();
+						listenerMap.get(k)?.delete(fn);
+					};
 				};
 
-			if (key === "$notify") return (k = "*") => {
-				if (k === "*") {
-					for (const s of signals.values()) s.set(s.peek());
-				} else {
-					const s = signals.get(k);
-					if (s) s.set(s.peek());
-				}
-			};
+			// $notify() — force-triggers all watchers even when the value hasn't
+			// changed (e.g. after in-place object mutation).
+			if (key === "$notify")
+				return (k = "*") => {
+					if (k === "*") {
+						// Increment the dedicated notify-counter signal so that global
+						// $watch effects (which subscribe to it) are always re-run.
+						const ns = getOrCreateSignal("$__notify__", 0);
+						ns.set(ns.peek() + 1);
+						// Also force-notify every other signal.
+						for (const [sk, s] of signals) {
+							if (sk !== "$__notify__") s.notify();
+						}
+					} else {
+						const s = signals.get(k);
+						if (s) s.notify();
+					}
+					// Flush synchronously so callers can assert results immediately
+					// (mirrors legacy $notify() contract).
+					flushSync();
+				};
 
 			if (key === "$set")
 				return (k, v) => {
@@ -135,10 +187,13 @@ export function createContext(data = {}, parent = null) {
 						}
 						const lastKey = parts[parts.length - 1];
 						obj[lastKey] = v;
+						const topSignal = signals.get(parts[0]);
+						if (topSignal) topSignal.notify();
 					}
 				};
 
 			if (key === "$parent") return parent;
+			if (key === "__listeners") return listenerMap; // backward-compat alias
 			if (key === "$refs") return target.$refs ?? _refs;
 			if (key === "$store") return _stores;
 			if (key === "$route")
@@ -156,18 +211,29 @@ export function createContext(data = {}, parent = null) {
 			}
 
 			if (typeof key === "string" && !key.startsWith("$")) {
-				if (key in target || signals.has(key)) {
+				if (signals.has(key)) {
+					return signals.get(key).get();
+				}
+				// Accessor properties (e.g. computed directives using Object.defineProperty)
+				// must bypass the signal system so they delegate to their own memo.
+				const desc = Object.getOwnPropertyDescriptor(target, key);
+				if (desc?.get) {
+					return desc.get.call(target);
+				}
+				if (key in target) {
 					return getOrCreateSignal(key, target[key]).get();
 				}
 			}
 
+			// Local raw wins over parent for $-prefixed loop variables ($index, $count, etc.)
+			if (key in target) return target[key];
 			if (parent?.__isProxy) return parent[key];
 			return target[key];
 		},
 		set(target, key, value) {
 			const old = target[key];
-			target[key] = value;
-			
+			target[key] = value; // keep raw in sync so _collectKeys reads correctly
+
 			if (typeof key === "string" && !key.startsWith("$")) {
 				getOrCreateSignal(key, value).set(value);
 			}
@@ -221,7 +287,9 @@ export function createContext(data = {}, parent = null) {
 	return proxy;
 }
 
-// Collect all keys from a context + its parent chain
+// Collect all keys from a context + its parent chain.
+// Reads from raw (kept in sync by the proxy setter) for performance; also
+// checks the signals map so that keys added after construction are included.
 export function _collectKeys(ctx) {
 	const cache = ctx.__raw.__collectKeysCache;
 	if (cache && cache.gen === _ctxGeneration) return cache.result;
@@ -231,12 +299,28 @@ export function _collectKeys(ctx) {
 	let c = ctx;
 	while (c?.__isProxy) {
 		const raw = c.__raw;
+		const sigs = c.__signals;
+
+		// Signals are the canonical source of truth for data keys.
+		for (const [k, signal] of sigs) {
+			if (k.startsWith("$") || k === "__collectKeysCache") continue;
+			if (!allKeys.has(k)) {
+				allKeys.add(k);
+				allVals[k] = signal.peek();
+			}
+		}
+
+		// Also pick up any raw-only keys (e.g. values set directly on the
+		// proxy target outside of the reactive system).
 		for (const k of Object.keys(raw)) {
+			if (k.startsWith("_") || k.startsWith("$") || k === "__collectKeysCache")
+				continue;
 			if (!allKeys.has(k)) {
 				allKeys.add(k);
 				allVals[k] = raw[k];
 			}
 		}
+
 		c = c.$parent;
 	}
 	const result = { keys: [...allKeys], vals: allVals };

@@ -4,6 +4,7 @@ import {
 	_startBatch,
 	createContext,
 } from "../src/context.js";
+import { flushSync } from "../src/signals.js";
 import {
 	_execStatement,
 	_exprCache,
@@ -198,6 +199,7 @@ describe("Globals", () => {
 
 				// Watcher fires before disposal
 				ctx.x = 2;
+				flushSync();
 				expect(fn).toHaveBeenCalledTimes(2); // 1 for initial _withEffect, 1 for update
 
 				// Dispose the element
@@ -206,6 +208,7 @@ describe("Globals", () => {
 				// Watcher should no longer fire after disposal
 				fn.mockClear();
 				ctx.x = 3;
+				flushSync();
 				expect(fn).not.toHaveBeenCalled();
 			});
 
@@ -313,6 +316,7 @@ describe("Reactive Context", () => {
 			const watcher = jest.fn();
 			ctx.$watch(watcher);
 			ctx.count = 5;
+			flushSync();
 			expect(watcher).toHaveBeenCalled();
 			expect(ctx.count).toBe(5);
 		});
@@ -336,9 +340,11 @@ describe("Reactive Context", () => {
 			const watcher = jest.fn();
 			const unsub = ctx.$watch(watcher);
 			ctx.x = 1;
+			flushSync();
 			expect(watcher).toHaveBeenCalledTimes(1);
 			unsub();
 			ctx.x = 2;
+			flushSync();
 			expect(watcher).toHaveBeenCalledTimes(1);
 		});
 
@@ -1090,6 +1096,7 @@ describe("$set dot-path traversal", () => {
 		const watcher = jest.fn();
 		ctx.$watch(watcher);
 		ctx.$set("a.b.c", 2);
+		flushSync();
 		expect(watcher).toHaveBeenCalledTimes(1);
 	});
 
@@ -1113,6 +1120,7 @@ describe("$set dot-path traversal", () => {
 		const watcher = jest.fn();
 		ctx.$watch(watcher);
 		ctx.$set("x", 20);
+		flushSync();
 		expect(ctx.x).toBe(20);
 		expect(watcher).toHaveBeenCalledTimes(1);
 	});

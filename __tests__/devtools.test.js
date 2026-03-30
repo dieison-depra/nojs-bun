@@ -12,6 +12,7 @@ import {
 	processElement,
 	registerDirective,
 } from "../src/registry.js";
+import { flushSync } from "../src/signals.js";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -229,6 +230,7 @@ describe("DevTools Protocol", () => {
 			_startBatch();
 			ctx.a = 2; // triggers batch queue (watcher queued, not fired)
 			_endBatch();
+			flushSync();
 			cleanup();
 
 			const batchStart = events.filter((e) => e.type === "batch:start");

@@ -9,6 +9,7 @@ import {
 } from "../src/globals.js";
 import { _i18n } from "../src/i18n.js";
 import NoJS from "../src/index.js";
+import { flushSync } from "../src/signals.js";
 
 beforeEach(() => {
 	document.body.innerHTML = "";
@@ -576,6 +577,7 @@ describe("Integration: state + events", () => {
 
 		expect(document.getElementById("counter").textContent).toBe("0");
 		document.querySelector("button").click();
+		flushSync();
 		expect(document.getElementById("counter").textContent).toBe("1");
 	});
 
@@ -590,6 +592,7 @@ describe("Integration: state + events", () => {
 
 		expect(document.getElementById("name").textContent).toBe("World");
 		document.querySelector("button").click();
+		flushSync();
 		expect(document.getElementById("name").textContent).toBe("NoJS");
 	});
 });
@@ -609,7 +612,7 @@ describe("Integration: state + model (two-way binding)", () => {
 
 		input.value = "testuser";
 		input.dispatchEvent(new Event("input", { bubbles: true }));
-
+		flushSync();
 		expect(output.textContent).toBe("testuser");
 	});
 
@@ -627,7 +630,7 @@ describe("Integration: state + model (two-way binding)", () => {
 
 		cb.checked = true;
 		cb.dispatchEvent(new Event("change", { bubbles: true }));
-
+		flushSync();
 		expect(document.getElementById("val").textContent).toBe("true");
 	});
 });
@@ -807,6 +810,7 @@ describe("Integration: foreach with filter", () => {
       </template>
     `;
 		await NoJS.init();
+		flushSync();
 
 		const spans = document.querySelectorAll(".filtered");
 		expect(spans.length).toBe(2);

@@ -69,6 +69,7 @@ import {
 } from "../src/globals.js";
 import NoJS from "../src/index.js";
 import { _disposeTree, processTree } from "../src/registry.js";
+import { flushSync } from "../src/signals.js";
 
 // ─── Setup ──────────────────────────────────────────────────────────────────
 
@@ -150,6 +151,7 @@ describe("[1] __collectKeysCache — TIP-P4: cache correctness and data-only sto
 
 		// Dispose the element
 		_disposeTree(el);
+		flushSync();
 
 		// Disposer must have been called despite the cache being present
 		expect(disposed).toHaveBeenCalled();
@@ -178,6 +180,7 @@ describe("[2] _watchExpr MutationObserver — both cleanup paths work correctly"
 
 		// Simulate each re-render: disposeTree on item, then clear container
 		_disposeTree(item);
+		flushSync();
 		container.innerHTML = "";
 
 		// Watcher removed via _onDispose — no need to wait for MO callback
@@ -236,6 +239,7 @@ describe("[2] _watchExpr MutationObserver — both cleanup paths work correctly"
 		for (let i = 0; i < 20; i++) {
 			_stores.items.list = [{ id: i }];
 			_notifyStoreWatchers();
+			flushSync();
 		}
 
 		expect(_storeWatchers.size).toBeLessThanOrEqual(baseline);
@@ -356,6 +360,7 @@ describe("[4] loops.js animate-leave — fallback timeout blocks re-render until
 
 		_stores.data.items = [{ id: 2 }, { id: 3 }];
 		_notifyStoreWatchers();
+		flushSync();
 
 		// No animation → re-render is synchronous, no fake-timer advance needed
 		expect(list.children.length).toBe(2);

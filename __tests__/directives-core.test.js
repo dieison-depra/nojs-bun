@@ -2,6 +2,7 @@ import { createContext } from "../src/context.js";
 import { findContext } from "../src/dom.js";
 import { _config, _stores } from "../src/globals.js";
 import { _disposeTree, processTree } from "../src/registry.js";
+import { flushSync } from "../src/signals.js";
 
 import "../src/filters.js";
 import "../src/directives/state.js";
@@ -133,6 +134,7 @@ describe("Computed Directive", () => {
 
 		expect(parent.__ctx.sum).toBe(5);
 		parent.__ctx.a = 10;
+		flushSync();
 		expect(parent.__ctx.sum).toBe(13);
 	});
 });
@@ -153,6 +155,7 @@ describe("Watch Directive", () => {
 		processTree(parent);
 
 		parent.__ctx.count = 5;
+		flushSync();
 		expect(parent.__ctx.lastChange).toBe("changed");
 	});
 });
@@ -185,6 +188,7 @@ describe("Bind Directive", () => {
 
 		expect(span.textContent).toBe("hello");
 		parent.__ctx.msg = "world";
+		flushSync();
 		expect(span.textContent).toBe("world");
 	});
 
@@ -265,6 +269,7 @@ describe("Bind-* Directive", () => {
 		expect(btn.disabled).toBe(true);
 
 		parent.__ctx.isDisabled = false;
+		flushSync();
 		expect(btn.hasAttribute("disabled")).toBe(false);
 		expect(btn.disabled).toBe(false);
 	});
@@ -280,6 +285,7 @@ describe("Bind-* Directive", () => {
 
 		expect(div.getAttribute("title")).toBe("hello");
 		parent.__ctx.title = null;
+		flushSync();
 		expect(div.hasAttribute("title")).toBe(false);
 	});
 
@@ -369,6 +375,7 @@ describe("SVG Data URI Sanitization (DOMParser)", () => {
 		document.body.appendChild(parent);
 		processTree(parent);
 		parent.__ctx.uri = dataUri;
+		flushSync();
 		return img;
 	}
 
@@ -530,6 +537,7 @@ describe("Model Directive", () => {
 		processTree(parent);
 
 		parent.__ctx.text = "world";
+		flushSync();
 		expect(input.value).toBe("world");
 	});
 });
@@ -578,8 +586,10 @@ describe("If Directive", () => {
 
 		expect(div.querySelector("p")).not.toBeNull();
 		parent.__ctx.show = false;
+		flushSync();
 		expect(div.innerHTML).toBe("");
 		parent.__ctx.show = true;
+		flushSync();
 		expect(div.querySelector("p")).not.toBeNull();
 	});
 
@@ -667,8 +677,10 @@ describe("Show Directive", () => {
 
 		expect(div.style.display).toBe("");
 		parent.__ctx.on = false;
+		flushSync();
 		expect(div.style.display).toBe("none");
 		parent.__ctx.on = true;
+		flushSync();
 		expect(div.style.display).toBe("");
 	});
 });
@@ -782,6 +794,7 @@ describe("Switch Directive", () => {
 		expect(caseB.style.display).toBe("none");
 
 		parent.__ctx.tab = "b";
+		flushSync();
 		expect(caseA.style.display).toBe("none");
 		expect(caseB.style.display).toBe("");
 	});
@@ -1141,6 +1154,7 @@ describe("state persist directive", () => {
 
 		const ctx = findContext(parent);
 		ctx.count = 5;
+		flushSync();
 
 		const stored = JSON.parse(localStorage.getItem("nojs_state_test1"));
 		expect(stored.count).toBe(5);
@@ -1172,6 +1186,7 @@ describe("state persist directive", () => {
 
 		const ctx = findContext(parent);
 		ctx.val = 20;
+		flushSync();
 
 		const stored = JSON.parse(sessionStorage.getItem("nojs_state_test3"));
 		expect(stored.val).toBe(20);
@@ -1236,6 +1251,7 @@ describe("state persist directive", () => {
 		// Mutate state to trigger the $watch save
 		const ctx = parent.__ctx;
 		ctx.theme = "light";
+		flushSync();
 
 		const saved = JSON.parse(localStorage.getItem("nojs_state_pf-test1"));
 		expect(saved.theme).toBe("light");
@@ -1283,6 +1299,7 @@ describe("state persist directive", () => {
 		// Mutate to trigger the $watch save
 		const ctx = parent.__ctx;
 		ctx.a = 10;
+		flushSync();
 
 		const saved = JSON.parse(localStorage.getItem("nojs_state_pf-test3"));
 		expect(saved.a).toBe(10);
@@ -1795,6 +1812,7 @@ describe("model directive — uncovered branches", () => {
 		expect(parent.__ctx.color).toBe("blue");
 
 		parent.__ctx.color = "red";
+		flushSync();
 		expect(radio1.checked).toBe(true);
 		expect(radio2.checked).toBe(false);
 	});
@@ -1835,6 +1853,7 @@ describe("bind-* removes attribute when val is null", () => {
 		expect(div.getAttribute("title")).toBe("hello");
 
 		parent.__ctx.tip = null;
+		flushSync();
 		expect(div.hasAttribute("title")).toBe(false);
 	});
 
@@ -1927,6 +1946,7 @@ describe("bind-html — null/undefined value", () => {
 		expect(div.innerHTML).toBe("");
 
 		parent.__ctx.html = "<em>Now visible</em>";
+		flushSync();
 		expect(div.innerHTML).toBe("<em>Now visible</em>");
 	});
 });
@@ -2022,10 +2042,12 @@ describe("Directive disposal cleanup", () => {
 
 			// Toggle off — should clear content
 			parent.__ctx.show = false;
+			flushSync();
 			expect(ifEl.innerHTML).toBe("");
 
 			// Toggle on — should restore content
 			parent.__ctx.show = true;
+			flushSync();
 			expect(ifEl.querySelector("span")).not.toBeNull();
 		});
 
@@ -2090,6 +2112,7 @@ describe("Directive disposal cleanup", () => {
 
 			// Update list — old children should be disposed, new ones rendered
 			parent.__ctx.items = [4, 5];
+			flushSync();
 			expect(list.querySelectorAll(".loop-item").length).toBe(2);
 		});
 
@@ -2502,6 +2525,7 @@ describe("foreach with inline template (no external template)", () => {
 		// Mutate the array via the reactive context
 		const ctx = parent.__ctx;
 		ctx.items = ["x", "y", "z"];
+		flushSync();
 
 		// After mutation: 3 items
 		wrappers = list.querySelectorAll('div[style*="contents"]');
@@ -2616,8 +2640,8 @@ describe("each — key-based reconciliation", () => {
 		initialWrappers[1].__marker = "B";
 
 		// Push a new item
-		state.__ctx.__raw.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+		flushSync();
 
 		expect(list.children).toHaveLength(3);
 		expect(list.children[0].__marker).toBe("A");
@@ -2633,8 +2657,8 @@ describe("each — key-based reconciliation", () => {
 		list.children[2].__marker = "C";
 
 		// Remove middle item
-		state.__ctx.__raw.items = [{ id: 1 }, { id: 3 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 1 }, { id: 3 }];
+		flushSync();
 
 		expect(list.children).toHaveLength(2);
 		expect(list.children[0].__marker).toBe("A");
@@ -2649,8 +2673,8 @@ describe("each — key-based reconciliation", () => {
 		list.children[2].__marker = "C";
 
 		// Reverse the list
-		state.__ctx.__raw.items = [{ id: 3 }, { id: 2 }, { id: 1 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 3 }, { id: 2 }, { id: 1 }];
+		flushSync();
 
 		expect(list.children).toHaveLength(3);
 		expect(list.children[0].__marker).toBe("C");
@@ -2682,8 +2706,8 @@ describe("each — key-based reconciliation", () => {
 		const first = list.children[0];
 		first.__marker = "should-be-gone";
 
-		state.__ctx.__raw.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+		flushSync();
 
 		// Full rebuild: original wrapper is gone, marker is not on any child
 		const markers = [...list.children].map((c) => c.__marker).filter(Boolean);
@@ -2694,8 +2718,8 @@ describe("each — key-based reconciliation", () => {
 		const { list, state } = makeEachList([{ id: 1 }, { id: 2 }, { id: 3 }]);
 
 		// Remove first item — $index of remaining items must update
-		state.__ctx.__raw.items = [{ id: 2 }, { id: 3 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 2 }, { id: 3 }];
+		flushSync();
 
 		expect(list.children[0].__ctx.__raw.$index).toBe(0);
 		expect(list.children[1].__ctx.__raw.$index).toBe(1);
@@ -2707,8 +2731,8 @@ describe("each — key-based reconciliation", () => {
 		const { list, state } = makeEachList([{ id: 1 }, { id: 2 }]);
 		expect(list.children).toHaveLength(2);
 
-		state.__ctx.__raw.items = [];
-		state.__ctx.$notify();
+		state.__ctx.items = [];
+		flushSync();
 
 		// Both wrappers disposed and removed
 		expect(list.children).toHaveLength(0);
@@ -2755,8 +2779,8 @@ describe("foreach — key-based reconciliation", () => {
 		list.children[0].__marker = "A";
 		list.children[1].__marker = "B";
 
-		state.__ctx.__raw.items = [{ id: "a" }, { id: "b" }, { id: "c" }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: "a" }, { id: "b" }, { id: "c" }];
+		flushSync();
 
 		expect(list.children).toHaveLength(3);
 		expect(list.children[0].__marker).toBe("A");
@@ -2775,8 +2799,8 @@ describe("foreach — key-based reconciliation", () => {
 		list.children[0].__marker = "A";
 		list.children[2].__marker = "C";
 
-		state.__ctx.__raw.items = [{ id: "a" }, { id: "c" }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: "a" }, { id: "c" }];
+		flushSync();
 
 		expect(list.children).toHaveLength(2);
 		expect(list.children[0].__marker).toBe("A");
@@ -2794,8 +2818,8 @@ describe("foreach — key-based reconciliation", () => {
 		list.children[1].__marker = "Y";
 		list.children[2].__marker = "Z";
 
-		state.__ctx.__raw.items = [{ id: "z" }, { id: "x" }, { id: "y" }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: "z" }, { id: "x" }, { id: "y" }];
+		flushSync();
 
 		expect(list.children[0].__marker).toBe("Z");
 		expect(list.children[1].__marker).toBe("X");
@@ -2826,8 +2850,8 @@ describe("foreach — key-based reconciliation", () => {
 		const first = list.children[0];
 		first.__marker = "original";
 
-		state.__ctx.__raw.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+		flushSync();
 
 		const markers = [...list.children].map((c) => c.__marker).filter(Boolean);
 		expect(markers).toHaveLength(0); // full rebuild, no preserved markers
@@ -2873,8 +2897,8 @@ describe("foreach — key-based reconciliation, inline template", () => {
 		list.children[0].__marker = "A";
 		list.children[1].__marker = "B";
 
-		state.__ctx.__raw.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+		flushSync();
 
 		expect(list.children).toHaveLength(3);
 		expect(list.children[0].__marker).toBe("A");
@@ -2893,8 +2917,8 @@ describe("foreach — key-based reconciliation, inline template", () => {
 		list.children[0].__marker = "A";
 		list.children[2].__marker = "C";
 
-		state.__ctx.__raw.items = [{ id: 1 }, { id: 3 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 1 }, { id: 3 }];
+		flushSync();
 
 		expect(list.children).toHaveLength(2);
 		expect(list.children[0].__marker).toBe("A");
@@ -2912,8 +2936,8 @@ describe("foreach — key-based reconciliation, inline template", () => {
 		list.children[1].__marker = "B";
 		list.children[2].__marker = "C";
 
-		state.__ctx.__raw.items = [{ id: 3 }, { id: 1 }, { id: 2 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 3 }, { id: 1 }, { id: 2 }];
+		flushSync();
 
 		expect(list.children[0].__marker).toBe("C");
 		expect(list.children[1].__marker).toBe("A");
@@ -2970,8 +2994,8 @@ describe("key reconciliation — disposal of removed items", () => {
 		spanToDispose.__disposers = [() => disposed.push("id2-disposed")];
 
 		// Remove item id=2
-		state.__ctx.__raw.items = [{ id: 1 }, { id: 3 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 1 }, { id: 3 }];
+		flushSync();
 
 		expect(disposed).toEqual(["id2-disposed"]);
 	});
@@ -3001,8 +3025,8 @@ describe("key reconciliation — disposal of removed items", () => {
 		const disposed = [];
 		spanToDispose.__disposers = [() => disposed.push("b-disposed")];
 
-		state.__ctx.__raw.items = [{ id: "a" }, { id: "c" }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: "a" }, { id: "c" }];
+		flushSync();
 
 		expect(disposed).toEqual(["b-disposed"]);
 	});
@@ -3028,8 +3052,8 @@ describe("key reconciliation — disposal of removed items", () => {
 		spanToDispose.__disposers = [() => disposed.push("id1-disposed")];
 
 		// Remove first item
-		state.__ctx.__raw.items = [{ id: 2 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 2 }];
+		flushSync();
 
 		expect(disposed).toEqual(["id1-disposed"]);
 	});
@@ -3059,8 +3083,8 @@ describe("key reconciliation — disposal of removed items", () => {
 		preserved.__disposers = [() => disposed.push("id1-wrongly-disposed")];
 
 		// Push a new item — id=1 wrapper must be preserved
-		state.__ctx.__raw.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
-		state.__ctx.$notify();
+		state.__ctx.items = [{ id: 1 }, { id: 2 }, { id: 3 }];
+		flushSync();
 
 		expect(disposed).toHaveLength(0);
 	});
@@ -3364,6 +3388,7 @@ describe("bind-html child disposal (M9)", () => {
 
 		// Update content — should trigger _disposeChildren before setting new innerHTML
 		parent.__ctx.content = "<em>Updated</em>";
+		flushSync();
 
 		// Verify the old child's disposer was called
 		expect(disposed).toEqual(["bold-disposed"]);
@@ -3395,6 +3420,7 @@ describe("H1 — persist watcher disposal", () => {
 
 		// Verify persistence works before disposal
 		ctx.count = 10;
+		flushSync();
 		const saved = JSON.parse(localStorage.getItem("nojs_state_test-h1"));
 		expect(saved.count).toBe(10);
 
@@ -3403,6 +3429,7 @@ describe("H1 — persist watcher disposal", () => {
 
 		// Mutate state after disposal — should NOT write to localStorage
 		ctx.count = 999;
+		flushSync();
 		const afterDispose = JSON.parse(localStorage.getItem("nojs_state_test-h1"));
 		// The value should still be 10, not 999
 		expect(afterDispose.count).toBe(10);

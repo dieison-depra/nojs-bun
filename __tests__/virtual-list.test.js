@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import NoJS from "../src/index.js";
 import { processTree } from "../src/registry.js";
+import { flushSync } from "../src/signals.js";
 
 describe("Virtual List (R5+R12)", () => {
 	beforeEach(() => {
@@ -32,6 +33,7 @@ describe("Virtual List (R5+R12)", () => {
 		
 		const items = Array.from({ length: 100 }, (_, i) => ({ id: i }));
 		NoJS.store.vlist1.$set("items", items);
+		flushSync();
 
 		const renderedCount = listEl.querySelectorAll(".item").length;
 		expect(renderedCount).toBeGreaterThan(5);
@@ -55,10 +57,12 @@ describe("Virtual List (R5+R12)", () => {
 
 		const items = Array.from({ length: 100 }, (_, i) => ({ id: i }));
 		NoJS.store.vlist2.$set("items", items);
+		flushSync();
 
 		listEl.scrollTop = 500;
 		listEl.dispatchEvent(new Event("scroll"));
-		
+		flushSync();
+
 		const itemEl = listEl.querySelector(".item");
 		if (!itemEl) {
 			console.error("listEl HTML:", listEl.outerHTML);

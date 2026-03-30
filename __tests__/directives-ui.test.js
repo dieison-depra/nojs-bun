@@ -1,5 +1,6 @@
 import { findContext } from "../src/dom.js";
 import { processTree } from "../src/registry.js";
+import { flushSync } from "../src/signals.js";
 
 import "../src/filters.js";
 import "../src/directives/state.js";
@@ -46,6 +47,7 @@ describe("Each Directive", () => {
 		parent.appendChild(list);
 		document.body.appendChild(parent);
 		processTree(parent);
+		flushSync();
 
 		const wrappers = list.querySelectorAll('[style*="contents"]');
 		expect(wrappers.length).toBe(2);
@@ -84,6 +86,7 @@ describe("Each Directive", () => {
 		expect(list.querySelectorAll(".r-item").length).toBe(2);
 
 		parent.__ctx.items = [1, 2, 3, 4];
+		flushSync();
 		expect(list.querySelectorAll(".r-item").length).toBe(4);
 	});
 
@@ -218,6 +221,7 @@ describe("Foreach Directive", () => {
 		parent.appendChild(list);
 		document.body.appendChild(parent);
 		processTree(parent);
+		flushSync();
 
 		const wrappers = list.querySelectorAll('[style*="contents"]');
 		expect(wrappers[0].__ctx.$first).toBe(true);
@@ -427,6 +431,7 @@ describe("Class-* Directive", () => {
 		expect(div.classList.contains("active")).toBe(true);
 
 		parent.__ctx.active = false;
+		flushSync();
 		expect(div.classList.contains("active")).toBe(false);
 	});
 
@@ -443,6 +448,7 @@ describe("Class-* Directive", () => {
 		expect(div.classList.contains("bold")).toBe(false);
 
 		parent.__ctx.isBold = true;
+		flushSync();
 		expect(div.classList.contains("bold")).toBe(true);
 	});
 
@@ -488,6 +494,7 @@ describe("Style-* Directive", () => {
 
 		expect(div.style.fontSize).toBe("16px");
 		parent.__ctx.size = "24px";
+		flushSync();
 		expect(div.style.fontSize).toBe("24px");
 	});
 
@@ -515,6 +522,7 @@ describe("Style-* Directive", () => {
 
 		expect(div.style.backgroundColor).toBe("red");
 		parent.__ctx.bg = null;
+		flushSync();
 		expect(div.style.backgroundColor).toBe("");
 	});
 });

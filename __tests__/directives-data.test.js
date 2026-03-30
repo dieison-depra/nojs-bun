@@ -2126,6 +2126,111 @@ describe("loading template", () => {
 	});
 });
 
+describe("get: timing do loading template (F2 regression)", () => {
+	beforeEach(httpSetup);
+	afterEach(httpTeardown);
+
+	test("[F2-A] loading template está no DOM antes do fetch completar", async () => {
+		// fetch nunca resolve — simula delay infinito
+		global.fetch.mockReturnValue(new Promise(() => {}));
+
+		const loadingTpl = document.createElement("template");
+		loadingTpl.id = "load-tpl-f2a";
+		loadingTpl.innerHTML = '<div class="spinner-container"></div>';
+		document.body.appendChild(loadingTpl);
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const el = document.createElement("div");
+		el.setAttribute("get", "/api/data");
+		el.setAttribute("as", "data");
+		el.setAttribute("loading", "load-tpl-f2a");
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+		// Um microtask tick permite que doRequest() avance até await _doFetch
+		await Promise.resolve();
+
+		expect(el.querySelector(".spinner-container")).not.toBeNull();
+	});
+
+	test("[F2-B] loading template é removido após o fetch completar", async () => {
+		global.fetch.mockResolvedValue(mockJsonResponse({ msg: "ok" }));
+
+		const loadingTpl = document.createElement("template");
+		loadingTpl.id = "load-tpl-f2b";
+		loadingTpl.innerHTML = '<div class="spinner-container"></div>';
+		document.body.appendChild(loadingTpl);
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const el = document.createElement("div");
+		el.setAttribute("get", "/api/data");
+		el.setAttribute("as", "data");
+		el.setAttribute("loading", "load-tpl-f2b");
+		el.innerHTML = '<p class="result" bind="data.msg"></p>';
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+
+		processTree(parent);
+		await Promise.resolve();
+		// Spinner deve estar presente enquanto fetch ainda não completou
+		expect(el.querySelector(".spinner-container")).not.toBeNull();
+
+		// Aguarda fetch completar e o DOM ser atualizado
+		await flush(50);
+
+		expect(el.querySelector(".spinner-container")).toBeNull();
+	});
+
+	test("[F2-C] não existe gap visual entre remoção do loading e renderização do success", async () => {
+		let resolveResponse;
+		global.fetch.mockReturnValue(
+			new Promise((res) => { resolveResponse = res; }),
+		);
+
+		const loadingTpl = document.createElement("template");
+		loadingTpl.id = "load-tpl-f2c";
+		loadingTpl.innerHTML = '<div class="f2c-loading"></div>';
+		document.body.appendChild(loadingTpl);
+
+		const successTpl = document.createElement("template");
+		successTpl.id = "success-tpl-f2c";
+		successTpl.innerHTML = '<div class="f2c-success" bind="data.v"></div>';
+		document.body.appendChild(successTpl);
+
+		const parent = document.createElement("div");
+		parent.setAttribute("state", "{}");
+		const el = document.createElement("div");
+		el.setAttribute("get", "/api/data");
+		el.setAttribute("as", "data");
+		el.setAttribute("loading", "load-tpl-f2c");
+		el.setAttribute("success", "success-tpl-f2c");
+		parent.appendChild(el);
+		document.body.appendChild(parent);
+
+		let loadingEverSeen = false;
+		let gapDetected = false;
+		const mo = new MutationObserver(() => {
+			const hasLoading = !!el.querySelector(".f2c-loading");
+			const hasSuccess = !!el.querySelector(".f2c-success");
+			if (hasLoading) loadingEverSeen = true;
+			if (loadingEverSeen && !hasLoading && !hasSuccess) gapDetected = true;
+		});
+		mo.observe(el, { childList: true, subtree: true });
+
+		processTree(parent);
+		await Promise.resolve();
+
+		resolveResponse(mockJsonResponse({ v: 42 }));
+		await flush(50);
+		mo.disconnect();
+
+		expect(gapDetected).toBe(false);
+	});
+});
+
 describe("custom validator error", () => {
 	beforeEach(() => {
 		document.body.innerHTML = "";

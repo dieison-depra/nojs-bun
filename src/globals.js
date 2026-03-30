@@ -105,7 +105,7 @@ export function _warn(...args) {
 }
 
 export function _notifyStoreWatchers() {
-	for (const fn of _storeWatchers) {
+	for (const fn of [..._storeWatchers]) {
 		if (fn._el && !fn._el.isConnected) {
 			_storeWatchers.delete(fn);
 			continue;
@@ -128,21 +128,29 @@ export function _watchExpr(expr, ctx, fn) {
 	if (typeof expr === "string" && expr.includes("$store")) {
 		_storeWatchers.add(fn);
 		fn._el = _currentEl;
-		// Self-cleanup when the element is removed without going through dispose
+		// Self-cleanup when the element is removed without going through _disposeElement.
+		// Walk up to the nearest stable ancestor that is not a display:contents wrapper
+		// (each creates <div style="display:contents"> wrappers that are ephemeral).
+		// Observing a stable ancestor with subtree:true ensures removal at any depth
+		// is detected — fixing the F3/F4 leak where watchers were never cleaned up
+		// when each rebuilt its wrapper divs.
 		const el = _currentEl;
-		if (el?.parentElement) {
-			const ro = new MutationObserver(() => {
-				const target = fn._elRef?.deref();
-				if (!target?.isConnected) {
-					_storeWatchers.delete(fn);
-					unwatch();
-					ro.disconnect();
-				}
-			});
-			// subtree: false — we only care about direct children of parentElement being removed
-			ro.observe(el.parentElement, { childList: true, subtree: false });
-			// Also disconnect via the normal disposal path to avoid a dangling MO
-			_onDispose(() => ro.disconnect());
+		if (el) {
+			let stableAncestor = el.parentElement;
+			while (stableAncestor?.style?.display === "contents") {
+				stableAncestor = stableAncestor.parentElement;
+			}
+			if (stableAncestor) {
+				const ro = new MutationObserver(() => {
+					if (!el.isConnected) {
+						_storeWatchers.delete(fn);
+						unwatch();
+						ro.disconnect();
+					}
+				});
+				ro.observe(stableAncestor, { childList: true, subtree: true });
+				_onDispose(() => ro.disconnect());
+			}
 		}
 	}
 }

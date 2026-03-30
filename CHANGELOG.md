@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.2] — 2026-03-30
+
+### Fixed
+
+- **`_notifyStoreWatchers` snapshot iteration** (`src/globals.js`): The function now iterates a snapshot `[..._storeWatchers]` instead of the live `Set`. Removed the `_notifyingStore` boolean re-entrancy guard introduced in a prior attempt — the guard was too aggressive and blocked legitimate calls from `flushEffects` (scheduled via `queueMicrotask` in a separate microtask), causing `each`-list updates not to reach store-reactive children on subsequent renders.
+
+- **`get` loading template visibility (F2)** (`src/directives/http.js`): Inserting a `loading` template and calling `processTree` schedules signal effects asynchronously via `queueMicrotask`. A `await Promise.resolve()` yield is now inserted after `processTree(el)` so the browser commits the loading template to layout before the `_doFetch` promise begins — fixes the spinner never appearing in environments where `processTree` schedules work via `queueMicrotask`.
+
+- **`$store` watcher leak in `each` items (F3/F4)** (`src/globals.js`): `_watchExpr` previously attached the cleanup `MutationObserver` directly to the `el.parentElement`. When `each` rebuilds its items, each item lives inside a `<div style="display:contents">` wrapper, and those wrappers are ephemeral — the MutationObserver never fired because the observed element was removed along with the item. The observer is now attached to the nearest stable ancestor above all `display:contents` wrappers (walking up via `style.display === "contents"`), ensuring `$store` watchers are cleaned up correctly when items are removed or the list is cleared.
+
+### Tests
+
+- **F1 regression suite** (`__tests__/directives-core.test.js`): Added `describe("F1 — _notifyStoreWatchers: snapshot e re-entrância")` with four tests — (A) sequential mutations do not accumulate duplicate watchers; (B) entries added mid-iteration are not visited in the same pass; (C) a self-removing watcher calling `_notifyStoreWatchers` terminates cleanly; (D) `rebuildItems` + `processTree` with `bind=$store.*` does not produce infinite effect cycles.
+
+- **F2 regression suite** (`__tests__/directives-data.test.js`): Added `describe("get: timing do loading template (F2 regression)")` with three tests — loading template is in the DOM before fetch completes; loading template is removed after fetch; no visual gap between loading removal and success template render.
+
+- **F3/F4 regression suite** (`__tests__/leak-regression.test.js`): Added T7 (`rebuildItems` fill/clear cycles don't accumulate `_storeWatchers`), T8 (`MutationObserver` cleanup works with `display:contents` wrappers across single and multi-watcher templates), and T9 (`reconcileItems` keyed removal proportionally reduces `_storeWatchers`).
+
+- **Benchmark `flushSync` fix** (`__benchmarks__/loops-benchmark.test.js`): Signal effects are scheduled asynchronously via `queueMicrotask`; `measureDOMOps` and `benchmark` helpers now call `flushSync()` after each mutation so that DOM-state assertions execute after effects drain rather than before.
+
 ## [1.14.1] — 2026-03-30
 
 ### Fixed

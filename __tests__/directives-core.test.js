@@ -1,6 +1,6 @@
 import { createContext } from "../src/context.js";
 import { findContext } from "../src/dom.js";
-import { _config, _stores } from "../src/globals.js";
+import { _config, _notifyStoreWatchers, _stores, _storeWatchers } from "../src/globals.js";
 import { _disposeTree, processTree } from "../src/registry.js";
 import { flushSync } from "../src/signals.js";
 
@@ -3476,5 +3476,128 @@ describe("M5 — debounce timer cleared on disposal", () => {
 
 		// The callback should NOT have fired because disposal cleared the timer
 		expect(ctx.clicked).toBe(false);
+	});
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  F1 — Bloqueio do event loop: _notifyStoreWatchers + each sequencial
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("F1 — _notifyStoreWatchers: snapshot e re-entrância", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	afterEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	test("[F1-A] dois on:click sequenciais em itens do each não acumulam _storeWatchers", () => {
+		_stores.cart = { items: [] };
+		document.body.innerHTML = `
+			<template id="item-tpl">
+				<li class="item"
+					show="$store.cart.items.length >= 0"
+					on:click="$store.cart.items = [...$store.cart.items, {id: item.id}]">
+					<span bind="item.nome"></span>
+				</li>
+			</template>
+			<div state='{"items":[{"id":1,"nome":"A"},{"id":2,"nome":"B"},{"id":3,"nome":"C"}]}'>
+				<ol id="list" each="item in items" template="item-tpl"></ol>
+			</div>
+		`;
+		processTree(document.body);
+		flushSync();
+
+		const sizeBefore = _storeWatchers.size;
+		const liItems = document.querySelectorAll("li.item");
+		expect(liItems.length).toBeGreaterThanOrEqual(2);
+
+		liItems[0].dispatchEvent(new Event("click", { bubbles: true }));
+		flushSync();
+		const sizeAfterFirst = _storeWatchers.size;
+
+		liItems[1].dispatchEvent(new Event("click", { bubbles: true }));
+		flushSync();
+		const sizeAfterSecond = _storeWatchers.size;
+
+		// _storeWatchers não deve crescer de forma descontrolada entre clicks
+		expect(sizeAfterSecond).toBeLessThanOrEqual(sizeAfterFirst + 2);
+		expect(sizeAfterSecond).toBeLessThanOrEqual(sizeBefore + 6);
+		// Estado correto: 2 itens adicionados ao carrinho
+		expect(_stores.cart.items.length).toBe(2);
+	});
+
+	test("[F1-B] _notifyStoreWatchers não itera entradas adicionadas durante a própria iteração", () => {
+		let callCount = 0;
+		const fn2 = () => { callCount++; };
+		fn2._el = null;
+		const fn1 = () => {
+			callCount++;
+			// Adiciona fn2 ao Set durante a iteração de fn1
+			_storeWatchers.add(fn2);
+		};
+		fn1._el = null;
+
+		_storeWatchers.add(fn1);
+		_notifyStoreWatchers();
+
+		// Com snapshot ([..._storeWatchers]), fn2 não deve ser chamada neste passo
+		expect(callCount).toBe(1);
+
+		// Cleanup
+		_storeWatchers.delete(fn1);
+		_storeWatchers.delete(fn2);
+	});
+
+	test("[F1-C] re-entrância: watcher que se remove antes de chamar notify não causa loop infinito", () => {
+		// Verifica que um watcher pode se auto-remover e então chamar _notifyStoreWatchers
+		// sem causar recursão infinita (já que não está mais no Set na próxima iteração).
+		let calls = 0;
+		const selfRemovingFn = () => {
+			calls++;
+			// Auto-remove antes de re-invocar para evitar recursão infinita
+			_storeWatchers.delete(selfRemovingFn);
+			_notifyStoreWatchers();
+		};
+		selfRemovingFn._el = null;
+
+		_storeWatchers.add(selfRemovingFn);
+		_notifyStoreWatchers();
+
+		// Deve ter sido chamado exatamente 1 vez — após auto-remoção,
+		// a chamada recursiva não o encontra mais no Set.
+		expect(calls).toBe(1);
+		expect(_storeWatchers.has(selfRemovingFn)).toBe(false);
+	});
+
+	test("[F1-D] rebuildItems + processTree com bind=$store.* não alimenta flushEffects com ciclo infinito", () => {
+		_stores.cart = { count: 0 };
+		document.body.innerHTML = `
+			<template id="x-tpl">
+				<li bind="$store.cart.count"></li>
+			</template>
+			<div id="state-root" state='{"items":[{"id":1},{"id":2}]}'>
+				<ul id="list" each="x in items" template="x-tpl"></ul>
+			</div>
+		`;
+		processTree(document.body);
+		flushSync();
+
+		// `each` does not set __ctx on the ul — context lives on the state element
+		const stateEl = document.getElementById("state-root");
+		const ctx = stateEl.__ctx;
+
+		// 3 mutações sequenciais — flushSync() deve retornar em cada caso
+		ctx.$set("items", [{ id: 1 }, { id: 2 }, { id: 3 }]);
+		flushSync();
+		ctx.$set("items", [{ id: 1 }]);
+		flushSync();
+		ctx.$set("items", [{ id: 1 }, { id: 2 }]);
+		flushSync();
+
+		expect(document.querySelectorAll("#list li").length).toBe(2);
 	});
 });

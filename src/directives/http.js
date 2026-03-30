@@ -105,6 +105,10 @@ for (const method of HTTP_METHODS) {
 						el.innerHTML = "";
 						el.appendChild(clone);
 						processTree(el);
+						// Yield one microtask so the browser commits the loading template
+						// to layout before the fetch begins — fixes F2 spinner visibility
+						// in environments where processTree schedules work via queueMicrotask.
+						await Promise.resolve();
 					}
 				}
 

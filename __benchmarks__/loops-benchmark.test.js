@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { _stores } from "../src/globals.js";
+import { flushSync } from "../src/signals.js";
 import { processTree } from "../src/registry.js";
 
 import "../src/filters.js";
@@ -105,6 +106,7 @@ function measureDOMOps(fn) {
 	};
 
 	fn();
+	flushSync(); // drain async signal effects before measuring DOM state
 
 	document.createElement = origCreate;
 	Element.prototype.cloneNode = origClone;
@@ -126,6 +128,7 @@ function benchmark(fn, runs = 6) {
 		const h0 = process.memoryUsage().heapUsed;
 		const t0 = performance.now();
 		fn();
+		flushSync(); // drain async signal effects for accurate timing
 		const t1 = performance.now();
 		const h1 = process.memoryUsage().heapUsed;
 		if (r === 0) continue; // discard warm-up

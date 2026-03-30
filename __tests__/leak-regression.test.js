@@ -307,3 +307,203 @@ describe("[T6] full cycle — repeated add/clear sessions do not accumulate", ()
 		}
 	});
 });
+
+// ─── T7/T8/T9: F3/F4 — if/else + $store dentro de each ─────────────────────
+
+describe("[T7] rebuildItems: _storeWatchers não acumula com if=$store.* no template", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+	afterEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	test("5 ciclos fill/clear mantêm _storeWatchers próximo ao baseline", () => {
+		_stores.cart = { desconto: null };
+		document.body.innerHTML = `
+			<template id="ci-tpl">
+				<li>
+					<span bind="ci.nome"></span>
+					<button if="!$store.cart.desconto"
+					        on:click="$store.cart.desconto = {valor: 5}">Desconto</button>
+					<span else bind="$store.cart.desconto.valor"></span>
+				</li>
+			</template>
+			<div id="state-t7" state='{"items":[]}'>
+				<ul id="list" each="ci in items" template="ci-tpl"></ul>
+			</div>
+		`;
+		processTree(document.body);
+		flushSync();
+
+		const baseline = _storeWatchers.size;
+		const ctx = document.getElementById("state-t7").__ctx;
+
+		for (let i = 0; i < 5; i++) {
+			ctx.$set("items", [{ id: 1, nome: "A" }, { id: 2, nome: "B" }]);
+			_notifyStoreWatchers();
+			flushSync();
+			ctx.$set("items", []);
+			_notifyStoreWatchers();
+			flushSync();
+		}
+
+		// Após 5 ciclos fill/clear, _storeWatchers deve ser ≤ baseline + margem pequena
+		expect(_storeWatchers.size).toBeLessThanOrEqual(baseline + 2);
+	});
+});
+
+describe("[T8] MutationObserver cleanup funciona com wrappers display:contents do each", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+	afterEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	test("_storeWatchers volta ao tamanho anterior após fill/clear de each sem key=", async () => {
+		_stores.x = { flag: true };
+		document.body.innerHTML = `
+			<template id="t8-tpl">
+				<li show="$store.x.flag" bind="item.v"></li>
+			</template>
+			<div id="state-t8" state='{"items":[]}'>
+				<ul id="list" each="item in items" template="t8-tpl"></ul>
+			</div>
+		`;
+		processTree(document.body);
+		flushSync();
+
+		const sizeBefore = _storeWatchers.size;
+		const ctx = document.getElementById("state-t8").__ctx;
+
+		ctx.$set("items", [{ v: 1 }, { v: 2 }]);
+		_notifyStoreWatchers();
+		flushSync();
+
+		ctx.$set("items", []);
+		_notifyStoreWatchers();
+		flushSync();
+
+		// Aguarda MutationObserver disparar (se aplicável)
+		await new Promise((r) => setTimeout(r, 0));
+
+		// Com o fix (subtree:true + ancestral estável), watchers órfãos são removidos
+		expect(_storeWatchers.size).toBeLessThanOrEqual(sizeBefore + 1);
+	});
+
+	test("múltiplos $store watchers por item são todos removidos ao limpar a lista", async () => {
+		_stores.ui = { mode: "view" };
+		document.body.innerHTML = `
+			<template id="t8b-tpl">
+				<li>
+					<span show="$store.ui.mode === 'view'">view</span>
+					<span show="$store.ui.mode === 'edit'">edit</span>
+					<button if="$store.ui.mode === 'view'"
+					        on:click="$store.ui.mode = 'edit'">editar</button>
+				</li>
+			</template>
+			<div id="state-t8b" state='{"items":[]}'>
+				<ul id="list2" each="item in items" template="t8b-tpl"></ul>
+			</div>
+		`;
+		processTree(document.body);
+		flushSync();
+
+		const sizeBefore = _storeWatchers.size;
+		const ctx = document.getElementById("state-t8b").__ctx;
+
+		ctx.$set("items", [{ id: 1 }, { id: 2 }, { id: 3 }]);
+		_notifyStoreWatchers();
+		flushSync();
+
+		const sizeWithItems = _storeWatchers.size;
+		expect(sizeWithItems).toBeGreaterThan(sizeBefore);
+
+		ctx.$set("items", []);
+		_notifyStoreWatchers();
+		flushSync();
+		await new Promise((r) => setTimeout(r, 0));
+
+		// Todos os watchers dos 3 itens (3 × N watchers/item) devem ser removidos
+		expect(_storeWatchers.size).toBeLessThanOrEqual(sizeBefore + 1);
+	});
+});
+
+describe("[T9] reconcileItems (keyed): remoção de item limpa _storeWatchers do wrapper", () => {
+	beforeEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+	afterEach(() => {
+		document.body.innerHTML = "";
+		Object.keys(_stores).forEach((k) => delete _stores[k]);
+	});
+
+	test("remover 1 item de 3 reduz _storeWatchers proporcionalmente", () => {
+		_stores.s = { mode: "view" };
+		document.body.innerHTML = `
+			<template id="t9-tpl">
+				<li>
+					<div if="$store.s.mode === 'edit'" bind="item.v"></div>
+					<div else bind="item.v"></div>
+					<span show="$store.s.mode === 'view'">view</span>
+				</li>
+			</template>
+			<div id="state-t9" state='{"items":[]}'>
+				<ul id="list" each="item in items" key="item.id" template="t9-tpl"></ul>
+			</div>
+		`;
+		processTree(document.body);
+		flushSync();
+
+		const ctx = document.getElementById("state-t9").__ctx;
+
+		ctx.$set("items", [{ id: 1, v: "A" }, { id: 2, v: "B" }, { id: 3, v: "C" }]);
+		_notifyStoreWatchers();
+		flushSync();
+
+		const sizeWith3 = _storeWatchers.size;
+
+		// Remove item do meio — reconcileItems deve chamar _disposeChildren no wrapper removido
+		ctx.$set("items", [{ id: 1, v: "A" }, { id: 3, v: "C" }]);
+		_notifyStoreWatchers();
+		flushSync();
+
+		const sizeWith2 = _storeWatchers.size;
+
+		// Com 1 item a menos, watchers daquele item devem ter sido removidos
+		expect(sizeWith2).toBeLessThan(sizeWith3);
+	});
+
+	test("remover todos os itens zera os watchers adicionados pelos itens", () => {
+		_stores.s2 = { active: false };
+		document.body.innerHTML = `
+			<template id="t9b-tpl">
+				<li show="$store.s2.active" bind="item.nome"></li>
+			</template>
+			<div id="state-t9b" state='{"items":[]}'>
+				<ul id="list2" each="item in items" key="item.id" template="t9b-tpl"></ul>
+			</div>
+		`;
+		processTree(document.body);
+		flushSync();
+
+		const baseline = _storeWatchers.size;
+		const ctx = document.getElementById("state-t9b").__ctx;
+
+		ctx.$set("items", [{ id: 1, nome: "X" }, { id: 2, nome: "Y" }]);
+		_notifyStoreWatchers();
+		flushSync();
+
+		ctx.$set("items", []);
+		_notifyStoreWatchers();
+		flushSync();
+
+		expect(_storeWatchers.size).toBeLessThanOrEqual(baseline + 1);
+	});
+});

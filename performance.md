@@ -2,7 +2,7 @@
 
 > **Nota de Contexto:** Este plano foca em otimizações na camada de **Runtime (Core/Engine)**. Para otimizações na camada de **Build/Compilação (CLI)**, consulte o [Plano de Performance do nojs-cli](../../nojs-cli-bun/docs/performance-nojs-cli.md).
 
-> **Status:** Todas as cinco fases de runtime originais foram implementadas e mescladas na `main` em 2026-03-28. As quatro otimizações adicionais de baixa complexidade (R2, R9, R10, R15) foram implementadas e mescladas em 2026-03-28 (v1.13.0). Correções de corretude (B1, C1, A5) mescladas em 2026-03-30 (v1.14.1). Os resultados reais estão documentados em cada seção abaixo.
+> **Status:** Todas as cinco fases de runtime originais foram implementadas e mescladas na `main` em 2026-03-28. As quatro otimizações adicionais de baixa complexidade (R2, R9, R10, R15) foram implementadas e mescladas em 2026-03-28 (v1.13.0). Correções de corretude (B1, C1, A5) mescladas em 2026-03-30 (v1.14.1). Correções de estabilidade de reatividade e vazamentos de watcher (F1/F2/F3/F4) mescladas em 2026-03-30 (v1.14.2). Os resultados reais estão documentados em cada seção abaixo.
 
 Este documento detalha os gargalos identificados no `nojs-bun` em comparação com frameworks de alta performance (Svelte, SolidJS, Vue 3) e o plano de implementação executado para atingir métricas competitivas.
 
@@ -107,7 +107,7 @@ Este documento detalha os gargalos identificados no `nojs-bun` em comparação c
 | Memória em listas grandes | Redução significativa | ✅ Atingida (fase 3) |
 | `loops-benchmark.test.js` | Redução ≥ 50% | 🔄 A medir com benchmark completo |
 | Heap Size (10.000 itens) | Redução visível | 🔄 A medir com Chrome DevTools |
-| Testes de regressão | 0 falhas | ✅ 1.379/0 na `main` |
+| Testes de regressão | 0 falhas | ✅ 1.403/0 na `main` (v1.14.2) |
 | DocumentFragment batch (R2) | P1 -10%, P7 -20% | ✅ Entregue (v1.13.0) |
 | Effect deduplication (R9) | M3/M4 -5% | ✅ Entregue conservador (v1.13.0) |
 | WeakRef cleanup (R10) | Heap reduction | ✅ Entregue (v1.13.0) |
@@ -167,6 +167,16 @@ As seções abaixo complementam a Seção 2 com as quatro otimizações adiciona
   - **A5 — Variáveis de loop em expressões `on:*`**: `$index`, `$count`, `$first`, `$last`, `$even`, `$odd` são injetados no escopo de `_execStatement`. Padrões como `tasks = tasks.filter((_, i) => i !== $index)` em handlers de eventos funcionam corretamente a partir de contextos de item de loop.
 - **Testes:** 2 novos cenários de "Context Chain Write-back" em `__tests__/core.test.js` (loop de 1 nível e 2 níveis).
 - **Resultado:** Suite completa 320/0 (pass/fail); invariantes de Map/Signal preservadas após disposal.
+
+### Correções de Estabilidade de Reatividade (v1.14.2) ✅ Entregue
+
+- **Arquivos:** `src/globals.js`, `src/directives/http.js`
+- **Mudanças:**
+  - **F1 — Snapshot de `_notifyStoreWatchers`**: Iteração agora usa `[..._storeWatchers]` (snapshot imutável). Guard `_notifyingStore` removida — era agressiva demais e bloqueava chamadas legítimas vindas de `flushEffects` em microtasks separadas.
+  - **F2 — Visibilidade do loading template**: `await Promise.resolve()` inserido após `processTree(el)` no bloco de loading de `http.js`. Garante que o browser cometa o spinner no layout antes de o fetch iniciar — efeitos de sinal são assíncronos via `queueMicrotask`.
+  - **F3/F4 — Cleanup de watchers `$store` em itens de `each`**: `_watchExpr` agora escala até o ancestral estável acima de todos os wrappers `display:contents` antes de criar o `MutationObserver`. Wrappers de item efêmeros (criados por `each`) não causam mais vazamento de entradas em `_storeWatchers` após fill/clear de lista.
+- **Testes:** 14 novos testes em F1/F2/F3/F4; benchmarks corrigidos com `flushSync()` (efeitos de sinal são assíncronos).
+- **Resultado:** Suite completa 1403/0 (pass/fail); `_storeWatchers` permanece estável (≤ baseline + margem) após múltiplos ciclos fill/clear de listas com `$store.*` em templates.
 
 ---
 

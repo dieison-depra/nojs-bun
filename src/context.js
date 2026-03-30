@@ -200,7 +200,10 @@ export function createContext(data = {}, parent = null) {
 				return _routerInstance ? _routerInstance.current : {};
 			if (key === "$router") return _routerInstance;
 			if (key === "$i18n") return _i18n;
-			if (key === "$form") return target.$form || null;
+			// $form goes through getOrCreateSignal so that bind effects subscribe
+			// and automatically re-run when the form validation directive updates it.
+			if (key === "$form")
+				return getOrCreateSignal("$form", target.$form ?? null).get();
 
 			if (
 				typeof key === "string" &&
@@ -231,11 +234,30 @@ export function createContext(data = {}, parent = null) {
 			return target[key];
 		},
 		set(target, key, value) {
+			// If the key doesn't exist locally (raw or signals) but exists in the
+			// parent chain, delegate the write upward. This allows expressions like
+			// `tasks = tasks.filter(...)` evaluated in an item context to correctly
+			// update the parent context's `tasks` signal.
+			if (
+				typeof key === "string" &&
+				!key.startsWith("$") &&
+				!(key in target) &&
+				!signals.has(key) &&
+				parent?.__isProxy &&
+				key in parent
+			) {
+				parent[key] = value;
+				return true;
+			}
+
 			const old = target[key];
 			target[key] = value; // keep raw in sync so _collectKeys reads correctly
 
 			if (typeof key === "string" && !key.startsWith("$")) {
 				getOrCreateSignal(key, value).set(value);
+			} else if (typeof key === "string" && signals.has(key)) {
+				// $-prefixed keys that are tracked as signals (e.g. $form) — update them.
+				signals.get(key).set(value);
 			}
 
 			if (old !== value) {

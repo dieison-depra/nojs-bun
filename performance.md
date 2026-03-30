@@ -2,7 +2,7 @@
 
 > **Nota de Contexto:** Este plano foca em otimizações na camada de **Runtime (Core/Engine)**. Para otimizações na camada de **Build/Compilação (CLI)**, consulte o [Plano de Performance do nojs-cli](../../nojs-cli-bun/docs/performance-nojs-cli.md).
 
-> **Status:** Todas as cinco fases de runtime originais foram implementadas e mescladas na `main` em 2026-03-28. As quatro otimizações adicionais de baixa complexidade (R2, R9, R10, R15) foram implementadas e mescladas em 2026-03-28 (v1.13.0). Os resultados reais estão documentados em cada seção abaixo.
+> **Status:** Todas as cinco fases de runtime originais foram implementadas e mescladas na `main` em 2026-03-28. As quatro otimizações adicionais de baixa complexidade (R2, R9, R10, R15) foram implementadas e mescladas em 2026-03-28 (v1.13.0). Correções de corretude (B1, C1, A5) mescladas em 2026-03-30 (v1.14.1). Os resultados reais estão documentados em cada seção abaixo.
 
 Este documento detalha os gargalos identificados no `nojs-bun` em comparação com frameworks de alta performance (Svelte, SolidJS, Vue 3) e o plano de implementação executado para atingir métricas competitivas.
 
@@ -156,6 +156,19 @@ As seções abaixo complementam a Seção 2 com as quatro otimizações adiciona
 - **Arquivos:** `src/registry.js`, `src/directives/loops.js`
 - **Mudança:** `_disposeAndClear(parent)` move todos os filhos para um `DocumentFragment` off-DOM antes de dispor. Callbacks de disposer executam fora do documento, evitando recálculos de layout. Substitui o padrão `_disposeChildren + innerHTML=""` nos caminhos de limpeza de loops.
 - **Resultado:** P9 esperado -5%.
+
+### Correções de Corretude (v1.14.1) ✅ Entregue
+
+- **Arquivos:** `src/context.js`, `src/evaluate.js`, `src/registry.js`, `__tests__/core.test.js`
+- **Mudanças:**
+  - **B1 — Invariante de listeners**: `_disposeElement()` re-inicializa a chave sentinela `"*"` após `__listeners.clear()`. Evita `TypeError` no cleanup de DevTools após disposal de elemento.
+  - **C1 — Registro de sinal `$form`**: `$form` agora passa por `getOrCreateSignal()` na criação do contexto. Efeitos `bind:` em chaves de `$form` (e.g. `$form.valid`) re-executam corretamente quando validadores atualizam.
+  - **Delegação de escrita para `$`-keys na cadeia pai**: O trap `set` do proxy percorre `$parent` antes de escrever chaves `$`-prefixadas, garantindo que escritas em `$form` herdado alcancem o contexto proprietário.
+  - **A5 — Variáveis de loop em expressões `on:*`**: `$index`, `$count`, `$first`, `$last`, `$even`, `$odd` são injetados no escopo de `_execStatement`. Padrões como `tasks = tasks.filter((_, i) => i !== $index)` em handlers de eventos funcionam corretamente a partir de contextos de item de loop.
+- **Testes:** 2 novos cenários de "Context Chain Write-back" em `__tests__/core.test.js` (loop de 1 nível e 2 níveis).
+- **Resultado:** Suite completa 320/0 (pass/fail); invariantes de Map/Signal preservadas após disposal.
+
+---
 
 ### Fase 6: Engine Híbrida e Otimizações de Loop (v1.14.0) ✅ Entregue
 

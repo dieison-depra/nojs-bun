@@ -39,9 +39,9 @@ On re-inspection the set-trap receiver issue is a separate theoretical concern t
 
 #### A5 — loop variable write-back
 
-**Status:** Implemented in `_assignToTarget()` lines 903–929. When an Identifier exists in `ctx` (checked via `target.name in ctx`), it calls `ctx.$set(name, value)`. For loops, the parent context owns the array; `$set` is called on the immediate `ctx` which has `in` traversal to parent. The `in` operator on a Proxy walks the `has` trap which checks `$parent` — so the lookup reaches the owning context. However `ctx.$set()` only writes to the immediate proxy's raw object, not the parent that actually owns the key.
+**Status:** ✅ Fixed. The `_execStatement()` write-back loop (post-execution) already walks `ctx.$parent` chain to find the owning context and calls `$set` there. Loop `$`-prefixed variables (`$index`, `$count`, etc.) are also injected into scope so expressions like `tasks = tasks.filter((t, i) => i !== $index)` work correctly from a child loop-item context.
 
-**Fix required:** `_assignToTarget` must walk the parent chain to find the context that *owns* the key before calling `$set`.
+**Verified by:** `__tests__/core.test.js` — "Context Chain Write-back" (3 tests: basic, single-level loop, two-level loop)
 
 #### A1 / A2 — _warn on evaluate errors
 
@@ -84,7 +84,7 @@ TypeError: undefined is not an object (evaluating 'listeners.get("*").has')
 |---|---|---|---|
 | B1 | `src/registry.js` | After `__listeners.clear()`, set `__listeners.set("*", new Set())` | 1 — active test failure |
 | C1 | `__tests__/directives-data.test.js` | Replace `jest.spyOn` with direct mock on `el.reset` | 2 — active test failure |
-| A5 | `src/evaluate.js` | `_assignToTarget`: walk `ctx.$parent` chain to find key owner | 3 — correctness |
+| A5 | `src/evaluate.js` + `__tests__/core.test.js` | ✅ Fixed — `_execStatement` write-back walks parent chain; 2 new loop tests added | 3 — correctness |
 
 ---
 

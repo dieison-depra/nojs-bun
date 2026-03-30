@@ -172,6 +172,15 @@ This fork ships nine runtime optimizations across five phases targeting CPU, mem
 | **R10 — WeakRef element tracking** | `$watch` stores effect bindings as `WeakRef(el)`; `_isEffectDead()` centralises dead-element detection in `notify()` and `_endBatch()` | DOM nodes removed and no longer referenced are eligible for GC even while effects remain in listener Sets — reduces long-term heap pressure in SPAs |
 | **R15 — `_disposeAndClear` batch dispose** | New `_disposeAndClear(parent)` moves children to an off-DOM `DocumentFragment` before running disposers | Disposer callbacks fire off the live document — zero browser layout recalcs during list teardown |
 
+#### Correctness Fixes (v1.14.1)
+
+| Fix | Change | Impact |
+|----|---------|--------|
+| **DevTools listener invariant** | `_disposeElement()` re-initializes the `"*"` sentinel key after `__listeners.clear()` | Prevents `TypeError` in DevTools listener cleanup on element disposal |
+| **`$form` signal registration** | `$form` is now routed through `getOrCreateSignal()` in context creation | `bind:` effects on `$form` keys (e.g. `$form.valid`) re-run correctly when validators update |
+| **Parent-chain `$`-key delegation** | Context proxy `set` trap walks `$parent` chain before writing `$`-prefixed keys | Writes to inherited `$form` and similar keys reach the owning ancestor context |
+| **Loop variables in event expressions** | `$index`, `$count`, `$first`, `$last`, `$even`, `$odd` injected into `_execStatement` scope | `on:click="tasks = tasks.filter((_, i) => i !== $index)"` and similar patterns work correctly |
+
 ### Using Static Hoisting
 
 ```html

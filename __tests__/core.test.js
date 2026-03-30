@@ -1681,6 +1681,26 @@ describe("Statement Interpreter", () => {
 			_execStatement("count = count + 1", child);
 			expect(parent.count).toBe(1);
 		});
+
+		test("loop item: $index available and parent array mutable from child ctx", () => {
+			// Simulates: on:click="tasks = tasks.filter((t, i) => i !== $index)"
+			// parent owns `tasks`; loop item ctx owns `$index`
+			const tasks = ["a", "b", "c"];
+			const parent = createContext({ tasks });
+			const loopItemCtx = createContext({ item: "b", $index: 1 }, parent);
+			_execStatement("tasks = tasks.filter((t, i) => i !== $index)", loopItemCtx);
+			expect(parent.tasks).toEqual(["a", "c"]);
+		});
+
+		test("loop item: $index usable in event expression with grandparent array", () => {
+			// Two-level nesting: grandparent owns array, child is the loop item ctx
+			const items = [10, 20, 30];
+			const grandparent = createContext({ items });
+			const intermediate = createContext({}, grandparent);
+			const loopItemCtx = createContext({ $index: 1 }, intermediate);
+			_execStatement("items = items.filter((_, i) => i !== $index)", loopItemCtx);
+			expect(grandparent.items).toEqual([10, 30]);
+		});
 	});
 
 	describe("Read-only location proxy", () => {

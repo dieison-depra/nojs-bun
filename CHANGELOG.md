@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.1] — 2026-03-30
+
+### Fixed
+
+- **Context listeners invariant** (`src/registry.js`): `_disposeElement()` called `__listeners.clear()` which removed the `"*"` sentinel key, causing `listeners.get("*").has(fn)` to throw `TypeError: undefined is not an object` in DevTools listener cleanup. The `"*"` key is now re-initialized with an empty `Set` after the clear, preserving the Map contract.
+
+- **`$form` signal subscription** (`src/context.js`): The `$form` context key was set directly on the proxy target, bypassing `getOrCreateSignal()`. As a result, `bind:` effects never subscribed to form-validation updates and directives relying on `$form` state (e.g. `bind-disabled="!$form.valid"`) failed to re-run when validators changed. `$form` is now routed through `getOrCreateSignal()` so all bind effects subscribe correctly.
+
+- **Parent-chain write delegation for `$`-prefixed keys** (`src/context.js`): When a `$`-prefixed key (e.g. `$form`) was written on a child context that did not own it, the write was silently dropped instead of being delegated to the owning ancestor context. The proxy `set` trap now walks `$parent` to find the owning context before falling back to local assignment.
+
+- **Loop variables in `on:*` event expressions** (`src/evaluate.js`): `$index`, `$count`, `$first`, `$last`, `$even`, and `$odd` were excluded from `_collectKeys` (by design) but were also missing from the flat scope used by `_execStatement`. Event handler expressions such as `tasks = tasks.filter((t, i) => i !== $index)` would resolve `$index` as `undefined`. The `_execStatement` scope-builder now injects all `$`-prefixed keys found in the context chain, making loop metadata available in event handlers.
+
+- **Context chain write-back tests** (`__tests__/core.test.js`): Added two targeted tests under "Context Chain Write-back" — one verifying that a loop-item child context can filter a parent-owned array using `$index`, and one verifying the same for a two-level (grandparent) nesting. Both scenarios now pass.
+
 ## [1.14.0] — 2026-03-28
 
 ### Added

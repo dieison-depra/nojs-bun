@@ -1389,6 +1389,16 @@ export function _execStatement(expr, ctx, extraVars = {}) {
 			for (const k of Object.keys(_wCtx.__raw)) chainKeys.add(k);
 			_wCtx = _wCtx.$parent;
 		}
+
+		// Expose $-prefixed loop variables ($index, $count, $first, $last, $even, $odd)
+		// that are intentionally excluded from _collectKeys but must be available in
+		// on:click / on:* expression scope (e.g. tasks.filter((t,i) => i !== $index)).
+		for (const k of chainKeys) {
+			if (k.startsWith("$") && !(k in scope)) {
+				scope[k] = ctx[k];
+			}
+		}
+
 		const originals = {};
 		for (const k of chainKeys) {
 			if (!k.startsWith("$") && k in scope) originals[k] = scope[k];
